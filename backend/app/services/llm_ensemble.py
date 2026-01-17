@@ -184,12 +184,17 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - additionalGenres: 1-2 tags (Sub-Genres)
    - moods: 2-3 tags
    - instrumentation: 2-3 tags
-   - mainInstrument: EXACTLY 1 tag
+   - mainInstrument: EXACTLY 1 tag. BAN "Vocals" as mainInstrument. If vocal-heavy, choose the backing instrument (e.g., Synthesizer, Guitar, Piano).
    - keywords: EXACTLY 5 tags
    - useCases: EXACTLY 3 examples
-   - trackDescription: MINIMUM 400 characters. Descriptive, engaging, professional bio.
+   - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical analysis.
+   - mood_vibe: REQUIRED. detailed atmospheric description.
+   - energy_level: REQUIRED.
 
-3. REQUIRED FIELDS: "mood_vibe" and "energy_level" MUST NOT BE EMPTY.
+3. VOCAL STYLE RULES:
+   - If instrumental: "gender": "Instrumental", others "none".
+   - If vocals exist: NEVER use "none". Guess "Male", "Female", "Duet" or "Processed". Populate timbre/delivery/emotionalTone.
+
 4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
 
 RETURN STRICT JSON:
@@ -197,19 +202,19 @@ RETURN STRICT JSON:
   "mainGenre": "primary genre",
   "additionalGenres": ["sub1", "sub2"],
   "moods": ["mood1", "mood2", "mood3"],
-  "mainInstrument": "dominant instrument",
+  "mainInstrument": "dominant instrument (NOT Vocals)",
   "instrumentation": ["inst1", "inst2", "inst3"],
   "vocalStyle": {{
     "gender": "Male/Female/Duet/Instrumental",
-    "timbre": "Warm/Bright/Raspy",
-    "delivery": "Melodic/Rap/Spoken",
-    "emotionalTone": "Happy/Sad/Aggressive"
+    "timbre": "Warm/Bright/Raspy/none",
+    "delivery": "Melodic/Rap/Spoken/none",
+    "emotionalTone": "Happy/Sad/Aggressive/none"
   }},
   "keywords": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "useCases": ["Usage 1", "Usage 2", "Usage 3"],
   "mood_vibe": "Detailed atmospheric description (REQUIRED)",
   "energy_level": "Low/Medium/High/Very High (REQUIRED)",
-  "trackDescription": "Long, detailed professional description of the track (min 400 chars).",
+  "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["artist1", "artist2"],
   "confidence": 0.95
 }}"""
@@ -259,19 +264,23 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - additionalGenres: 1-2 tags
    - moods: 2-3 tags
    - instrumentation: 2-3 tags
-   - mainInstrument: EXACTLY 1 tag
+   - mainInstrument: EXACTLY 1 tag. BAN "Vocals". Use backing instrument.
    - keywords: EXACTLY 5 tags
    - useCases: EXACTLY 3 examples
-   - trackDescription: MINIMUM 400 characters.
+   - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical.
 
-3. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
+3. VOCAL STYLE RULES:
+   - If instrumental: "gender": "Instrumental", others "none".
+   - If vocals exist: NEVER use "none". Populate all fields.
+
+4. Never return empty arrays or placeholders like "No tags".
 
 Analyze this track and return STRICT JSON:
 {{
   "mainGenre": "string",
   "additionalGenres": ["string", "string"],
   "moods": ["string", "string", "string"],
-  "mainInstrument": "string",
+  "mainInstrument": "string (NOT Vocals)",
   "instrumentation": ["string", "string"],
   "vocalStyle": {{
     "gender": "Male/Female/Instrumental",
@@ -283,7 +292,7 @@ Analyze this track and return STRICT JSON:
   "useCases": ["u1", "u2", "u3"],
   "mood_vibe": "Detailed description (REQUIRED)",
   "energy_level": "Low/Medium/High (REQUIRED)",
-  "trackDescription": "Long description (min 400 chars).",
+  "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["string"],
   "confidence": 0.95
 }}"""
@@ -331,26 +340,30 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - additionalGenres: 1-2 tags
    - moods: 2-3 tags
    - instrumentation: 2-3 tags
-   - mainInstrument: EXACTLY 1 tag
+   - mainInstrument: EXACTLY 1 tag. BAN "Vocals". Use backing instrument.
    - keywords: EXACTLY 5 tags
    - useCases: EXACTLY 3 examples
-   - trackDescription: MINIMUM 400 characters.
+   - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical.
 
-3. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
+3. VOCAL STYLE RULES:
+   - If instrumental: "gender": "Instrumental", others "none".
+   - If vocals exist: NEVER use "none". Populate all fields.
+
+4. Never return empty arrays or placeholders like "No tags".
 
 Analyze this track and return STRICT JSON:
 {{
   "mainGenre": "string",
   "additionalGenres": ["string", "string"],
   "moods": ["string", "string", "string"],
-  "mainInstrument": "string",
+  "mainInstrument": "string (NOT Vocals)",
   "instrumentation": ["string", "string"],
   "vocalStyle": {{"gender": "Male/Female/Instrumental", "timbre": "string", "delivery": "string", "emotionalTone": "string"}},
   "keywords": ["k1", "k2", "k3", "k4", "k5"],
   "useCases": ["u1", "u2", "u3"],
   "mood_vibe": "Detailed description (REQUIRED)",
   "energy_level": "Low/Medium/High (REQUIRED)",
-  "trackDescription": "Long description (min 400 chars).",
+  "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["string"],
   "confidence": 0.92
 }}"""
@@ -424,10 +437,31 @@ Analyze this track and return STRICT JSON:
         # Vocal Style Consensus
         vocal_styles = [r.get('vocalStyle') for r in results if isinstance(r.get('vocalStyle'), dict)]
         cons_vocal = {"gender": "none", "timbre": "none", "delivery": "none", "emotionalTone": "none"}
+        
         if vocal_styles:
-            for part in ["gender", "timbre", "delivery", "emotionalTone"]:
-                votes = Counter([str(vs.get(part, "none")).lower().strip() for vs in vocal_styles if vs.get(part)])
-                cons_vocal[part] = votes.most_common(1)[0][0] if votes else "none"
+            # 1. Determine Gender (Primary Driver)
+            genders = [str(vs.get('gender', 'none')).lower().strip() for vs in vocal_styles]
+            valid_genders = [g for g in genders if g != 'none']
+            
+            if valid_genders:
+                cons_vocal['gender'] = Counter(valid_genders).most_common(1)[0][0]
+            else:
+                cons_vocal['gender'] = 'none' # or 'instrumental' if we want to be safe, but 'none' is honest
+
+            # 2. If Instrumental, force others to none
+            if cons_vocal['gender'] == 'instrumental':
+                cons_vocal['timbre'] = 'none'
+                cons_vocal['delivery'] = 'none'
+                cons_vocal['emotionalTone'] = 'none'
+            else:
+                # 3. For others, filter 'none' and pick best non-empty value
+                for part in ["timbre", "delivery", "emotionalTone"]:
+                    vals = [str(vs.get(part, 'none')).lower().strip() for vs in vocal_styles]
+                    valid_vals = [v for v in vals if v != 'none']
+                    if valid_vals:
+                        cons_vocal[part] = Counter(valid_vals).most_common(1)[0][0]
+                    else:
+                        cons_vocal[part] = 'none'
 
         # Vibe & Energy (take most frequent or longest)
         # Improved Fallback: If empty, try to construct from mood/genre

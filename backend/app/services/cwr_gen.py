@@ -59,12 +59,12 @@ class CWRGenerator:
         # WRK | Transaction Seq(8) | Record Seq(8) | Title(60) | Lang(3) | ISWC(11) | Copyright Date(8) | Duration(6) ...
         title = metadata.get('title', 'Unknown Title').upper()
         duration_sec = metadata.get('duration') or 0
-        minutes = int(duration_sec // 60)
+        
+        hours = int(duration_sec // 3600)
+        minutes = int((duration_sec % 3600) // 60)
         seconds = int(duration_sec % 60)
-        dur_str = f"{minutes:03}{seconds:02}{0}" # HHMMSS -> MMMSS? Spec varies, usually HHMMSS
-        # Standard CWR 2.1 duration is HHMMSS usually, but field len is 6. Let's use 000300 (3 min)
-        dur_str = f"00{minutes:02}{seconds:02}" 
-
+        dur_str = f"{hours:02}{minutes:02}{seconds:02}" # HHMMSS
+        
         iswc = (metadata.get('iswc') or "").replace("-", "")
         
         wrk = "WRK"
@@ -72,7 +72,7 @@ class CWRGenerator:
         wrk += "00000000" # Record sequence (always 00000000 for WRK)
         wrk += CWRGenerator._pad(title, 60)
         wrk += "EN " # Language Code (ISO 639 2)
-        wrk += "_UNK_" # Work Type (Pop, etc - optional/std) -> "POP"? Leaving blank/UNK 
+        wrk += "POP" # Work Type (Pop, etc) - 3 chars fixed width
         wrk += CWRGenerator._pad(iswc, 11)
         wrk += CWRGenerator._pad(date_str, 8) # Copyright Date (assuming today for fresh)
         wrk += " "*60 # Original Title (if version)
@@ -82,19 +82,19 @@ class CWRGenerator:
         
         # 4. SPU - Publisher (Sender)
         # SPU | Trans Seq | Rec Seq | Sequence # | Publisher ID | Name | Type | ... | Ownership Share
+        publisher_name = metadata.get('publisher') or sender_name
         spu = "SPU"
         spu += "00000001"
-        spu += "00000001" # Record Seq 1
-        spu += "01" # Publisher verify seq
+        spu += "00000001"
+        spu += "01"
         spu += CWRGenerator._pad(sender_id, 9)
-        spu += CWRGenerator._pad(sender_name, 45)
-        spu += "E " # Original Publisher
+        spu += CWRGenerator._pad(publisher_name, 45)
+        spu += "E "
         spu += " "*9 # Tax ID
         spu += " "*45 # Address involved... skipping for brevity
-        # Ownership share 50% = 05000 (3 digits + 2 decimals)
-        spu += "05000" # PR Ownership
-        spu += "05000" # MR Ownership
-        spu += "05000" # SR Ownership
+        spu += "10000"
+        spu += "10000"
+        spu += "10000"
         spu += "I2136" # Society Assigned Agreement Number (placeholder)
         lines.append(spu)
 
@@ -104,10 +104,10 @@ class CWRGenerator:
         spt += "00000001"
         spt += "00000002" 
         spt += CWRGenerator._pad(sender_id, 9) 
-        spt += "2136" # I2136 is World
-        spt += "05000" # PR Share
-        spt += "05000" # MR Share
-        spt += "05000" # SR Share 
+        spt += "2136"
+        spt += "10000"
+        spt += "10000"
+        spt += "10000"
         lines.append(spt)
 
         # 6. SWR - Writer
@@ -128,16 +128,11 @@ class CWRGenerator:
         pwr += "00000001"
         pwr += "00000004"
         pwr += CWRGenerator._pad(sender_id, 9) # Publisher IP Key
-        pwr += CWRGenerator._pad(composer.upper(), 9) # Writer Key (using Name as ID placeholder logic is risky but...) 
-        # Actually PWR links SPU and SWR.
-        pwr += " "*2 # Code?
-        pwr += "10000" # Writer share 100% of the 50%? CWR logic is complex. 
-        # Simplified:
-        # Just linking
-        pwr = f"PWR0000000100000004{CWRGenerator._pad(sender_id, 9)}{CWRGenerator._pad('WRITER001', 9)}00000"
-        # Re-doing SWR ID
-        
-        # 8. GRL - Group Trailer
+        pwr += CWRGenerator._pad("WRITER001", 9) # Writer Key (Placeholder)
+        pwr += " "*14 # Society Agreement Number
+        pwr += "10000" # Writer share 100% (Publisher collects)
+        pwr += "00000" # PR/MR/SR shares... simplified
+        lines.append(pwr)
         # GRL | Group ID | Transaction Count | Record Count
         trans_count = 1
         record_count = len(lines) - 2 # Excluding HDR, including GRL?

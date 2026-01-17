@@ -11,9 +11,10 @@ interface CopyrightCardProps {
     file: File | null;
     onUpdateFile: (file: File) => void;
     showToast: (message: string, type: 'success' | 'error' | 'info') => void;
+    jobId?: string | null;
 }
 
-const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateFile, showToast }) => {
+const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateFile, showToast, jobId }) => {
     const [hash, setHash] = useState<string | null>(null);
     const [isHashing, setIsHashing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -80,7 +81,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
             showToast("Generating premium cert and pinning JSON to IPFS...", 'info');
 
             // This now calls the backend which uploads JSON to Pinata
-            const ipfsHash = await pinCertificateToIPFS(metadata, hash, file.name);
+            const ipfsHash = await pinCertificateToIPFS(metadata, hash, file.name, jobId || undefined);
             const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
             setIpfsLink(gatewayUrl);
@@ -177,7 +178,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
                                     variant="primary"
                                     className={`flex-1 justify-center ${hash ? 'bg-emerald-600 hover:bg-emerald-700' : 'opacity-50'} text-white border-none`}
                                 >
-                                    <Stamp className="w-4 h-4 mr-2" /> View Certificate
+                                    <Download className="w-4 h-4 mr-2" /> Download Certificate
                                 </Button>
 
                                 <Button

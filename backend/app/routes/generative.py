@@ -220,6 +220,7 @@ class CertificateRequest(BaseModel):
     metadata: Dict[str, Any] = Field(..., description="Complete metadata object")
     sha256: str = Field(..., description="SHA-256 hash of the audio file")
     filename: str = Field(..., description="Original filename")
+    job_id: str | None = Field(None, description="Optional backend Job ID to link IPFS data")
 
 
 @router.post("/certificate")
@@ -258,7 +259,23 @@ async def generate_certificate(request: CertificateRequest):
         pin_name = f"Cert_{request.filename}_{timestamp}"
         ipfs_result = await upload_json_to_pinata(certificate_data, pin_name)
         
-        # 3. Return the IPFS keys
+        # 3. Optionally persist IPFS data to the related Job
+        if request.job_id:
+            try:
+                from app.db import SessionLocal, Job
+                db = SessionLocal()
+                try:
+                    job = db.query(Job).filter(Job.id == request.job_id).first()
+                    if job:
+                        job.ipfs_hash = ipfs_result.get("ipfs_hash")
+                        job.ipfs_url = ipfs_result.get("ipfs_url")
+                        db.commit()
+                finally:
+                    db.close()
+            except Exception as db_err:
+                logger.error(f"Failed to persist IPFS data for job {request.job_id}: {db_err}")
+        
+        # 4. Return the IPFS keys
         return {
             "ipfs_hash": ipfs_result["ipfs_hash"],
             "ipfs_url": ipfs_result["ipfs_url"],
@@ -313,4 +330,3 @@ async def calculate_file_hash(file: UploadFile = File(...)):
                 os.remove(temp_file)
             except:
                 pass
-

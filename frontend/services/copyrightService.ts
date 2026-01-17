@@ -30,9 +30,14 @@ export const calculateFileHash = async (file: File): Promise<string> => {
  * Generates the certificate on the backend, which uploads to IPFS (Pinata) 
  * and returns the secure hash/url.
  */
-export const pinCertificateToIPFS = async (metadata: Metadata, hash: string, fileName: string): Promise<string> => {
+export const pinCertificateToIPFS = async (
+    metadata: Metadata,
+    hash: string,
+    fileName: string,
+    jobId?: string
+): Promise<string> => {
     try {
-        const result = await backendService.generateCertificate(metadata, hash, fileName);
+        const result = await backendService.generateCertificate(metadata, hash, fileName, jobId);
         return result.ipfs_hash;
     } catch (e) {
         console.error("IPFS pinning failed", e);
@@ -44,15 +49,14 @@ export const pinCertificateToIPFS = async (metadata: Metadata, hash: string, fil
  * For preview/download, we now use the frontend viewer. 
  * This function can return the data or allow client-side handling.
  */
-export const generateCertificate = async (metadata: Metadata, hash: string, fileName: string) => {
+export const generateCertificate = async (metadata: Metadata, hash: string, fileName: string, jobId?: string) => {
     // Legacy support: The new flow uses the Viewer component. 
     // We can trigger the backend generation (IPFS upload) here too if desired,
     // or just return success.
-    return await pinCertificateToIPFS(metadata, hash, fileName);
+    return await pinCertificateToIPFS(metadata, hash, fileName, jobId);
 };
 
 export const getCertificateContent = async (metadata: Metadata, hash: string, fileName: string): Promise<any> => {
     // Preview is now client-side, this is just a stub or could fetch existing IPFS data if needed
     return "";
 };
-

@@ -481,6 +481,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             file={uploadedFile}
                             onUpdateFile={onUpdateFile}
                             showToast={showToast}
+                            jobId={currentAnalysis?.jobId}
                         />
                     </AnimatedSection>
                 </div>

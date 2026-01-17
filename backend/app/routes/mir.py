@@ -107,65 +107,6 @@ async def tag_and_download_track(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@router.post("/separate")
-async def separate_track_vocals(
-    background_tasks: BackgroundTasks, file: UploadFile = File(...)
-):
-    """
-    Separates the uploaded track using Demucs.
-    Returns the ISOLATED VOCAL track (MP3).
-    """
-    from app.services.separation import SeparationService
-
-    if not SeparationService.is_available():
-        return JSONResponse(
-            status_code=503, content={"error": "Demucs/Torch not active."}
-        )
-
-    file_id = str(uuid.uuid4())
-    ext = os.path.splitext(file.filename)[1]
-
-    # Input Temp
-    temp_input_path = os.path.join(TEMP_DIR, f"input_{file_id}{ext}")
-    # Output Dir (Demucs creates subfolders)
-    temp_output_dir = os.path.join(TEMP_DIR, f"out_{file_id}")
-    os.makedirs(temp_output_dir, exist_ok=True)
-
-    try:
-        with open(temp_input_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Separate
-        result = await SeparationService.separate_vocals(
-            temp_input_path, temp_output_dir
-        )
-
-        vocals_file = result.get("vocals")
-
-        if vocals_file and os.path.exists(vocals_file):
-            # Helper to clean directory
-            def clean_dir():
-                shutil.rmtree(temp_output_dir, ignore_errors=True)
-                if os.path.exists(temp_input_path):
-                    os.remove(temp_input_path)
-
-            background_tasks.add_task(clean_dir)
-
-            return FileResponse(
-                vocals_file,
-                media_type="audio/mpeg",
-                filename=f"vocals_{file.filename}.mp3",
-            )
-        else:
-            return JSONResponse(
-                status_code=500,
-                content={"error": "Separation completed but files not found."},
-            )
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
 @router.post("/batch_analyze")
 async def batch_analyze_tracks(
     background_tasks: BackgroundTasks,

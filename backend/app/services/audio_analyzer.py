@@ -377,37 +377,6 @@ class AdvancedAudioAnalyzer:
             return {"error": str(e)}
 
     @staticmethod
-    async def separate_stems(
-        file_path: str, output_dir: str, stems: int = 2
-    ) -> Dict[str, str]:
-        """
-        Separate audio into stems (vocals, accompaniment, drums, bass, other).
-        Uses: Spleeter
-
-        stems: 2 (vocals/accompaniment), 4 (vocals/drums/bass/other), 5 (vocals/drums/bass/piano/other)
-        """
-        try:
-            Separator = get_spleeter()
-
-            separator = Separator(f"spleeter:{stems}stems")
-            separator.separate_to_file(file_path, output_dir)
-
-            # Return paths to separated files
-            base_name = os.path.splitext(os.path.basename(file_path))[0]
-            stem_dir = os.path.join(output_dir, base_name)
-
-            stem_files = {}
-            if os.path.exists(stem_dir):
-                for f in os.listdir(stem_dir):
-                    stem_name = os.path.splitext(f)[0]
-                    stem_files[stem_name] = os.path.join(stem_dir, f)
-
-            return stem_files
-        except Exception as e:
-            logger.error(f"Stem separation failed: {e}")
-            return {"error": str(e)}
-
-    @staticmethod
     def full_analysis(file_path: str) -> Dict[str, Any]:
         """
         Run all available analyses and combine results.

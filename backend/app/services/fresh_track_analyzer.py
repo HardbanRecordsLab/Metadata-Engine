@@ -267,6 +267,15 @@ Return JSON:
         Merge results into a flat Metadata object.
         """
         
+        # Determine Language
+        lang = lyrics_analysis.get('insights', {}).get('language')
+        if not lang:
+            v_gender = llm_consensus.get('vocalStyle', {}).get('gender', 'none').lower()
+            if v_gender in ['instrumental', 'none']:
+                lang = 'Instrumental'
+            else:
+                lang = 'English' # Default assumption if vocals exist but language not detected
+
         # Base metadata from LLM
         metadata = {
             "mainGenre": llm_consensus.get('mainGenre', 'Unknown'),
@@ -280,9 +289,9 @@ Return JSON:
             "vocalStyle": llm_consensus.get('vocalStyle', {}),
             "energy_level": llm_consensus.get('energy_level', 'Medium'),
             "mood_vibe": llm_consensus.get('mood_vibe', ''),
-            "bpm": audio_features.get('rhythm', {}).get('tempo', 0),
+            "bpm": int(round(audio_features.get('rhythm', {}).get('tempo', 0))),
             "duration": audio_features.get('meta', {}).get('duration', 0),
-            "language": lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
+            "language": lang,
         }
 
         # Merge lyrics if present

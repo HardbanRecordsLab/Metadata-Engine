@@ -44,6 +44,8 @@ class Job(Base):
     duration = Column(Integer, nullable=True)
     structure = Column(JSON, nullable=True)
     coverArt = Column(String, nullable=True)
+    ipfs_hash = Column(String, nullable=True)
+    ipfs_url = Column(String, nullable=True)
     timestamp = Column(DateTime)
 
 class AnalysisHistory(Base):
@@ -72,7 +74,9 @@ def run_migrations():
                 "message": "TEXT",
                 "duration": "INTEGER",
                 "structure": "JSON",
-                "coverArt": "TEXT"
+                "coverArt": "TEXT",
+                "ipfs_hash": "TEXT",
+                "ipfs_url": "TEXT",
             }
             
             for col, col_type in required.items():
