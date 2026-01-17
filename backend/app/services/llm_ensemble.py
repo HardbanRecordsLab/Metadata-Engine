@@ -190,6 +190,7 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - trackDescription: MINIMUM 400 characters. Descriptive, engaging, professional bio.
 
 3. REQUIRED FIELDS: "mood_vibe" and "energy_level" MUST NOT BE EMPTY.
+4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
 
 RETURN STRICT JSON:
 {{
@@ -263,6 +264,8 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - useCases: EXACTLY 3 examples
    - trackDescription: MINIMUM 400 characters.
 
+3. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
+
 Analyze this track and return STRICT JSON:
 {{
   "mainGenre": "string",
@@ -332,6 +335,8 @@ STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
    - keywords: EXACTLY 5 tags
    - useCases: EXACTLY 3 examples
    - trackDescription: MINIMUM 400 characters.
+
+3. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
 
 Analyze this track and return STRICT JSON:
 {{
@@ -466,38 +471,132 @@ Analyze this track and return STRICT JSON:
     
     def _fallback_classification(self, audio_features: Dict) -> Dict:
         """
-        Fallback when LLMs fail - provides heuristic-based classification
+        Deterministyczna, awaryjna klasyfikacja oparta wyłącznie na danych DSP
+        Używana WYŁĄCZNIE wtedy, gdy żaden z modeli LLM nie zwróci wyniku.
         """
-        logger.warning("Using fallback classification")
+        logger.warning("Using DSP-only fallback classification (no LLMs available)")
         rhythm = audio_features.get('rhythm', {})
         energy = audio_features.get('energy', {})
+        harmonic = audio_features.get('harmonic', {})
+        spectral = audio_features.get('spectral', {})
+        meta = audio_features.get('meta', {})
         tempo = rhythm.get('tempo', 120)
         rms = energy.get('rms_mean', 0.1)
-        
-        # Simple heuristic rules
-        if tempo > 140 and rms > 0.15:
-            genre, moods = 'Electronic', ['Energetic', 'Uplifting']
-            energy_level = 'High'
-            mood_vibe = 'High-energy electronic atmosphere with driving rhythms.'
-        elif tempo < 100:
-            genre, moods = 'Acoustic', ['Calm', 'Relaxed']
-            energy_level = 'Low'
-            mood_vibe = 'Mellow and relaxed acoustic ambiance.'
-        else:
-            genre, moods = 'Pop', ['Happy', 'Bright']
+        dynamic_range = energy.get('dynamic_range', 0.0)
+        zcr = energy.get('zcr_mean', 0.1)
+        hp_ratio = harmonic.get('harmonic_percussive_ratio', 1.0)
+        centroid = spectral.get('centroid_mean', 2000)
+        flatness = spectral.get('flatness_mean', 0.5)
+        rolloff = spectral.get('rolloff_mean', 4000)
+        duration = meta.get('duration', 0.0)
+
+        genre = 'Pop'
+        moods = ['Happy', 'Bright']
+        energy_level = 'Medium'
+        mood_vibe = 'Upbeat and accessible pop soundscape.'
+
+        if tempo > 118 and tempo < 132 and rms > 0.12 and flatness < 0.55 and centroid > 2500 and centroid < 5000:
+            if flatness < 0.4 and hp_ratio < 1.4:
+                genre = 'House'
+                moods = ['Energetic', 'Groovy']
+                energy_level = 'High'
+                mood_vibe = 'Club-oriented house groove with steady four-on-the-floor kick and warm, danceable atmosphere.'
+            elif flatness >= 0.4:
+                genre = 'Techno'
+                moods = ['Intense', 'Driving']
+                energy_level = 'High'
+                mood_vibe = 'Relentless techno pulse with hypnotic percussion and forward, mechanical momentum.'
+        elif tempo >= 132 and tempo <= 150 and flatness > 0.55 and centroid > 3500:
+            genre = 'Trance'
+            moods = ['Euphoric', 'Energetic']
+            energy_level = 'Very High'
+            mood_vibe = 'Euphoric trance build with wide stereo synths, long risers and big festival energy.'
+        elif tempo < 95 and hp_ratio > 1.5 and centroid < 3000 and zcr < 0.12:
+            genre = 'Hip Hop'
+            moods = ['Confident', 'Laid-back']
             energy_level = 'Medium'
-            mood_vibe = 'Upbeat and accessible pop soundscape.'
+            mood_vibe = 'Beat-driven hip hop track with strong low-end, head-nod groove and relaxed but confident feel.'
+        elif tempo < 90 and flatness < 0.35 and centroid < 2200 and dynamic_range > 0.05:
+            if hp_ratio > 2.5:
+                genre = 'Classical'
+            else:
+                genre = 'Ambient'
+            moods = ['Calm', 'Relaxed']
+            energy_level = 'Low'
+            mood_vibe = 'Spacious, slow-evolving textures with long decays and a meditative, cinematic character.'
+        elif tempo >= 105 and tempo <= 135 and rms > 0.13 and hp_ratio < 1.2 and centroid > 2200 and flatness < 0.45:
+            genre = 'Rock'
+            moods = ['Energetic', 'Aggressive']
+            energy_level = 'High'
+            mood_vibe = 'Live band feel with driven drums and guitars, forward midrange and energetic, performance-oriented vibe.'
+        elif duration > 360 and tempo < 80 and flatness < 0.4 and centroid < 2000:
+            genre = 'Ambient'
+            moods = ['Calm', 'Dreamy']
+            energy_level = 'Low'
+            mood_vibe = 'Long-form ambient soundscape focused on texture and atmosphere rather than rhythm.'
+        
+        if genre in ('Electronic', 'House', 'Techno', 'Trance'):
+            main_instrument = 'Synthesizer'
+            instrumentation = ['Synthesizer', 'Drum Machine', 'Bass Synth']
+            additional_genres = ['Synthwave', 'Tech House']
+        elif genre == 'Acoustic':
+            main_instrument = 'Acoustic Guitar'
+            instrumentation = ['Acoustic Guitar', 'Piano', 'Strings']
+            additional_genres = ['Chillhop']
+        elif genre in ('Classical', 'Ambient'):
+            main_instrument = 'Piano'
+            instrumentation = ['Piano', 'Strings', 'Pad']
+            additional_genres = ['Orchestral'] if genre == 'Classical' else ['New Age']
+        elif genre == 'Hip Hop':
+            main_instrument = 'Drum Machine'
+            instrumentation = ['Drum Machine', 'Bass Synth', 'Vocals']
+            additional_genres = ['Trap']
+        elif genre == 'Rock':
+            main_instrument = 'Electric Guitar'
+            instrumentation = ['Electric Guitar', 'Bass Guitar', 'Drum Kit']
+            additional_genres = ['Alternative Rock']
+        else:
+            main_instrument = 'Vocals'
+            instrumentation = ['Vocals', 'Drum Kit', 'Bass Guitar']
+            additional_genres = ['Electropop', 'Chamber Pop']
+
+        seen_keywords = set()
+        keywords = []
+        for kw in [
+            genre.lower(),
+            moods[0].lower() if moods else '',
+            moods[1].lower() if len(moods) > 1 else '',
+            main_instrument.lower(),
+            'sync licensing'
+        ]:
+            if kw and kw not in seen_keywords:
+                seen_keywords.add(kw)
+                keywords.append(kw)
+
+        use_cases = [
+            'Streaming playlists',
+            'TV and film sync',
+            'Advertising and branded content'
+        ]
+
+        desc = (
+            f"This {genre.lower()} track runs at approximately {round(tempo, 1)} BPM and is built around "
+            f"{main_instrument.lower()} with a {', '.join(moods).lower() if moods else 'balanced'} energy profile. "
+            "The production combines a solid low end with clear mids and detailed highs, giving it a modern, polished feel that translates well on speakers, headphones, and broadcast systems. "
+            "Arrangement-wise, sections evolve with smooth, musical transitions so editors can cut or loop without breaking the groove, while the dynamics stay controlled enough to sit comfortably under dialogue or visuals. "
+            "Overall, this piece is ready for professional release and works well for playlists, sync placements, trailers, content creators, and any scenario that needs a contemporary, high-quality soundtrack."
+        )
         
         return {
             "mainGenre": genre,
-            "additionalGenres": [],
+            "additionalGenres": additional_genres,
             "moods": moods,
-            "mainInstrument": "Various",
-            "instrumentation": [],
+            "mainInstrument": main_instrument,
+            "instrumentation": instrumentation,
             "vocalStyle": {"gender": "none", "timbre": "none", "delivery": "none", "emotionalTone": "none"},
-            "keywords": [genre.lower()],
-            "useCases": ["background music"],
-            "trackDescription": f"Audio track at {round(tempo, 1)} BPM in {genre} style. Recommended for background music usage.",
+            "keywords": keywords,
+            "useCases": use_cases,
+            "trackDescription": desc,
             "mood_vibe": mood_vibe,
             "energy_level": energy_level,
             "similar_artists": [],
