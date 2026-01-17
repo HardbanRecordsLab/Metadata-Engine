@@ -1,0 +1,45 @@
+# === Core Framework ===
+fastapi
+uvicorn
+python-dotenv
+httpx
+pydantic>=2.0.0
+python-multipart
+
+# === Database ===
+supabase
+sqlalchemy>=2.0.0
+psycopg2-binary
+supabase-auth>=0.1.0
+email-validator
+
+# === AI / LLM ===
+groq
+openai-whisper
+google-generativeai
+
+# === Core Audio Analysis ===
+essentia-tensorflow
+librosa
+audioread
+cffi
+numpy
+scipy
+scikit-learn
+aiohttp
+
+# === Metadata & Tags ===
+mutagen
+tinytag
+musicbrainzngs
+
+# === Loudness & Processing ===
+pyloudnorm
+soundfile
+Pillow
+Jinja2
+
+# === Dev Tools ===
+ruff
+black
+pyright
