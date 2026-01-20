@@ -24,14 +24,14 @@ const STORAGE_KEY = 'mme_user_model_v1';
 
 // --- HELPERS ---
 
-const mapEnergyToScore = (level: string): number => {
-    switch (level) {
-        case 'Low': return 0.2;
-        case 'Medium': return 0.5;
-        case 'High': return 0.8;
-        case 'Very High': return 1.0;
-        default: return 0.5;
-    }
+const mapEnergyToScore = (level?: string): number => {
+    const normalized = (level || '').toLowerCase();
+    if (!normalized) return 0.5;
+    if (normalized.includes('very') && normalized.includes('high')) return 1.0;
+    if (normalized.includes('high')) return 0.8;
+    if (normalized.includes('low')) return 0.2;
+    if (normalized.includes('medium')) return 0.5;
+    return 0.5;
 };
 
 const calculateDistance = (a: TrainingExample['features'], b: TrainingExample['features']): number => {
@@ -64,8 +64,8 @@ export const trainModel = (metadata: Metadata, dspFeatures: AudioFeatures | null
         timestamp: Date.now(),
         features: {
             bpm: dspFeatures.bpm,
-            loudness: dspFeatures.loudnessDb,
-            energyScore: mapEnergyToScore(metadata.energyLevel),
+            loudness: dspFeatures.loudnessDb ?? 0,
+            energyScore: mapEnergyToScore(metadata.energy_level || metadata.energyLevel),
             duration: dspFeatures.duration
         },
         labels: {
@@ -89,7 +89,7 @@ export const predictFromModel = (dspFeatures: AudioFeatures): string | null => {
 
     const targetFeatures = {
         bpm: dspFeatures.bpm,
-        loudness: dspFeatures.loudnessDb,
+        loudness: dspFeatures.loudnessDb ?? 0,
         energyScore: 0.5, // We might not have this yet, assume mid
         duration: dspFeatures.duration
     };

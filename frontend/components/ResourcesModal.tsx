@@ -56,7 +56,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
           <div className="space-y-8 text-sm text-slate-600 dark:text-slate-300 animate-fade-in leading-relaxed text-justify">
             <div className="border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Official Product Documentation</h1>
-                <p className="text-xs uppercase font-bold text-slate-400">Version 2.1.0 • Last Updated: January 2026</p>
+                <p className="text-xs uppercase font-bold text-slate-400">Version 1.3 • Last Updated: December 2025</p>
             </div>
 
             <section>
@@ -95,29 +95,22 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
 
                 <div className="space-y-4 mt-2">
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <h5 className="font-bold text-accent-violet mb-1">Fallback DSP Engine</h5>
-                        <p className="text-sm">
-                            When all external LLMs are unavailable or time out, the engine falls back to a fully deterministic,
-                            DSP-only classifier. It uses tempo, RMS, dynamic range, spectral centroid/flatness, harmonic-percussive ratio
-                            and duration to approximate genres like House, Techno, Ambient, Hip Hop, Trance, Rock or Classical with
-                            transparent, rule-based logic.
-                        </p>
+                        <h5 className="font-bold text-accent-violet mb-1">Market Pulse (Strategic Analysis)</h5>
+                        <p className="text-sm">This module uses "Search Grounding". It queries Google Search in real-time to find tracks with similar sonic profiles that are currently trending. It provides:</p>
+                        <ul className="list-disc pl-5 mt-1 text-xs">
+                            <li><strong>Similar Artists:</strong> Who is your competition?</li>
+                            <li><strong>Target Playlists:</strong> Where does this sound fit (e.g., "Lo-Fi Beats to Study To")?</li>
+                            <li><strong>Audience Persona:</strong> Who listens to this music (e.g., "Gen Z Gamers")?</li>
+                        </ul>
                     </div>
 
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <h5 className="font-bold text-accent-violet mb-1">DeepAudioAnalyzer 2.0</h5>
-                        <p className="text-sm">
-                            Backend module that extracts 90+ Essentia features (rhythm, loudness, spectral, harmonic, timbral) for every track.
-                            These features power the confidence dashboard, DSP fallback, and machine-learning based genre/mood models.
-                        </p>
-                    </div>
-
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <h5 className="font-bold text-accent-violet mb-1">Fresh Track Analyzer</h5>
-                        <p className="text-sm">
-                            High-accuracy path dedicated to unreleased music. It chains DeepAudioAnalyzer 2.0, the 3-model LLM Ensemble
-                            and metadata validation to target 95%+ reliability for new masters where no external database entries exist yet.
-                        </p>
+                        <h5 className="font-bold text-accent-violet mb-1">Creative Suite (Generative Assets)</h5>
+                        <p className="text-sm">Generates marketing assets based on the audio analysis.</p>
+                        <ul className="list-disc pl-5 mt-1 text-xs">
+                            <li><strong>Visuals:</strong> Uses Google Imagen 3 model to generate album art prompts and images based on the track's mood and genre.</li>
+                            <li><strong>Copywriting:</strong> Generates Press Releases, Social Media posts, and Bios using different Tones of Voice.</li>
+                        </ul>
                     </div>
                 </div>
             </section>

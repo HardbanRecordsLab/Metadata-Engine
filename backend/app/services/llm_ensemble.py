@@ -310,9 +310,14 @@ Analyze this track and return STRICT JSON:
                     return result
                 except Exception as e:
                     logger.warning(f"Gemini attempt {attempt+1} failed: {e}")
-                    if attempt == retries - 1:
+                    if "429" in str(e) or "Quota" in str(e):
+                         if attempt == retries - 1:
+                             return {'error': 'quota_exceeded', 'llm_source': 'gemini'}
+                         await asyncio.sleep(2 + (attempt * 2)) # Aggressive backoff for quota
+                    elif attempt == retries - 1:
                         raise
-                    await asyncio.sleep(2 ** attempt)
+                    else:
+                        await asyncio.sleep(2 ** attempt)
                     
         except Exception as e:
             logger.error(f"Gemini classification failed: {e}")

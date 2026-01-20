@@ -1,20 +1,50 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// 1. Try injected window variables (Runtime)
-// 2. Try build-time env variables (Vite)
-// 3. Fallback to empty string
-const supabaseUrl = (window as any).VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = (window as any).VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const win: any = typeof window !== 'undefined' ? window : {};
 
-if (import.meta.env.DEV) {
-  console.log("Supabase URL Source:", (window as any).VITE_SUPABASE_URL ? "window" : "env");
+let supabaseUrl = '';
+let supabaseAnonKey = '';
+let urlSource = '';
+let keySource = '';
+
+if (win.VITE_SUPABASE_URL) {
+  supabaseUrl = win.VITE_SUPABASE_URL;
+  urlSource = 'window.VITE_SUPABASE_URL';
+} else if (win.SUPABASE_URL) {
+  supabaseUrl = win.SUPABASE_URL;
+  urlSource = 'window.SUPABASE_URL';
+} else if (import.meta.env.VITE_SUPABASE_URL) {
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  urlSource = 'env.VITE_SUPABASE_URL';
+} else if (import.meta.env.SUPABASE_URL) {
+  supabaseUrl = import.meta.env.SUPABASE_URL;
+  urlSource = 'env.SUPABASE_URL';
 }
 
-console.log("Supabase Init:", {
+if (win.VITE_SUPABASE_ANON_KEY) {
+  supabaseAnonKey = win.VITE_SUPABASE_ANON_KEY;
+  keySource = 'window.VITE_SUPABASE_ANON_KEY';
+} else if (win.SUPABASE_ANON_KEY) {
+  supabaseAnonKey = win.SUPABASE_ANON_KEY;
+  keySource = 'window.SUPABASE_ANON_KEY';
+} else if (import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  keySource = 'env.VITE_SUPABASE_ANON_KEY';
+} else if (import.meta.env.SUPABASE_ANON_KEY) {
+  supabaseAnonKey = import.meta.env.SUPABASE_ANON_KEY;
+  keySource = 'env.SUPABASE_ANON_KEY';
+} else if (import.meta.env.SUPABASE_KEY) {
+  supabaseAnonKey = import.meta.env.SUPABASE_KEY;
+  keySource = 'env.SUPABASE_KEY';
+}
+
+console.log('Supabase Init:', {
   urlFound: !!supabaseUrl,
   keyFound: !!supabaseAnonKey,
-  urlLength: supabaseUrl.length
+  urlLength: supabaseUrl.length,
+  urlSource,
+  keySource,
 });
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);

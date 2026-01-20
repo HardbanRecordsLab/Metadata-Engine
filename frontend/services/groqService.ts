@@ -1,6 +1,6 @@
 
 import { Metadata } from '../types';
-import { callAIProxy } from './geminiService'; // Reusing the proxy function
+import { callAIProxy } from './aiProxyService';
 
 const MODEL = 'llama3-70b-8192';
 
@@ -55,17 +55,17 @@ export const callGroqMetadata = async (
         const content = data.choices[0]?.message?.content || "{}";
         const parsed = extractJSON(content);
         
-        return {
-            ...parsed,
-            bpm: dspFeatures?.bpm,
-            key: dspFeatures?.key,
-            mode: dspFeatures?.mode,
-            duration: dspFeatures?.duration,
-            energyLevel: dspFeatures?.energy
-        };
+                return {
+                    ...parsed,
+                    bpm: dspFeatures?.bpm,
+                    key: dspFeatures?.key,
+                    mode: dspFeatures?.mode,
+                    duration: dspFeatures?.duration,
+                    energy_level: dspFeatures?.energy != null ? String(dspFeatures.energy) : undefined
+                };
 
-    } catch (error) {
-        console.error("Groq proxy failed:", error);
-        throw error;
+            } catch (error) {
+                console.error("Groq proxy failed:", error);
+                throw error;
     }
 };

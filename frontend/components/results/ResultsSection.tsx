@@ -317,7 +317,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                         </div>
                     )}
 
-                    <Button onClick={onBackToBatch} variant="secondary" size="sm" className="px-2.5">
+                    <Button onClick={onBackToBatch} aria-label="Back to batch" variant="secondary" size="sm" className="px-2.5">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>

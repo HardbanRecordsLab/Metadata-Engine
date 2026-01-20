@@ -40,13 +40,14 @@ class FreshTrackAnalyzer:
         
         logger.info("Fresh Track Analyzer initialized (lean Docker mode)")
     
-    async def analyze_fresh_track(self, file_path: str, include_lyrics: bool = False, model_preference: str = 'flash') -> Dict[str, Any]:
+    async def analyze_fresh_track(self, file_path: str, include_lyrics: bool = False, model_preference: str = 'flash', time_budget: int = 45) -> Dict[str, Any]:
         """
         Główna funkcja analizy
         
         Args:
             file_path: Ścieżka do pliku MP3/WAV
             include_lyrics: Czy transkrybować lyrics (dodatkowe 8-10s + 40MB)
+            time_budget: Max czas w sekundach (domyślnie 45s, ale może być 20s)
         
         Returns:
             Pełna analiza z 90-95% accuracy
@@ -54,7 +55,7 @@ class FreshTrackAnalyzer:
         
         start_time = time.time()
         
-        logger.info(f"Analyzing fresh track: {file_path}")
+        logger.info(f"Analyzing fresh track: {file_path} (Budget: {time_budget}s)")
         
         try:
             # === LAYER 1: Deep Audio Features (12-15s) ===
@@ -64,30 +65,60 @@ class FreshTrackAnalyzer:
             layer1_time = time.time() - start_time
             logger.info(f"Layer 1 completed in {layer1_time:.1f}s")
             
-            # === LAYER 2: LLM Consensus (10-12s, 0 MB) ===
-            logger.info("Layer 2: LLM consensus classification...")
+            # Check remaining budget
+            remaining = time_budget - (time.time() - start_time)
             
-            # Dodaj szybkie heurystyki jako hint dla LLM
-            ml_hints = self._quick_heuristics(audio_features)
-            
-            llm_consensus = await self.llm_ensemble.consensus_classification(
-                audio_features,
-                ml_hints,
-                model_preference=model_preference
-            )
-            
-            layer2_time = time.time() - start_time - layer1_time
-            logger.info(f"Layer 2 completed in {layer2_time:.1f}s")
-            
-            # === LAYER 3: Optional Lyrics (8-10s, adds 40MB to Docker) ===
-            lyrics_analysis = {}
-            
-            if include_lyrics:
-                logger.info("Layer 3: Extracting lyrics (optional)...")
-                lyrics_analysis = await self._extract_lyrics(file_path, audio_features)
+            if remaining < 5:
+                logger.warning(f"Time budget low ({remaining:.1f}s). Skipping LLM & Lyrics.")
+                llm_consensus = self.llm_ensemble._fallback_classification(audio_features)
+                lyrics_analysis = {}
+            else:
+                # === LAYER 2: LLM Consensus (10-12s, 0 MB) ===
+                logger.info("Layer 2: LLM consensus classification...")
                 
-                layer3_time = time.time() - start_time - layer1_time - layer2_time
-                logger.info(f"Layer 3 completed in {layer3_time:.1f}s")
+                # Dodaj szybkie heurystyki jako hint dla LLM
+                ml_hints = self._quick_heuristics(audio_features)
+                
+                # Dynamiczny timeout dla LLM
+                llm_timeout = max(5, remaining - 2) # Zostaw 2s na merge
+                
+                try:
+                    llm_consensus = await asyncio.wait_for(
+                        self.llm_ensemble.consensus_classification(
+                            audio_features,
+                            ml_hints,
+                            model_preference=model_preference
+                        ),
+                        timeout=llm_timeout
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning("LLM Ensemble timed out. Using fallback.")
+                    llm_consensus = self.llm_ensemble._fallback_classification(audio_features)
+                
+                layer2_time = time.time() - start_time - layer1_time
+                logger.info(f"Layer 2 completed in {layer2_time:.1f}s")
+                
+                # === LAYER 3: Optional Lyrics (8-10s, adds 40MB to Docker) ===
+                lyrics_analysis = {}
+                
+                remaining = time_budget - (time.time() - start_time)
+                
+                # Only run lyrics if we have at least 10s left AND requested
+                if include_lyrics and remaining > 10:
+                    logger.info(f"Layer 3: Extracting lyrics (Budget remaining: {remaining:.1f}s)...")
+                    try:
+                        # Give it strict timeout
+                        lyrics_analysis = await asyncio.wait_for(
+                            self._extract_lyrics(file_path, audio_features),
+                            timeout=remaining - 1
+                        )
+                        layer3_time = time.time() - start_time - layer1_time - layer2_time
+                        logger.info(f"Layer 3 completed in {layer3_time:.1f}s")
+                    except asyncio.TimeoutError:
+                        logger.warning("Lyrics extraction timed out. Skipping.")
+                else:
+                    if include_lyrics:
+                        logger.info(f"Skipping lyrics due to low time budget ({remaining:.1f}s < 10s)")
             
             # === ENSEMBLE: Merge Results ===
             final_result = self._merge_results(
@@ -100,7 +131,7 @@ class FreshTrackAnalyzer:
             
             # Use _tech_meta instead of meta to avoid conflicts with Metadata schema
             final_result['_tech_meta']['analysis_time'] = round(total_time, 2)
-            final_result['_tech_meta']['target_met'] = total_time <= 45
+            final_result['_tech_meta']['target_met'] = total_time <= time_budget
             
             logger.info(f"Analysis completed in {total_time:.1f}s")
             
@@ -267,15 +298,6 @@ Return JSON:
         Merge results into a flat Metadata object.
         """
         
-        # Determine Language
-        lang = lyrics_analysis.get('insights', {}).get('language')
-        if not lang:
-            v_gender = llm_consensus.get('vocalStyle', {}).get('gender', 'none').lower()
-            if v_gender in ['instrumental', 'none']:
-                lang = 'Instrumental'
-            else:
-                lang = 'English' # Default assumption if vocals exist but language not detected
-
         # Base metadata from LLM
         metadata = {
             "mainGenre": llm_consensus.get('mainGenre', 'Unknown'),
@@ -289,9 +311,9 @@ Return JSON:
             "vocalStyle": llm_consensus.get('vocalStyle', {}),
             "energy_level": llm_consensus.get('energy_level', 'Medium'),
             "mood_vibe": llm_consensus.get('mood_vibe', ''),
-            "bpm": int(round(audio_features.get('rhythm', {}).get('tempo', 0))),
+            "bpm": audio_features.get('rhythm', {}).get('tempo', 0),
             "duration": audio_features.get('meta', {}).get('duration', 0),
-            "language": lang,
+            "language": lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
         }
 
         # Merge lyrics if present

@@ -2,12 +2,17 @@
 // @ts-nocheck
 // Essentia types are not available in this environment.
 
+import type { StructureSegment } from '../types';
+
 export interface AudioFeatures {
     bpm: number;
     key: string;
     mode: string;
     duration: number;
     method: 'Essentia (Advanced)' | 'Native DSP (Engineering)' | 'AI Estimate';
+    loudnessDb?: number;
+    energy?: number | string;
+    structure?: StructureSegment[];
 }
 
 let essentiaInstance: any = null;

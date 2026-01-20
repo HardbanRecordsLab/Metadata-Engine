@@ -19,7 +19,7 @@ openai-whisper
 google-generativeai
 
 # === Core Audio Analysis ===
-essentia-tensorflow
+essentia-tensorflow; sys_platform != "win32"
 librosa
 audioread
 cffi
@@ -40,6 +40,8 @@ Pillow
 Jinja2
 
 # === Dev Tools ===
+pytest
+pytest-asyncio
 ruff
 black
 pyright

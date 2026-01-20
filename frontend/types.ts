@@ -64,10 +64,19 @@ export interface Metadata {
     moods?: string[]; // Maps to Style/Mood
     mood_vibe?: string; // e.g. "Peaceful but mysterious"
     energy_level?: string; // e.g. "Medium-High"
+    energyLevel?: string;
     instrumentation?: string[];
     vocalStyle?: VocalStyle;
     useCases?: string[];
     structure?: StructureSegment[];
+    explicitContent?: string;
+    tempoCharacter?: string;
+    validation_report?: {
+        score?: number;
+        status?: string;
+        issues?: string[];
+        warnings?: string[];
+    };
 }
 
 export interface AnalysisRecord {

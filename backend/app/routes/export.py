@@ -323,12 +323,10 @@ async def export_ddex(job_id: str, db: Session = Depends(get_db)):
             isrc=metadata.get('isrc') or "US-XXX-YY-00001",
             bpm=float(metadata.get('bpm') or 0),
             key=f"{metadata.get('key', '')} {metadata.get('mode', '')}".strip(),
-            lufs=-14.0,
+            lufs=-14.0, # Result might not have LUFS yet
             danceability=0.5,
             mood_vibe=metadata.get('mood_vibe') or "Neutral",
             energy_level=0.5,
-            duration=float(metadata.get('duration') or 0),
-            catalog_number=metadata.get('catalogNumber') or None,
             fingerprint=metadata.get('sha256') or "0"*64
         )
         # Note: TrackMetadata Pydantic model might validate fields strictness. 

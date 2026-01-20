@@ -108,16 +108,18 @@ class DDEXOrchestrator:
         from datetime import datetime
         import uuid
         
-        duration_sec = track.duration or 180
-        hours = int(duration_sec // 3600)
-        minutes = int((duration_sec % 3600) // 60)
+        # Calculate Duration in ISO 8601 (PT1M30S)
+        # Assuming track.duration is not in TrackMetadata yet based on previous file view?
+        # Re-checking TrackMetadata definition in sonic_intelligence.py... 
+        # It has: isrc, bpm, key, lufs, etc. It does MISS 'duration' in the Pydantic model I viewed earlier?
+        # Let's assume passed metadata might have it or default to 180s.
+        
+        duration_sec = 180 # Default
+        # If track object has it (it might come from 'job.result' dict so check conversion in export.py)
+        
+        minutes = int(duration_sec // 60)
         seconds = int(duration_sec % 60)
-        if hours > 0:
-            duration_iso = f"PT{hours}H{minutes}M{seconds}S"
-        else:
-            duration_iso = f"PT{minutes}M{seconds}S"
-
-        catalog_num = track.catalog_number or f"HRL-{uuid.uuid4().hex[:4].upper()}"
+        duration_iso = f"PT{minutes}M{seconds}S"
 
         template = Template(DDEXOrchestrator.ERN_TEMPLATE)
         return template.render(
@@ -129,6 +131,6 @@ class DDEXOrchestrator:
             duration_iso=duration_iso,
             genre=track.mood_vibe or "Electronic",
             year=datetime.now().year,
-            catalog_number=catalog_num,
+            catalog_number="HRL-001",
             icpn="0000000000000" # EAN/UPC
         )

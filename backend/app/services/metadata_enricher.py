@@ -1,4 +1,3 @@
-import musicbrainzngs as mb
 import logging
 from typing import Dict, Any, Optional
 
@@ -13,15 +12,23 @@ class MetadataEnricher:
     
     def __init__(self):
         # Configure User Agent as requested
-        mb.set_useragent("HardbanRecordsEngine", "1.0", "kontakt@hardban.pl")
+        try:
+            import musicbrainzngs as mb
+
+            self.mb = mb
+            self.mb.set_useragent("HardbanRecordsEngine", "1.0", "kontakt@hardban.pl")
+        except ImportError:
+            self.mb = None
 
     def find_codes_by_isrc(self, isrc: str) -> Dict[str, Any]:
         """
         Find metadata and codes by ISRC.
         """
+        if not self.mb:
+            return {}
         try:
             logger.info(f"Searching MusicBrainz for ISRC: {isrc}")
-            result = mb.get_recordings_by_isrc(isrc, includes=["releases", "work-rels"])
+            result = self.mb.get_recordings_by_isrc(isrc, includes=["releases", "work-rels"])
             
             if "isrc" in result and "recording-list" in result["isrc"]:
                 recordings = result["isrc"]["recording-list"]

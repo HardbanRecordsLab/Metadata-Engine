@@ -19,6 +19,7 @@ describe('InputSection Component', () => {
         setIsProMode: vi.fn(),
         isProcessingBatch: false,
         onViewResults: vi.fn(),
+        onRetry: vi.fn(),
         onExportBatch: vi.fn(),
         showToast: vi.fn(),
         userTier: 'starter' as const,
@@ -26,12 +27,14 @@ describe('InputSection Component', () => {
         onOpenPricing: vi.fn(),
         onOpenCloudImport: vi.fn(),
         onOpenBulkEdit: vi.fn(),
+        isFresh: false,
+        setIsFresh: vi.fn(),
     };
 
     it('renders upload area correctly', () => {
         render(<InputSection {...defaultProps} />);
-        expect(screen.getByText(/Smart Analysis/i)).toBeDefined();
-        expect(screen.getByText(/Drag & Drop/i)).toBeDefined();
+        expect(screen.getByText(/Smart/i)).toBeDefined();
+        expect(screen.getByText(/Drop High-Resolution Audio/i)).toBeDefined();
     });
 
     it('displays batch items when batch is not empty', () => {
@@ -42,7 +45,7 @@ describe('InputSection Component', () => {
         
         render(<InputSection {...defaultProps} batch={mockBatch} />);
         
-        expect(screen.getByText(/Queue/)).toBeDefined();
+        expect(screen.getByText(/Ingest Queue/)).toBeDefined();
         const items = screen.getAllByTestId('batch-item');
         expect(items).toHaveLength(2);
         expect(screen.getByText('song1.mp3')).toBeDefined();
@@ -52,7 +55,7 @@ describe('InputSection Component', () => {
     it('disables Analyze button when processing', () => {
         render(<InputSection {...defaultProps} isProcessingBatch={true} batch={[{ id: '1', file: new File([], 's.mp3'), status: 'pending' }]} />);
         
-        const analyzeBtn = screen.getByText(/Processing.../i);
+        const analyzeBtn = screen.getByText(/Mastering Tracks\.\.\./i);
         expect(analyzeBtn).toBeDefined();
         expect(analyzeBtn).toHaveProperty('disabled', true);
     });
@@ -62,15 +65,15 @@ describe('InputSection Component', () => {
         
         render(<InputSection {...defaultProps} batch={mockBatch} />);
         
-        const analyzeBtn = screen.getByText(/Analyze/i);
+        const analyzeBtn = screen.getByText(/Execute Analysis/i);
         fireEvent.click(analyzeBtn);
         
-        expect(defaultProps.onAnalyze).toHaveBeenCalled();
+        expect(defaultProps.onAnalyze).toHaveBeenCalledWith('flash');
     });
 
     it('toggles Pro mode', () => {
         render(<InputSection {...defaultProps} />);
-        const toggle = screen.getByText(/Pro Mode/i);
+        const toggle = screen.getByText(/Pro Core/i);
         fireEvent.click(toggle);
         expect(defaultProps.setIsProMode).toHaveBeenCalledWith(true);
     });

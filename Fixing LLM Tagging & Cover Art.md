@@ -374,7 +374,7 @@ index-BUXSqbaW.css:1  Failed to load resource: the server responded with a statu
 
 ### User Input
 
-masz tu HF_TOKEN_REDACTED   # Get container logs (SSE)
+masz tu [REDACTED]   # Get container logs (SSE)
 curl -N \
      -H "Authorization: Bearer $HF_TOKEN" \
      "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/logs/run"
@@ -395,12 +395,12 @@ curl -N \
 *Checked command status*
 
 *User accepted the command `curl -N \
-     -H "Authorization: Bearer HF_TOKEN_REDACTED" \
+     -H "Authorization: Bearer [REDACTED]" \
      "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/logs/build"`*
 
 *Checked command status*
 
-*User accepted the command `$env:HF_TOKEN="HF_TOKEN_REDACTED"; curl -H "Authorization: Bearer $env:HF_TOKEN" "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/logs/build"`*
+*User accepted the command `$env:HF_TOKEN="[REDACTED]"; curl -H "Authorization: Bearer $env:HF_TOKEN" "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/logs/build"`*
 
 ### User Input
 
@@ -477,19 +477,19 @@ CACHED
   "detail": "Not Found"
 }
 
-*User accepted the command `$env:HF_TOKEN="HF_TOKEN_REDACTED"; curl -H "Authorization: Bearer $env:HF_TOKEN" "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine"`*
+*User accepted the command `$env:HF_TOKEN="[REDACTED]"; curl -H "Authorization: Bearer $env:HF_TOKEN" "https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine"`*
 
 *Checked command status*
 
-*User accepted the command `curl -H "Authorization: Bearer HF_TOKEN_REDACTED" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine`*
+*User accepted the command `curl -H "Authorization: Bearer [REDACTED]" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine`*
 
 *Checked command status*
 
-*User accepted the command `cmd /c "curl -H \"Authorization: Bearer HF_TOKEN_REDACTED\" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine"`*
+*User accepted the command `cmd /c "curl -H \"Authorization: Bearer [REDACTED]\" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine"`*
 
 *Checked command status*
 
-*User accepted the command `cmd /c "curl -H \"Authorization: Bearer HF_TOKEN_REDACTED\" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/runtime"`*
+*User accepted the command `cmd /c "curl -H \"Authorization: Bearer [REDACTED]\" https://huggingface.co/api/spaces/hardbanrecords/Metadata-Engine/runtime"`*
 
 *Checked command status*
 

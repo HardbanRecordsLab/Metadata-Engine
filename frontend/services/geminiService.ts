@@ -5,6 +5,11 @@ import { getFullUrl, getWsUrl } from '../apiConfig';
 
 const UPLOAD_SIZE_LIMIT = 3.5 * 1024 * 1024;
 
+const wait = (ms: number) => {
+    if ((import.meta as any).env?.MODE === 'test') return Promise.resolve();
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
+};
+
 const mergeWithDSP = (data: any, dspFeatures: AudioFeatures | null, fileName: string, hash?: string): Metadata => {
     return {
         sha256: hash,
@@ -126,7 +131,7 @@ export const generateMetadata = async (
 
             try {
                 while (pollCount < maxPolls) {
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    await wait(5000);
                     pollCount++;
 
                     const pollResponse = await fetchWithRetry(getFullUrl(`/analysis/job/${activeJobId}`));

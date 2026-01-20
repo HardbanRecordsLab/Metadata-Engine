@@ -109,7 +109,7 @@ class AdvancedAudioAnalyzer:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def analyze_core(file_path: str) -> Dict[str, Any]:
+    def analyze_core(file_path: str, fast: bool = False) -> Dict[str, Any]:
         """
         Core analysis: BPM, Key, Spectral features, Duration.
         Priority: Essentia -> Librosa
@@ -123,47 +123,16 @@ class AdvancedAudioAnalyzer:
 
         try:
             # Load audio for Librosa (needed for spectral features anyway)
-            y, sr = librosa.load(file_path, duration=60)
-            
-            # --- Librosa Analysis (Spectral, Energy etc.) ---
-            # ... (Reuse existing spectral logic) ...
-            spectral_centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
-            spectral_rolloff = float(np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr)))
-            spectral_bandwidth = float(np.mean(librosa.feature.spectral_bandwidth(y=y, sr=sr)))
-            spectral_flatness = float(np.mean(librosa.feature.spectral_flatness(y=y)))
-            spectral_contrast = float(np.mean(librosa.feature.spectral_contrast(y=y, sr=sr)))
-            zero_crossing_rate = float(np.mean(librosa.feature.zero_crossing_rate(y)))
+            y, sr = librosa.load(file_path, duration=20 if fast else 60)
             
             rms = librosa.feature.rms(y=y)
             energy_mean = float(np.mean(rms))
             energy_max = float(np.max(rms))
             energy_std = float(np.std(rms))
-            
-            onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-            pulse = librosa.beat.plp(onset_envelope=onset_env, sr=sr)
-            danceability = float(np.mean(pulse))
-            
+
             duration = librosa.get_duration(path=file_path)
-            
-            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-            mfcc_mean = [float(x) for x in np.mean(mfcc, axis=1)]
-            
-            # Structure logic (simplified reuse)
-            rms_smooth = np.convolve(rms[0], np.ones(10)/10, mode='same')
-            mean_energy = np.mean(rms_smooth)
             structure = []
-            peak_idx = np.argmax(rms_smooth)
-            peak_time = float(librosa.frames_to_time(peak_idx, sr=sr))
-            structure.append({
-                "section": "Core Segment",
-                "startTime": round(max(0, peak_time - 10), 2),
-                "endTime": round(peak_time + 10, 2),
-                "description": "Peak energy flow / Main hook area."
-            })
-            
             detected_moods = []
-            if energy_mean > 0.08: detected_moods.append("Energetic")
-            if energy_mean < 0.03: detected_moods.append("Atmospheric")
 
             # --- MERGE RESULTS ---
             if essentia_results["success"]:
@@ -185,11 +154,51 @@ class AdvancedAudioAnalyzer:
                 minor_energy = np.mean(chroma[(key_idx + 3) % 12])
                 final_mode = "Major" if major_energy > minor_energy else "Minor"
 
-            if final_mode == "Major": detected_moods.append("Uplifting")
-            else: detected_moods.append("Emotional")
+            if final_mode == "Major":
+                detected_moods.append("Uplifting")
+            else:
+                detected_moods.append("Emotional")
             
             # Derived "Hardban OS" metrics for premium feel
             mood_vibe = AdvancedAudioAnalyzer._interpret_vibe(final_mode, energy_mean)
+
+            if fast:
+                return {
+                    "bpm": final_bpm,
+                    "key": final_key,
+                    "mode": final_mode,
+                    "full_key": f"{final_key} {final_mode}",
+                    "mood_vibe": mood_vibe,
+                    "energy_level": round(energy_mean, 4),
+                    "duration_seconds": round(duration, 2),
+                    "structure": [],
+                    "moods": detected_moods,
+                }
+
+            spectral_centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
+            spectral_rolloff = float(np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr)))
+            spectral_bandwidth = float(np.mean(librosa.feature.spectral_bandwidth(y=y, sr=sr)))
+            spectral_flatness = float(np.mean(librosa.feature.spectral_flatness(y=y)))
+            spectral_contrast = float(np.mean(librosa.feature.spectral_contrast(y=y, sr=sr)))
+            zero_crossing_rate = float(np.mean(librosa.feature.zero_crossing_rate(y)))
+
+            onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+            pulse = librosa.beat.plp(onset_envelope=onset_env, sr=sr)
+            danceability = float(np.mean(pulse))
+
+            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+            mfcc_mean = [float(x) for x in np.mean(mfcc, axis=1)]
+
+            rms_smooth = np.convolve(rms[0], np.ones(10)/10, mode='same')
+            structure = []
+            peak_idx = np.argmax(rms_smooth)
+            peak_time = float(librosa.frames_to_time(peak_idx, sr=sr))
+            structure.append({
+                "section": "Core Segment",
+                "startTime": round(max(0, peak_time - 10), 2),
+                "endTime": round(peak_time + 10, 2),
+                "description": "Peak energy flow / Main hook area."
+            })
 
             return {
                 "bpm": final_bpm,
@@ -377,7 +386,38 @@ class AdvancedAudioAnalyzer:
             return {"error": str(e)}
 
     @staticmethod
-    def full_analysis(file_path: str) -> Dict[str, Any]:
+    async def separate_stems(
+        file_path: str, output_dir: str, stems: int = 2
+    ) -> Dict[str, str]:
+        """
+        Separate audio into stems (vocals, accompaniment, drums, bass, other).
+        Uses: Spleeter
+
+        stems: 2 (vocals/accompaniment), 4 (vocals/drums/bass/other), 5 (vocals/drums/bass/piano/other)
+        """
+        try:
+            Separator = get_spleeter()
+
+            separator = Separator(f"spleeter:{stems}stems")
+            separator.separate_to_file(file_path, output_dir)
+
+            # Return paths to separated files
+            base_name = os.path.splitext(os.path.basename(file_path))[0]
+            stem_dir = os.path.join(output_dir, base_name)
+
+            stem_files = {}
+            if os.path.exists(stem_dir):
+                for f in os.listdir(stem_dir):
+                    stem_name = os.path.splitext(f)[0]
+                    stem_files[stem_name] = os.path.join(stem_dir, f)
+
+            return stem_files
+        except Exception as e:
+            logger.error(f"Stem separation failed: {e}")
+            return {"error": str(e)}
+
+    @staticmethod
+    def full_analysis(file_path: str, fast: bool = False) -> Dict[str, Any]:
         """
         Run all available analyses and combine results.
         """
@@ -388,11 +428,25 @@ class AdvancedAudioAnalyzer:
         # Core analysis (always run)
         try:
             logger.info(f"[AudioAnalyzer] 1/4: Analyzing Core (BPM, Key, Structure)...")
-            results["core"] = AdvancedAudioAnalyzer.analyze_core(file_path)
+            results["core"] = AdvancedAudioAnalyzer.analyze_core(file_path, fast=fast)
             logger.info(f"[AudioAnalyzer] 1/4: Done.")
         except Exception as e:
             logger.error(f"[AudioAnalyzer] 1/4: Failed: {e}")
             results["core"] = {"error": str(e)}
+
+        if fast:
+            try:
+                logger.info(f"[AudioAnalyzer] 2/2: Reading ID3/Metadata tags...")
+                results["existing_metadata"] = AdvancedAudioAnalyzer.read_metadata(
+                    file_path
+                )
+                logger.info(f"[AudioAnalyzer] 2/2: Done.")
+            except Exception as e:
+                logger.error(f"[AudioAnalyzer] 2/2: Failed: {e}")
+                results["existing_metadata"] = {"error": str(e)}
+
+            logger.info(f"--- [AudioAnalyzer] Finished all tasks for {file_name} ---")
+            return results
 
         # Loudness
         try:

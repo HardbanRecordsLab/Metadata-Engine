@@ -182,22 +182,22 @@ EXPERT REASONING GUIDELINES:
 STRICT OUTPUT RULES:
 1. Classification & Style:
    - Main Genre: Pick ONE from: {GroqWhisperService.VOCAB_MAIN_GENRES}
-   - Sub-Genres (additionalGenres): 1-2 distinct sub-genres in an array.
-   - Moods: 2-3 distinct moods. Pick from: {GroqWhisperService.VOCAB_MOODS}
+   - Sub-Genres (additionalGenres): 2 distinct sub-genres in an array.
+   - Moods: 1 or 2 distinct moods. Pick from: {GroqWhisperService.VOCAB_MOODS}
    - Main Instrument: Identify ONE dominant instrument.
-   - Instrumentation: Identify 2-3 instruments total (array).
+   - Instrumentation: Identify 1-3 instruments total (array).
    - Vocal Style: Object with gender, timbre, delivery, emotionalTone. 
      * Use "none" only if the track is strictly instrumental.
-   - Keywords: EXACTLY 5 high-value sync/search keywords.
-   - Track Description (Bio): A professional, high-quality description (min 400 characters).
-   - Use Cases (useCases): EXACTLY 3 distinct professional sync use cases (array).
+   - Keywords: EXACTLY 3-4 high-value sync/search keywords.
+   - Track Description (Bio): A professional, high-quality description.
+   - Use Cases (useCases): 2 distinct professional sync use cases (array).
 
 2. Identity & Credits:
    - Year: 4-digit release year (estimate if unknown).
    - Album Artist: Fallback to Artist.
    - Language: Detected language or "Instrumental".
 
-Return ONLY valid JSON and never return empty arrays or placeholders like "No tags":
+Return ONLY valid JSON:
 {{
     "title": "...",
     "artist": "...",
@@ -207,9 +207,9 @@ Return ONLY valid JSON and never return empty arrays or placeholders like "No ta
     "albumArtist": "...",
     "mainGenre": "...",
     "additionalGenres": ["...", "..."],
-    "moods": ["...", "...", "..."],
+    "moods": ["...", "..."],
     "mainInstrument": "...",
-    "instrumentation": ["...", "...", "..."],
+    "instrumentation": ["...", "..."],
     "vocalStyle": {{
         "gender": "...",
         "timbre": "...",
@@ -220,8 +220,8 @@ Return ONLY valid JSON and never return empty arrays or placeholders like "No ta
     "key": "{core.get('key', 'C')}",
     "mode": "{core.get('mode', 'Major')}",
     "trackDescription": "...",
-    "keywords": ["...", "...", "...", "...", "..."],
-    "useCases": ["...", "...", "..."],
+    "keywords": ["...", "...", "..."],
+    "useCases": ["...", "..."],
     "catalogNumber": "",
     "isrc": "",
     "iswc": "",

@@ -14,6 +14,7 @@ from app.db import SessionLocal, Job
 import json
 import zipfile
 import io
+import csv
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -175,30 +176,36 @@ async def bulk_export(job_ids: str = Form(...)):
     """
     Combines metadata for multiple jobs into a single CSV.
     """
-    ids = [id.strip() for id in job_ids.split(",") if id.strip()]
-    if not ids:
-        raise HTTPException(status_code=400, detail="No job IDs provided.")
-
+    ids = [id.strip() for id in job_ids.split(',')]
     db = SessionLocal()
     try:
         jobs = db.query(Job).filter(Job.id.in_(ids)).all()
         if not jobs:
             raise HTTPException(status_code=404, detail="No jobs found for these IDs.")
-
+        
         output = io.StringIO()
-        output.write("job_id,filename,bpm,key,genre,status,ipfs_hash,ipfs_url\n")
+        writer = csv.writer(output)
+        writer.writerow(["job_id", "filename", "bpm", "key", "genre", "status", "ipfs_hash", "ipfs_url"])
         for job in jobs:
             meta = job.result or {}
-            output.write(
-                f"{job.id},{job.file_name},"
-                f"{meta.get('bpm', 0)},"
-                f"{meta.get('key', '')},"
-                f"{meta.get('mainGenre', '')},"
-                f"{job.status},"
-                f"{getattr(job, 'ipfs_hash', '') or ''},"
-                f"{getattr(job, 'ipfs_url', '') or ''}\n"
-            )
-
+            if isinstance(meta, str):
+                try:
+                    meta = json.loads(meta)
+                except Exception:
+                    meta = {}
+            if not isinstance(meta, dict):
+                meta = {}
+            writer.writerow([
+                job.id,
+                job.file_name,
+                meta.get("bpm", 0) or 0,
+                meta.get("key", "") or "",
+                meta.get("mainGenre", "") or "",
+                job.status,
+                getattr(job, "ipfs_hash", None),
+                getattr(job, "ipfs_url", None),
+            ])
+        
         output.seek(0)
         return JSONResponse(content={"csv": output.getvalue(), "count": len(jobs)})
     finally:

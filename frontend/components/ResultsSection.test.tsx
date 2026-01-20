@@ -1,12 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import ResultsSection from './results/ResultsSection';
 import { Metadata } from '../types';
 
-vi.mock('./IdentificationCard', () => ({ default: () => <div>IdentificationCard Mock</div> }));
-vi.mock('./CreativeSuiteSidebar', () => ({ default: () => <div>CreativeSuiteSidebar Mock</div> }));
-vi.mock('./TrackIdentityCard', () => ({
+vi.mock('./results/IdentificationCard', () => ({ default: () => <div>IdentificationCard Mock</div> }));
+vi.mock('./results/TrackIdentityCard', () => ({
     default: ({ metadata, isEditing, onFieldUpdate }) => (
         <div>
             TrackIdentityCard Mock
@@ -22,10 +21,15 @@ vi.mock('./TrackIdentityCard', () => ({
         </div>
     )
 }));
-vi.mock('./SonicAnalysisDisplay', () => ({ default: () => <div>SonicAnalysisDisplay Mock</div> }));
-vi.mock('./ClassificationStyleCard', () => ({ default: () => <div>ClassificationStyleCard Mock</div> }));
-vi.mock('./CommercialLegalCard', () => ({ default: () => <div>CommercialLegalCard Mock</div> }));
-vi.mock('./ConfidenceMeter', () => ({ default: () => <div>ConfidenceMeter Mock</div> }));
+vi.mock('./results/SonicAnalysisDisplay', () => ({ default: () => <div>SonicAnalysisDisplay Mock</div> }));
+vi.mock('./results/ClassificationStyleCard', () => ({ default: () => <div>ClassificationStyleCard Mock</div> }));
+vi.mock('./results/CommercialLegalCard', () => ({ default: () => <div>CommercialLegalCard Mock</div> }));
+vi.mock('./results/ConfidenceMeter', () => ({ default: () => <div>ConfidenceMeter Mock</div> }));
+vi.mock('./results/StructureCard', () => ({ default: () => <div>StructureCard Mock</div> }));
+vi.mock('./results/DistributionCard', () => ({ default: () => <div>DistributionCard Mock</div> }));
+vi.mock('./results/MetadataValidationCard', () => ({ default: () => <div>MetadataValidationCard Mock</div> }));
+vi.mock('./results/VisualsCard', () => ({ default: () => <div>VisualsCard Mock</div> }));
+vi.mock('./results/CopyrightCard', () => ({ default: () => <div>CopyrightCard Mock</div> }));
 
 
 const mockMetadata: Metadata = {
@@ -61,6 +65,7 @@ describe('ResultsSection Component', () => {
         onUpdateResults: vi.fn(),
         currentAnalysis: { id: 'test-id', metadata: mockMetadata, inputType: 'file' as const, input: { fileName: 'test.mp3' } },
         uploadedFile: new File([], 'test.mp3', { type: 'audio/mpeg' }),
+        onUpdateFile: vi.fn(),
         theme: 'dark' as const,
         onBackToBatch: vi.fn(),
         userTier: 'starter' as const,
@@ -89,7 +94,11 @@ describe('ResultsSection Component', () => {
         expect(screen.getByText('CommercialLegalCard Mock')).toBeDefined();
         expect(screen.getByText('ConfidenceMeter Mock')).toBeDefined();
         expect(screen.getByText('IdentificationCard Mock')).toBeDefined();
-        expect(screen.getByText('CreativeSuiteSidebar Mock')).toBeDefined();
+        expect(screen.getByText('StructureCard Mock')).toBeDefined();
+        expect(screen.getByText('DistributionCard Mock')).toBeDefined();
+        expect(screen.getByText('MetadataValidationCard Mock')).toBeDefined();
+        expect(screen.getByText('VisualsCard Mock')).toBeDefined();
+        expect(screen.getByText('CopyrightCard Mock')).toBeDefined();
     });
 
     it('toggles edit mode and allows field updates through TrackIdentityCard', async () => {
@@ -110,11 +119,11 @@ describe('ResultsSection Component', () => {
         expect(updatedMetadata.title).toBe('Updated Song');
     });
 
-    it('handles new analysis button click', () => {
+    it('handles back to batch button click', () => {
         render(<ResultsSection {...defaultProps} />);
-        const newAnalysisBtn = screen.getByText('New Analysis');
-        fireEvent.click(newAnalysisBtn);
-        expect(defaultProps.onNewAnalysis).toHaveBeenCalled();
+        const backBtn = screen.getByLabelText('Back to batch');
+        fireEvent.click(backBtn);
+        expect(defaultProps.onBackToBatch).toHaveBeenCalled();
     });
 
     it('displays error message when error prop is present', () => {

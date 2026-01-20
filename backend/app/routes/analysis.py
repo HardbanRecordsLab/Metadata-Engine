@@ -11,12 +11,14 @@ import logging
 import asyncio
 import json
 import shutil
+import time
 from app.utils.websocket_manager import manager as ws_manager
 from fastapi import WebSocket, WebSocketDisconnect
 from app.db import SessionLocal, Job, AnalysisHistory
 from app.dependencies import get_user_and_check_quota
 from app.types import User
 from app.services.metadata_enricher import MetadataEnricher
+from app.config import settings
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 logger = logging.getLogger(__name__)
@@ -199,7 +201,15 @@ def sanitize_metadata(metadata: dict) -> dict:
     return cleaned
 
 
-async def process_analysis(job_id: str, file_path: str, is_pro_mode: bool, transcribe: bool, is_fresh: bool = False, model_preference: str = 'flash'):
+async def process_analysis(
+    job_id: str,
+    file_path: str,
+    is_pro_mode: bool,
+    transcribe: bool,
+    is_fresh: bool = False,
+    model_preference: str = 'flash',
+    time_budget_sec: int | None = None,
+):
     """
     Background task to process audio analysis and update job status.
     """
@@ -209,6 +219,13 @@ async def process_analysis(job_id: str, file_path: str, is_pro_mode: bool, trans
         if not job:
             logger.error(f"Background Job {job_id} not found in database.")
             return
+
+        if time_budget_sec is None:
+            time_budget_sec = getattr(settings, "ANALYSIS_MAX_SECONDS", 20)
+        deadline = time.monotonic() + float(time_budget_sec)
+
+        def remaining() -> float:
+            return max(0.0, deadline - time.monotonic())
 
         job.status = "processing"
         job.message = "Calculating digital fingerprint (SHA-256)..."
@@ -231,56 +248,39 @@ async def process_analysis(job_id: str, file_path: str, is_pro_mode: bool, trans
             await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
             return
 
-        # Step 2: Fresh Track Analysis OR Standard Pipeline
         if is_fresh:
-            logger.info(f"Job {job_id}: Using Fresh Track Analyzer (High Accuracy Mode)...")
-            job.message = "Running 5-Layer Deep Audio Analysis (95%+ Target)..."
-            db.commit()
-            await ws_manager.send_progress(job_id, job.message, progress=15)
-            from app.services.fresh_track_analyzer import FreshTrackAnalyzer
-            analyzer = FreshTrackAnalyzer()
-            metadata = await analyzer.analyze_fresh_track(file_path, include_lyrics=transcribe and is_pro_mode, model_preference=model_preference)
-        else:
-            # Standard Pipeline
-            logger.info(f"Job {job_id}: Using Standard Groq Pipeline...")
-            from app.services.groq_whisper import GroqWhisperService
-            if GroqWhisperService.is_available():
-                job.message = "Analyzing via Parallel Cloud Pipeline..."
-                db.commit()
-                await ws_manager.send_progress(job_id, job.message, progress=20)
-                result = await GroqWhisperService.full_pipeline(file_path=file_path, transcribe=transcribe and is_pro_mode)
-                metadata = result.get("metadata", {})
-                analysis = result.get("analysis", {})
-                
-                # Merge forensic data
-                if "core" in analysis:
-                    core = analysis["core"]
-                    metadata["bpm"] = core.get("bpm", metadata.get("bpm"))
-                    metadata["key"] = core.get("key", metadata.get("key"))
-                    metadata["mode"] = core.get("mode", metadata.get("mode"))
-                    metadata["duration"] = core.get("duration_seconds", metadata.get("duration"))
-                    metadata["structure"] = core.get("structure", [])
-            else:
-                # Local Fallback
-                logger.warning(f"Groq not available for Job {job_id}, using local analysis only...")
-                job.message = "Analyzing via Local DSP Workers..."
-                db.commit()
-                await ws_manager.send_progress(job_id, job.message, progress=20)
-                from app.services.audio_analyzer import AdvancedAudioAnalyzer
-                analysis = await asyncio.to_thread(AdvancedAudioAnalyzer.full_analysis, file_path)
-                core = analysis.get("core", {})
-                existing = analysis.get("existing_metadata", {})
-                metadata = {
-                    "title": existing.get("title") or job.file_name,
-                    "artist": existing.get("artist") or "Unknown Artist",
-                    "bpm": core.get("bpm"),
-                    "key": core.get("key"),
-                    "mode": core.get("mode"),
-                    "mainGenre": existing.get("genre") or "Unknown",
-                    "trackDescription": f"Audio track at {core.get('bpm', '?')} BPM",
-                    "duration": core.get("duration_seconds") or existing.get("duration"),
-                    "sha256": file_hash
-                }
+            is_fresh = False
+
+        transcribe = False
+
+        logger.info(f"Job {job_id}: Using Fast Local Pipeline (budget {time_budget_sec}s)...")
+        job.message = f"Fast analysis mode (<= {time_budget_sec}s)..."
+        db.commit()
+        await ws_manager.send_progress(job_id, job.message, progress=20)
+
+        from app.services.audio_analyzer import AdvancedAudioAnalyzer
+        analysis_timeout = max(0.1, remaining() - 2.0)
+        if analysis_timeout <= 0.1:
+            raise asyncio.TimeoutError()
+        analysis = await asyncio.wait_for(
+            asyncio.to_thread(AdvancedAudioAnalyzer.full_analysis, file_path, True),
+            timeout=analysis_timeout,
+        )
+        core = analysis.get("core", {})
+        existing = analysis.get("existing_metadata", {})
+        metadata = {
+            "title": existing.get("title") or job.file_name,
+            "artist": existing.get("artist") or "Unknown Artist",
+            "bpm": core.get("bpm"),
+            "key": core.get("key"),
+            "mode": core.get("mode"),
+            "mainGenre": existing.get("genre") or "Unknown",
+            "trackDescription": f"Audio track at {core.get('bpm', '?')} BPM",
+            "duration": core.get("duration_seconds") or existing.get("duration"),
+            "sha256": file_hash,
+            "structure": core.get("structure", []),
+            "moods": core.get("moods", []),
+        }
 
         # Step 3: Add SHA-256 and Common Fields
         metadata["sha256"] = file_hash
@@ -292,7 +292,13 @@ async def process_analysis(job_id: str, file_path: str, is_pro_mode: bool, trans
         job.message = "Validating metadata consistency..."
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=90)
-        metadata = MetadataValidator.validate(metadata)
+        validation_timeout = max(0.1, remaining())
+        if validation_timeout <= 0.1:
+            raise asyncio.TimeoutError()
+        metadata = await asyncio.wait_for(
+            asyncio.to_thread(MetadataValidator.validate, metadata),
+            timeout=validation_timeout,
+        )
 
         # Step 5: Sanitize and Save
         job.result = sanitize_metadata(metadata)
@@ -322,6 +328,13 @@ async def process_analysis(job_id: str, file_path: str, is_pro_mode: bool, trans
                 logger.error(f"Failed to auto-archive Job {job_id}: {archive_err}")
                 db.rollback()
 
+    except asyncio.TimeoutError:
+        logger.error(f"Background Job {job_id} timed out after {time_budget_sec}s")
+        if job:
+            job.status = "error"
+            job.error = f"TIMEOUT_{time_budget_sec}s"
+            job.message = "Analysis timed out."
+            await ws_manager.send_progress(job_id, job.message, progress=100, status="error")
     except Exception as e:
         logger.error(f"Background Job {job_id} failed: {e}")
         if job:
@@ -375,7 +388,16 @@ async def generate_analysis(
         db.add(new_job)
         db.commit()
         
-        background_tasks.add_task(process_analysis, job_id, file_path, is_pro_mode, transcribe, is_fresh, model_preference)
+        background_tasks.add_task(
+            process_analysis,
+            job_id,
+            file_path,
+            is_pro_mode,
+            transcribe,
+            is_fresh,
+            model_preference,
+            getattr(settings, "ANALYSIS_MAX_SECONDS", 20),
+        )
         
         return {"job_id": job_id, "status": "pending"}
         
@@ -511,3 +533,57 @@ async def transcribe_audio(
             pass
 
 
+@router.post("/separate-stems")
+async def separate_stems(
+    file: UploadFile = File(...),
+    stems: int = Form(2),  # 2, 4, or 5
+):
+    """
+    Separate audio into stems using Spleeter.
+
+    stems:
+    - 2: vocals, accompaniment
+    - 4: vocals, drums, bass, other
+    - 5: vocals, drums, bass, piano, other
+    """
+    file_content = await file.read()
+    if not file_content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    temp_file_name = f"temp_{uuid.uuid4()}_{file.filename}"
+    output_dir = f"stems_{uuid.uuid4()}"
+
+    try:
+        with open(temp_file_name, "wb") as buffer:
+            buffer.write(file_content)
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        from app.services.audio_analyzer import AdvancedAudioAnalyzer
+
+        result = await AdvancedAudioAnalyzer.separate_stems(
+            temp_file_name, output_dir, stems
+        )
+
+        return {
+            "stems": result,
+            "output_directory": output_dir,
+            "note": "Stem files are saved on the server. Download them before cleanup.",
+        }
+
+    except Exception as e:
+        logger.error(f"Stem separation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Stem separation failed: {str(e)}")
+
+    finally:
+        try:
+            if os.path.exists(temp_file_name):
+                os.remove(temp_file_name)
+        except:
+            pass
+
+        try:
+            if os.path.exists(temp_file_name):
+                os.remove(temp_file_name)
+        except:
+            pass

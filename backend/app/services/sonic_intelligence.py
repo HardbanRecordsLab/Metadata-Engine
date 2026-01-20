@@ -19,8 +19,6 @@ class TrackMetadata(BaseModel):
     danceability: float
     mood_vibe: str
     energy_level: float
-    duration: float = Field(0.0, description="Duration in seconds")
-    catalog_number: Optional[str] = Field(None, description="Catalog Number")
     fingerprint: str = Field(..., description="Unikalny hash audio (SHA-256)")
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 

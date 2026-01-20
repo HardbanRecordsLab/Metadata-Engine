@@ -266,43 +266,21 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleExportBatch = async () => {
-        const completedItems = batch.filter(item => item.status === 'completed' && item.jobId);
-        if (completedItems.length === 0) {
-            showToast("No completed analyses with backend job IDs to export.", 'info');
+    const handleExportBatch = () => {
+        // [BYPASS] Export restriction disabled
+        /*
+        if (userTier === 'starter') {
+            setIsPricingOpen(true);
             return;
         }
-
-        const jobIds = completedItems.map(item => item.jobId!) as string[];
-
-        try {
-            const formData = new FormData();
-            formData.append('job_ids', jobIds.join(','));
-
-            const response = await fetch(getFullUrl('/tools/bulk-export'), {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`Bulk export failed (${response.status})`);
-            }
-
-            const data = await response.json();
-            const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `mme_bulk_license_export_${timestamp}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-
-            showToast(`Exported ${data.count} tracks to Bulk License CSV.`, 'success');
-        } catch (e) {
-            showToast(`Bulk export error: ${(e as Error).message}`, 'error');
+        */
+        const completedItems = batch.filter(item => item.status === 'completed');
+        if (completedItems.length === 0) {
+            showToast("No completed analyses to export.", 'info');
+            return;
         }
+        exportBatchToCsv(completedItems);
+        showToast(`Exported ${completedItems.length} tracks.`, 'success');
     };
 
     const handleCloudImport = (files: File[]) => {

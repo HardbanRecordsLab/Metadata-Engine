@@ -28,8 +28,13 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
             <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-pink-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
           </div>
 
+          {/* Premium Decorative Image */}
           <div className="absolute right-0 top-0 w-full h-full opacity-40 pointer-events-none overflow-hidden">
-            <div className="w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(129,140,248,0.45),_transparent_55%),_radial-gradient(circle_at_bottom_left,_rgba(236,72,153,0.5),_transparent_55%)] blur-[2px] scale-110" />
+            <img
+              src="/assets/studio_hero.png"
+              className="w-full h-full object-cover scale-110 blur-[2px] opacity-60"
+              alt="Studio Background"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-[#0a0b14] via-[#0a0b14]/80 to-transparent"></div>
           </div>
 
@@ -99,8 +104,9 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
           onClick={onCreateNew}
           className="group relative overflow-hidden flex flex-col items-start text-left rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-[0_20px_60px_-15px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_80px_-15px_rgba(79,70,229,0.6)] transition-all duration-500 hover:scale-[1.02] h-full p-0 border-0"
         >
+          {/* Background Pattern/Image */}
           <div className="absolute inset-0 opacity-40 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.4),_transparent_55%),_radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.45),_transparent_55%)] mix-blend-overlay scale-150 rotate-12 group-hover:scale-110 group-hover:rotate-0 transition-all duration-1000" />
+            <img src="/assets/analysis_visual.png" className="w-full h-full object-cover mix-blend-overlay scale-150 rotate-12 group-hover:scale-110 group-hover:rotate-0 transition-all duration-1000" alt="Analysis Visual" />
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-indigo-900/40 to-transparent"></div>
           </div>
 

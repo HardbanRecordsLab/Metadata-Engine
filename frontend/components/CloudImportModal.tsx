@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Globe, Download, Check, AlertCircle, RefreshCw } from './icons';
+import { X, Globe, Download, Check, AlertCircle, RefreshCw, Shield } from './icons';
 import Button from './Button';
 import { listGoogleDriveFiles, downloadGoogleDriveFile, listDropboxFiles, downloadDropboxFile } from '../services/cloudStorageService';
 import { CloudFile } from '../types';

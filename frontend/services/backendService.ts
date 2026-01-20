@@ -68,20 +68,11 @@ export const backendService = {
         return data.sha256;
     },
 
-    async generateCertificate(
-        metadata: Metadata,
-        sha256: string,
-        filename: string,
-        jobId?: string
-    ): Promise<{ ipfs_hash: string; ipfs_url: string; timestamp: string }> {
-        const payload: any = { metadata, sha256, filename };
-        if (jobId) {
-            payload.job_id = jobId;
-        }
+    async generateCertificate(metadata: Metadata, sha256: string, filename: string, jobId?: string): Promise<{ ipfs_hash: string; ipfs_url: string; timestamp: string }> {
         const res = await fetch(getFullUrl('/generate/certificate'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ metadata, sha256, filename, job_id: jobId }),
         });
         if (!res.ok) throw new Error('Failed to generate certificate');
         return await res.json();
