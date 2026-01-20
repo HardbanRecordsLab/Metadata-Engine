@@ -19,7 +19,7 @@ openai-whisper
 google-generativeai
 
 # === Core Audio Analysis ===
-essentia-tensorflow; sys_platform != "win32"
+essentia; sys_platform != "win32"
 librosa
 audioread
 cffi
