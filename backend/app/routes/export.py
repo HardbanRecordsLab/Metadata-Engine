@@ -26,7 +26,7 @@ def get_db():
         db.close()
 
 
-def metadata_to_csv_row(metadata: Dict[str, Any], filename: str) -> Dict[str, str]:
+def metadata_to_csv_row(metadata: Dict[str, Any], filename: str, ipfs_hash: str = None, ipfs_url: str = None) -> Dict[str, str]:
     """
     Convert metadata dictionary to CSV row compatible with MP3Tag.
     
@@ -70,6 +70,8 @@ def metadata_to_csv_row(metadata: Dict[str, Any], filename: str) -> Dict[str, st
         'USAGE': ', '.join(metadata.get('useCases', [])),
         'LANGUAGE': metadata.get('language', ''),
         'SHA256': metadata.get('sha256', ''),
+        'ipfs_hash': ipfs_hash or '',
+        'ipfs_url': ipfs_url or '',
     }
 
 
@@ -92,7 +94,12 @@ async def export_csv(job_id: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="No results available")
         
         # Convert metadata to CSV row
-        csv_row = metadata_to_csv_row(job.result, job.file_name)
+        csv_row = metadata_to_csv_row(
+            job.result, 
+            job.file_name,
+            getattr(job, "ipfs_hash", None),
+            getattr(job, "ipfs_url", None)
+        )
         
         # Create CSV in memory
         output = io.StringIO()
@@ -103,7 +110,8 @@ async def export_csv(job_id: str, db: Session = Depends(get_db)):
             'publisher', 'composer', 'lyricist', 'albumartist', 'CATALOGNUMBER', 
             'isrc', 'MOOD', 'MOOD_VIBE', 'ENERGY', 'INSTRUMENTATION', 
             'VOCAL_STYLE_GENDER', 'VOCAL_STYLE_TIMBRE', 'VOCAL_STYLE_DELIVERY', 
-            'VOCAL_STYLE_EMOTIONALTONE', 'USAGE', 'LANGUAGE', 'SHA256'
+            'VOCAL_STYLE_EMOTIONALTONE', 'USAGE', 'LANGUAGE', 'SHA256',
+            'ipfs_hash', 'ipfs_url'
         ]
         
         writer = csv.DictWriter(output, fieldnames=fieldnames)

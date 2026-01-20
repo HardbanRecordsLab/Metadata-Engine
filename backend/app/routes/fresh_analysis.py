@@ -11,6 +11,7 @@ import os
 import logging
 
 from ..services.fresh_track_analyzer import FreshTrackAnalyzer
+from ..config import settings
 
 router = APIRouter(prefix="/api/fresh", tags=["fresh-analysis"])
 logger = logging.getLogger(__name__)
@@ -65,7 +66,8 @@ async def analyze_fresh_track(
         # Run analysis
         result = await analyzer.analyze_fresh_track(
             tmp_path,
-            include_lyrics=include_lyrics
+            include_lyrics=include_lyrics,
+            time_budget=settings.ANALYSIS_MAX_SECONDS
         )
         
         # Cleanup in background
