@@ -68,29 +68,39 @@ class AdvancedAudioAnalyzer:
         return "Energetic/Happy" if energy > 0.08 else "Chill/Calm"
 
     @staticmethod
-    def analyze_with_essentia(file_path: str) -> Dict[str, Any]:
+    def analyze_with_essentia(file_path: str, fast: bool = False) -> Dict[str, Any]:
         """
         Analyze audio using Essentia (User Preferred Method).
         """
         try:
             import essentia.standard as es
-            logger.info("Using Essentia Standard for analysis...")
+            import numpy as np
+            logger.info(f"Using Essentia Standard for analysis (Fast Mode: {fast})...")
             
             # Loader
             loader = es.MonoLoader(filename=file_path)
             audio = loader()
+            duration = len(audio) / 44100.0
 
             # Rhythm
-            rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
+            # method="degara" is faster than "multifeature"
+            method = "degara" if fast else "multifeature"
+            rhythm_extractor = es.RhythmExtractor2013(method=method)
             bpm, ticks, confidence, estimates, bpm_intervals = rhythm_extractor(audio)
 
             # Key
             key_extractor = es.KeyExtractor()
             key, scale, strength = key_extractor(audio)
 
-            # Dynamics
-            dynamic_complexity = es.DynamicComplexity()
-            dynamics_res = dynamic_complexity(audio)
+            # Extra metrics to avoid Librosa double-load
+            # Energy (RMS)
+            energy_mean = float(np.sqrt(np.mean(audio**2)))
+            
+            # Danceability
+            danceability, _ = es.Danceability()(audio)
+            
+            # Zero Crossing Rate (proxy for brightness)
+            zcr = es.ZeroCrossingRate()(audio)
             
             # Essentia returns BPM as float, Key as string
             return {
@@ -98,10 +108,10 @@ class AdvancedAudioAnalyzer:
                 "key": key,
                 "mode": scale, # Essentia returns 'major'/'minor' (lowercase usually)
                 "full_key": f"{key} {scale}",
-                "confidence": float(confidence),
-                # Add dummy values for spectral stuff to match schema or let librosa fill gaps?
-                # User script only provided these. I will mix with Librosa for complete metadata if needed 
-                # but return the core keys here.
+                "energy_mean": energy_mean,
+                "danceability": danceability,
+                "duration": duration,
+                "zcr": zcr,
                 "success": True
             }
         except Exception as e:
@@ -116,7 +126,32 @@ class AdvancedAudioAnalyzer:
         """
         
         # 1. Try Essentia First (User Request)
-        essentia_results = AdvancedAudioAnalyzer.analyze_with_essentia(file_path)
+        essentia_results = AdvancedAudioAnalyzer.analyze_with_essentia(file_path, fast=fast)
+        
+        # FAST PATH: If Essentia succeeded and we are in fast mode, return immediately
+        # This avoids double-loading audio (Essentia + Librosa) which saves ~5-10s
+        if fast and essentia_results["success"]:
+            final_mode = essentia_results["mode"].capitalize()
+            energy_mean = essentia_results["energy_mean"]
+            mood_vibe = AdvancedAudioAnalyzer._interpret_vibe(final_mode, energy_mean)
+            
+            detected_moods = ["Uplifting"] if final_mode == "Major" else ["Emotional"]
+            
+            return {
+                "bpm": essentia_results["bpm"],
+                "key": essentia_results["key"],
+                "mode": final_mode,
+                "full_key": f"{essentia_results['key']} {final_mode}",
+                "mood_vibe": mood_vibe,
+                "energy_level": round(energy_mean, 4),
+                "duration_seconds": round(essentia_results["duration"], 2),
+                "structure": [],
+                "moods": detected_moods,
+                "danceability": round(essentia_results.get("danceability", 0.0), 2),
+                "spectral": {
+                     "brightness": "bright" if essentia_results.get("zcr", 0) > 0.05 else "warm"
+                }
+            }
         
         # 2. Run Librosa for spectral features and fallback
         librosa = get_librosa()
