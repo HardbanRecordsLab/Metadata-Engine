@@ -68,7 +68,9 @@ class FreshTrackAnalyzer:
             # Check remaining budget
             remaining = time_budget - (time.time() - start_time)
             
-            if remaining < 5:
+            # RELAXED LIMIT: Only skip if less than 3 seconds (was 5)
+            # This gives LLM a chance even in tight scenarios
+            if remaining < 3:
                 logger.warning(f"Time budget low ({remaining:.1f}s). Skipping LLM & Lyrics.")
                 llm_consensus = self.llm_ensemble._fallback_classification(audio_features)
                 lyrics_analysis = {}
@@ -80,7 +82,7 @@ class FreshTrackAnalyzer:
                 ml_hints = self._quick_heuristics(audio_features)
                 
                 # Dynamiczny timeout dla LLM
-                llm_timeout = max(5, remaining - 2) # Zostaw 2s na merge
+                llm_timeout = max(5, remaining - 1) # Zostaw 1s na merge
                 
                 try:
                     llm_consensus = await asyncio.wait_for(
