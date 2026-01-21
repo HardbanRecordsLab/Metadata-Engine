@@ -131,7 +131,7 @@ async def generate_cover(request: CoverRequest):
         artist_safe = request.artist or "Artist"
         
         # User Requirement: Structure: "{Artist} - {Title}. {Visual Prompt specifically related to title}"
-        image_prompt = f"{artist_safe} - {title_safe}. Professional album cover art, visual content strictly related to the concept of '{title_safe}', {genre_safe} aesthetic, cinematic lighting, 8k resolution, highly detailed"
+        image_prompt = f"{title_safe} - {artist_safe}. {genre_safe} aesthetic, cinematic lighting, 8k resolution, highly detailed"
         encoded_prompt = quote(image_prompt)
         image_url = f"https://pollinations.ai/p/{encoded_prompt}?width={width}&height={height}&seed={random.randint(0, 1000000)}&nologo=true"
         
@@ -204,10 +204,6 @@ async def generate_cover(request: CoverRequest):
         
         img_str = base64.b64encode(buffer.getvalue()).decode()
         return {"image": f"data:image/jpeg;base64,{img_str}"}
-
-    except Exception as e:
-        logger.error(f"Cover generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
     except Exception as e:
         logger.error(f"Cover generation failed: {e}")
