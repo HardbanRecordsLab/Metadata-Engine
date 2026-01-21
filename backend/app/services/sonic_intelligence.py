@@ -52,7 +52,19 @@ class SonicAnalyzer:
         try:
             import essentia.standard as es
             # Wczytujemy plik w formacie mono
-            audio = es.MonoLoader(filename=self.file_path)()
+            loader = es.MonoLoader(filename=self.file_path)
+            audio = loader()
+            
+            # Optimization: Smart Slicing for long files (90s limit for analysis)
+            duration = len(audio) / 44100.0
+            if duration > 90:
+                mid_point = duration / 2
+                start_sample = int((mid_point - 45) * 44100)
+                end_sample = int((mid_point + 45) * 44100)
+                start_sample = max(0, start_sample)
+                end_sample = min(len(audio), end_sample)
+                audio = audio[start_sample:end_sample]
+                logger.info(f"SonicIntelligence: Smart Slicing active ({len(audio)/44100:.1f}s)")
 
             # 1. Rytm i Tempo
             rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
