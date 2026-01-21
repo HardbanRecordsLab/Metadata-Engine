@@ -71,10 +71,10 @@ const UsagePanel: React.FC<UsagePanelProps> = ({ user }) => {
                         <TrendingUp className="w-8 h-8" />
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Total Analyses</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Credits Used</p>
                         <p className="text-3xl font-black dark:text-white">
                             {isLoading ? '...' : stats.totalAnalyses}
-                            <span className="text-sm font-normal text-slate-500"> units</span>
+                            <span className="text-sm font-normal text-slate-500"> / {stats.limit}</span>
                         </p>
                     </div>
                 </div>

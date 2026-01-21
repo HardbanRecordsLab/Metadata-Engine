@@ -20,7 +20,7 @@ from app.routes import (
     audd_router, auth_router, history_router, quota_router,
     tagging_router, ddex_router, analysis_router, generative_router,
     health_router, mir_router, ai_proxy_router, cwr_router,
-    batch_router, system_router,
+    batch_router, system_router, webhook
 )
 from app.routes.pinata import router as pinata_router
 from app.routes.fresh_analysis import router as fresh_router

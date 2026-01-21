@@ -20,7 +20,11 @@ class Settings:
     # Database
     SUPABASE_URL = os.getenv("VITE_SUPABASE_URL") or os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
+
+    # Payment
+    LEMONSQUEEZY_WEBHOOK_SECRET = os.getenv("LEMONSQUEEZY_WEBHOOK_SECRET")
 
     # IPFS / Pinata
     PINATA_JWT = os.getenv("PINATA_JWT")
