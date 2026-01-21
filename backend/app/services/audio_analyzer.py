@@ -83,24 +83,37 @@ class AdvancedAudioAnalyzer:
             duration = len(audio) / 44100.0
 
             # Rhythm
-            # method="degara" is faster than "multifeature"
-            method = "degara" if fast else "multifeature"
-            rhythm_extractor = es.RhythmExtractor2013(method=method)
-            bpm, ticks, confidence, estimates, bpm_intervals = rhythm_extractor(audio)
+            # We use "multifeature" (High Quality) but on a smart slice to meet 20s limit
+            # This ensures Professional Accuracy without timeouts
+            analysis_audio = audio
+            if fast and duration > 90:
+                # Smart Slicing: Analyze middle 90s for best BPM/Key detection
+                # This drastically reduces CPU time while keeping algorithm quality MAXED
+                mid_point = duration / 2
+                start_sample = int((mid_point - 45) * 44100)
+                end_sample = int((mid_point + 45) * 44100)
+                # Bounds check
+                start_sample = max(0, start_sample)
+                end_sample = min(len(audio), end_sample)
+                analysis_audio = audio[start_sample:end_sample]
+                logger.info(f"Smart Slicing active: Analyzing {len(analysis_audio)/44100:.1f}s segment")
+
+            rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
+            bpm, ticks, confidence, estimates, bpm_intervals = rhythm_extractor(analysis_audio)
 
             # Key
             key_extractor = es.KeyExtractor()
-            key, scale, strength = key_extractor(audio)
+            key, scale, strength = key_extractor(analysis_audio)
 
             # Extra metrics to avoid Librosa double-load
-            # Energy (RMS)
+            # Energy (RMS) - Calculate on full audio for accuracy, it's fast (numpy)
             energy_mean = float(np.sqrt(np.mean(audio**2)))
             
-            # Danceability
-            danceability, _ = es.Danceability()(audio)
+            # Danceability - Calculate on slice (expensive)
+            danceability, _ = es.Danceability()(analysis_audio)
             
-            # Zero Crossing Rate (proxy for brightness)
-            zcr = es.ZeroCrossingRate()(audio)
+            # Zero Crossing Rate - Calculate on slice
+            zcr = es.ZeroCrossingRate()(analysis_audio)
             
             # Essentia returns BPM as float, Key as string
             return {
