@@ -314,6 +314,9 @@ Return JSON:
             "energy_level": llm_consensus.get('energy_level', 'Medium'),
             "mood_vibe": llm_consensus.get('mood_vibe', ''),
             "bpm": audio_features.get('rhythm', {}).get('tempo', 0),
+            "key": audio_features.get('harmonic', {}).get('key', 'C'),
+            "mode": audio_features.get('harmonic', {}).get('mode', 'Major'),
+            "structure": audio_features.get('structure', []),
             "duration": audio_features.get('meta', {}).get('duration', 0),
             "language": lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
         }

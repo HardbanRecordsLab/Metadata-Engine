@@ -32,9 +32,9 @@ class Settings:
 
     # Analysis
     try:
-        ANALYSIS_MAX_SECONDS = int(os.getenv("ANALYSIS_MAX_SECONDS", "20"))
+        ANALYSIS_MAX_SECONDS = int(os.getenv("ANALYSIS_MAX_SECONDS", "60"))
     except Exception:
-        ANALYSIS_MAX_SECONDS = 20
+        ANALYSIS_MAX_SECONDS = 60
 
 
 settings = Settings()

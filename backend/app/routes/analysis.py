@@ -258,29 +258,29 @@ async def process_analysis(
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=20)
 
-        from app.services.audio_analyzer import AdvancedAudioAnalyzer
-        analysis_timeout = max(0.1, remaining() - 2.0)
-        if analysis_timeout <= 0.1:
-            raise asyncio.TimeoutError()
-        analysis = await asyncio.wait_for(
-            asyncio.to_thread(AdvancedAudioAnalyzer.full_analysis, file_path, True),
-            timeout=analysis_timeout,
+        from app.services.fresh_track_analyzer import FreshTrackAnalyzer
+        
+        analyzer = FreshTrackAnalyzer()
+        
+        # Calculate time budget for analyzer
+        # Leave 2 seconds for validation and saving
+        analyzer_budget = max(15, int(remaining() - 2.0))
+        
+        logger.info(f"Job {job_id}: Delegating to FreshTrackAnalyzer (budget {analyzer_budget}s)...")
+        
+        # Use FreshTrackAnalyzer to get full metadata including AI tags
+        metadata = await analyzer.analyze_fresh_track(
+            file_path=file_path, 
+            include_lyrics=transcribe, 
+            model_preference=model_preference,
+            time_budget=analyzer_budget
         )
-        core = analysis.get("core", {})
-        existing = analysis.get("existing_metadata", {})
-        metadata = {
-            "title": existing.get("title") or job.file_name,
-            "artist": existing.get("artist") or "Unknown Artist",
-            "bpm": core.get("bpm"),
-            "key": core.get("key"),
-            "mode": core.get("mode"),
-            "mainGenre": existing.get("genre") or "Unknown",
-            "trackDescription": f"Audio track at {core.get('bpm', '?')} BPM",
-            "duration": core.get("duration_seconds") or existing.get("duration"),
-            "sha256": file_hash,
-            "structure": core.get("structure", []),
-            "moods": core.get("moods", []),
-        }
+        
+        # Ensure basic fields exist if analyzer didn't find them in existing metadata
+        if not metadata.get("title"):
+             metadata["title"] = job.file_name
+        if not metadata.get("artist"):
+             metadata["artist"] = "Unknown Artist"
 
         # Step 3: Add SHA-256 and Common Fields
         metadata["sha256"] = file_hash
