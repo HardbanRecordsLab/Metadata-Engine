@@ -109,6 +109,19 @@ export const RefreshCw = createIcon(
   </>
 );
 
+export const Loader = createIcon(
+  <>
+    <path d="M12 2v4" />
+    <path d="m4.93 4.93 2.83 2.83" />
+    <path d="M2 12h4" />
+    <path d="m4.93 19.07 2.83-2.83" />
+    <path d="M12 18v4" />
+    <path d="m16.24 16.24 2.83 2.83" />
+    <path d="M18 12h4" />
+    <path d="m16.24 7.76 2.83-2.83" />
+  </>
+);
+
 export const Pencil = createIcon(
   <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
 );
@@ -702,5 +715,21 @@ export const Wand2 = createIcon(
     <path d="M17.8 6.2 19 5" />
     <path d="m3 21 9-9" />
     <path d="M12.2 6.2 11 5" />
+  </>
+);
+
+export const Volume2 = createIcon(
+  <>
+    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+  </>
+);
+
+export const VolumeX = createIcon(
+  <>
+    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+    <line x1="22" x2="16" y1="9" y2="15" />
+    <line x1="16" x2="22" y1="9" y2="15" />
   </>
 );

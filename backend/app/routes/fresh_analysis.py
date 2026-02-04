@@ -13,7 +13,7 @@ import logging
 from ..services.fresh_track_analyzer import FreshTrackAnalyzer
 from ..config import settings
 
-router = APIRouter(prefix="/api/fresh", tags=["fresh-analysis"])
+router = APIRouter(prefix="/fresh", tags=["fresh-analysis"])
 logger = logging.getLogger(__name__)
 
 analyzer = FreshTrackAnalyzer()

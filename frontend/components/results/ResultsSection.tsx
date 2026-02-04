@@ -15,7 +15,12 @@ import ConfidenceMeter from './ConfidenceMeter';
 import CopyrightCard from './CopyrightCard';
 import StructureCard from './StructureCard';
 import DistributionCard from './DistributionCard';
-import MetadataValidationCard from './MetadataValidationCard';
+import { validateRelease, ValidationReport } from '../../services/releaseValidationService';
+import ValidationReportCard from './ValidationReportCard';
+import ProAnalysisCard from './ProAnalysisCard';
+import CreativeSuiteCard from './CreativeSuiteCard';
+import ExternalServicesCard from './ExternalServicesCard';
+import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
 
 interface ResultsSectionProps {
@@ -30,6 +35,7 @@ interface ResultsSectionProps {
     onBackToBatch: () => void;
     userTier: UserTier;
     onOpenPricing: () => void;
+    audioFeatures?: any;
 }
 
 const AUTOSAVE_KEY = 'music-metadata-autosave';
@@ -90,7 +96,7 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 );
 
 
-const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, results, showToast, onUpdateResults, currentAnalysis, uploadedFile, onUpdateFile, onBackToBatch, userTier, onOpenPricing }) => {
+const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, results, showToast, onUpdateResults, currentAnalysis, uploadedFile, onUpdateFile, onBackToBatch, userTier, onOpenPricing, audioFeatures }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedResults, setEditedResults] = useState<Metadata | null>(results);
     const [undoStack, setUndoStack] = useState<Metadata[]>([]);
@@ -98,6 +104,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
     const [refiningField, setRefiningField] = useState<keyof Metadata | null>(null);
     const [isTaggingFile, setIsTaggingFile] = useState(false);
     const [isFileReadable, setIsFileReadable] = useState(true);
+    const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Verify file accessibility
@@ -164,6 +171,12 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
             localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
         }
     }, [isEditing, editedResults, currentAnalysis]);
+
+    useEffect(() => {
+        if (editedResults) {
+            validateRelease(uploadedFile, editedResults, audioFeatures).then(setValidationReport);
+        }
+    }, [editedResults, audioFeatures, uploadedFile]);
 
     if (isLoading) return <ResultsSkeleton />;
     if (error && !results) return <ErrorDisplay message={error} />;
@@ -390,7 +403,10 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                 </div>
             )}
 
-            {/* Player removed due to stability issues */}
+            {/* Premium Audio Player */}
+            <AnimatedSection delay="100ms">
+                <AudioPlayer file={uploadedFile} />
+            </AnimatedSection>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
@@ -416,6 +432,12 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                     </AnimatedSection>
                     <AnimatedSection delay="180ms">
                         <StructureCard metadata={editedResults!} />
+                    </AnimatedSection>
+                    <AnimatedSection delay="185ms">
+                        <ProAnalysisCard
+                            metadata={editedResults!}
+                            audioFeatures={audioFeatures}
+                        />
                     </AnimatedSection>
                     <AnimatedSection delay="190ms">
                         <ClassificationStyleCard
@@ -447,11 +469,13 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                         />
                     </AnimatedSection>
 
-                    <AnimatedSection delay="260ms">
-                        <MetadataValidationCard
-                            metadata={editedResults!}
-                        />
-                    </AnimatedSection>
+                    {validationReport && (
+                        <AnimatedSection delay="260ms">
+                            <ValidationReportCard
+                                report={validationReport}
+                            />
+                        </AnimatedSection>
+                    )}
 
                     <AnimatedSection delay="270ms">
                         <IdentificationCard
@@ -471,6 +495,20 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                         <VisualsCard
                             metadata={editedResults!}
                             onUpdateField={handleFieldUpdate}
+                            showToast={showToast}
+                        />
+                    </AnimatedSection>
+
+                    <AnimatedSection delay="330ms">
+                        <ExternalServicesCard
+                            metadata={editedResults!}
+                            onEnrichMetadata={handleExternalMetadataUpdate}
+                        />
+                    </AnimatedSection>
+
+                    <AnimatedSection delay="340ms">
+                        <CreativeSuiteCard
+                            metadata={editedResults!}
                             showToast={showToast}
                         />
                     </AnimatedSection>

@@ -71,6 +71,13 @@ export interface Metadata {
     structure?: StructureSegment[];
     explicitContent?: string;
     tempoCharacter?: string;
+    musicalEra?: string; // New: e.g., 80s Retro, Modern
+    productionQuality?: string; // New: e.g., Lo-Fi, Studio Polished
+    dynamics?: string; // New: e.g., High Dynamic Range
+    targetAudience?: string; // New: e.g., Gen Z
+    fileOwner?: string; // New
+    license?: string; // New
+    analysisReasoning?: string; // New
     validation_report?: {
         score?: number;
         status?: string;
@@ -99,6 +106,7 @@ export interface BatchItem {
     error?: string;
     jobId?: string; // Persistent Backend Job ID
     message?: string; // Real-time status message
+    audioFeatures?: any; // DSP results for ProAnalysisCard
 }
 
 // MusicBrainz Types

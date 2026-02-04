@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Metadata, MBRecording } from '../../types';
 import { searchMusicBrainz, mapMBToMetadata } from '../../services/musicBrainzService';
 import Card from './Card';
-import { Database, SearchCheck, CheckCircle2, User, Calendar } from '../icons';
+import { Database, SearchCheck, CheckCircle2, User, Calendar, Fingerprint, Music } from '../icons';
+import { identifyTrack } from '../../services/enhanced/acrCloudService';
 import Button from '../Button';
 import Tooltip from '../Tooltip';
 
@@ -21,6 +22,10 @@ const IdentificationCard: React.FC<IdentificationCardProps> = ({ metadata, fileN
   const [mbQuery, setMbQuery] = useState('');
   const [mbResults, setMbResults] = useState<MBRecording[]>([]);
   const [isMbSearching, setIsMbSearching] = useState(false);
+
+  // ACRCloud State
+  const [acrResult, setAcrResult] = useState<any>(null);
+  const [isAcrSearching, setIsAcrSearching] = useState(false);
 
   // Initialize MB query logic with ISRC support
   useEffect(() => {
@@ -58,6 +63,38 @@ const IdentificationCard: React.FC<IdentificationCardProps> = ({ metadata, fileN
     onUpdateMetadata(mappedData);
     showToast("Metadata updated from Institutional Registry!", 'success');
     setMbResults([]);
+  };
+
+  const handleAcrIdentify = async () => {
+    if (!uploadedFile) {
+      showToast("No file loaded for acoustic fingerprinting.", 'error');
+      return;
+    }
+
+    setIsAcrSearching(true);
+    setAcrResult(null);
+    try {
+      showToast("Generating acoustic fingerprint...", 'info');
+      const result = await identifyTrack(uploadedFile);
+      if (result) {
+        setAcrResult(result);
+        showToast("Track identified via ACRCloud!", 'success');
+      } else {
+        showToast("No match found in ACRCloud database.", 'info');
+      }
+    } catch (error: any) {
+      console.error("ACR Error:", error);
+      showToast(error.message || "ACRCloud identification failed.", 'error');
+    } finally {
+      setIsAcrSearching(false);
+    }
+  };
+
+  const handleAcrApply = () => {
+    if (!acrResult) return;
+    onUpdateMetadata(acrResult);
+    showToast("Metadata updated from ACRCloud!", 'success');
+    setAcrResult(null);
   };
 
   return (
@@ -134,6 +171,55 @@ const IdentificationCard: React.FC<IdentificationCardProps> = ({ metadata, fileN
               <div className="text-center py-4">
                 <p className="text-xs text-slate-400 italic">Enter artist name and title or ISRC code to find professional metadata.</p>
               </div>
+            )}
+          </div>
+
+          {/* ACRCloud Section */}
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-[#3B82F6] font-bold text-sm uppercase">
+                <Fingerprint className="w-5 h-5" />
+                Acoustic Fingerprinting
+              </div>
+              <Button
+                onClick={handleAcrIdentify}
+                disabled={isAcrSearching || !uploadedFile}
+                size="sm"
+                variant="secondary"
+                className="border-[#3B82F6] text-[#3B82F6] hover:bg-blue-500/5"
+              >
+                {isAcrSearching ? (
+                  <div className="w-4 h-4 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "Identify Audio"
+                )}
+              </Button>
+            </div>
+
+            {acrResult ? (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 animate-slide-up">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-2">
+                    <Music className="w-5 h-5 text-blue-600" />
+                    <span className="font-bold text-blue-900 dark:text-blue-100">Match Found</span>
+                  </div>
+                  <button
+                    onClick={handleAcrApply}
+                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-shadow shadow-sm"
+                  >
+                    Apply Metadata
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200">{acrResult.title}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">{acrResult.artist}</p>
+                  {acrResult.album && <p className="text-[10px] text-blue-500 italic">{acrResult.album}</p>}
+                </div>
+              </div>
+            ) : !isAcrSearching && (
+              <p className="text-center py-2 text-xs text-slate-400 italic">
+                Use ACRCloud to identify the track using its audio signature.
+              </p>
             )}
           </div>
         </div>

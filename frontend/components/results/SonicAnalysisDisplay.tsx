@@ -1,7 +1,7 @@
 import React from 'react';
 import { Metadata } from '../../types';
 import Card from './Card';
-import { Activity, Sparkles, Hash, Key } from '../icons';
+import { Activity, Sparkles, Hash, Key, Calendar, User } from '../icons';
 import Tooltip from '../Tooltip';
 
 interface SonicAnalysisDisplayProps {
@@ -111,9 +111,29 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
                     icon={<Activity className="w-5 h-5" />}
                 />
                 <SonicField
-                    label="ENERGY" value={(metadata as any).energy_level} field={"energy_level" as any}
+                    label="ENERGY" value={metadata.energy_level || metadata.energyLevel} field="energy_level"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
                     icon={<Sparkles className="w-5 h-5" />}
+                />
+                <SonicField
+                    label="ERA" value={metadata.musicalEra} field="musicalEra"
+                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
+                    icon={<Calendar className="w-5 h-5" />}
+                />
+                <SonicField
+                    label="QUALITY" value={metadata.productionQuality} field="productionQuality"
+                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
+                    icon={<Activity className="w-5 h-5" />}
+                />
+                <SonicField
+                    label="DYNAMICS" value={metadata.dynamics} field="dynamics"
+                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
+                    icon={<Activity className="w-5 h-5" />}
+                />
+                <SonicField
+                    label="AUDIENCE" value={metadata.targetAudience} field="targetAudience"
+                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
+                    icon={<User className="w-5 h-5" />}
                 />
             </div>
         </Card>

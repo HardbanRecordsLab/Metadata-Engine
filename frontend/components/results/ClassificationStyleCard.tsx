@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Metadata, VocalStyle } from '../../types';
 import Card from './Card';
-import { Tags as TagsIcon, Sparkles, Mic, AlertCircle, Hash, Code, User, FileText, Music } from '../icons'; // Removed Clock, Users
+import { Tags as TagsIcon, Sparkles, Mic, AlertCircle, Hash, Code, User, FileText } from '../icons';
 import Tooltip from '../Tooltip';
 
 interface ClassificationStyleCardProps {
@@ -153,7 +152,6 @@ const ClassificationStyleCard: React.FC<ClassificationStyleCardProps> = ({
             </div>
 
             <div className="space-y-6">
-                {/* Main Genre */}
                 <div className="group">
                     <div className="flex justify-between items-center mb-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Hash className="w-4 h-4" /> Main Genre</label>
@@ -218,33 +216,6 @@ const ClassificationStyleCard: React.FC<ClassificationStyleCardProps> = ({
 
                 <div className="group">
                     <div className="flex justify-between items-center mb-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Music className="w-4 h-4" /> Main Instrument</label>
-                        <Tooltip text="Enhance with AI">
-                            <button onClick={() => onRefine('mainInstrument')} className="text-slate-400 hover:text-accent-violet transition-colors disabled:opacity-50" disabled={!!refiningField}>
-                                {refiningField === 'mainInstrument' ? (
-                                    <div className="w-3 h-3 border-2 border-accent-violet border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                    <Sparkles className="w-3 h-3 text-accent-violet" />
-                                )}
-                            </button>
-                        </Tooltip>
-                    </div>
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={metadata.mainInstrument || ''}
-                            onChange={(e) => onFieldUpdate('mainInstrument', e.target.value)}
-                            className="w-full p-2 bg-white dark:bg-slate-900 rounded-md text-sm border border-slate-300 dark:border-slate-600 focus:ring-accent-violet focus:border-accent-violet outline-none shadow-sm focus:shadow-md"
-                            placeholder="e.g. Synthesizer"
-                        />
-                    ) : (
-                        <div className="text-sm text-slate-700 dark:text-slate-300">{metadata.mainInstrument || <span className="text-slate-400 text-xs italic">Not set</span>}</div>
-                    )}
-                </div>
-
-                {/* Vocal Style */}
-                <div className="group">
-                    <div className="flex justify-between items-center mb-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><User className="w-4 h-4" /> Vocal Style</label>
                         <Tooltip text="Enhance with AI">
                             <button onClick={() => onRefine('vocalStyle')} className="text-slate-400 hover:text-accent-violet transition-colors disabled:opacity-50" disabled={!!refiningField}>
@@ -274,18 +245,6 @@ const ClassificationStyleCard: React.FC<ClassificationStyleCardProps> = ({
                     icon={<TagsIcon className="w-4 h-4" />}
                 />
 
-                <TagSection
-                    title="Use Cases"
-                    field="useCases"
-                    tags={metadata.useCases || []}
-                    isEditing={isEditing}
-                    onFieldUpdate={onFieldUpdate}
-                    refiningField={refiningField}
-                    onRefine={onRefine}
-                    icon={<FileText className="w-4 h-4" />}
-                />
-
-                {/* Track Description / Bio */}
                 <div className="group pt-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between items-center mb-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-4 h-4" /> Track Description (Bio)</label>

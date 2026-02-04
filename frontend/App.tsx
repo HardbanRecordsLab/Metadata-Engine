@@ -216,7 +216,7 @@ const AppContent: React.FC = () => {
                 }
                 */
 
-                const results = await generateMetadata(
+                const responseData = await generateMetadata(
                     'file',
                     isProMode,
                     item.file,
@@ -233,6 +233,10 @@ const AppContent: React.FC = () => {
                     },
                     isFresh
                 );
+
+                const results = responseData.metadata;
+                const audioFeatures = responseData.audioFeatures;
+
                 const newRecord: AnalysisRecord = {
                     id: new Date().toISOString() + item.file.name,
                     metadata: results,
@@ -249,7 +253,7 @@ const AppContent: React.FC = () => {
                     setAnalysisHistory(prev => [newRecord, ...prev]);
                 }
 
-                setBatch(prev => prev.map(b => b.id === item.id ? { ...b, status: 'completed', metadata: results } : b));
+                setBatch(prev => prev.map(b => b.id === item.id ? { ...b, status: 'completed', metadata: results, audioFeatures } : b));
                 processedCount++;
             } catch (err) {
                 failedCount++;

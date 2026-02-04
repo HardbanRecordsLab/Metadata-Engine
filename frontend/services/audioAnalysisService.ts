@@ -12,6 +12,18 @@ export interface AudioFeatures {
     method: 'Essentia (Advanced)' | 'Native DSP (Engineering)' | 'AI Estimate';
     loudnessDb?: number;
     energy?: number | string;
+    brightness?: string;
+    truePeak?: number;
+    stereo?: {
+        width: number;
+        correlation: number;
+    };
+    balance?: {
+        low: number;
+        mid: number;
+        high: number;
+        character: string;
+    };
     structure?: StructureSegment[];
 }
 
@@ -151,7 +163,12 @@ export const analyzeAudioFeatures = async (file: File): Promise<AudioFeatures | 
                 key: keyData.key,
                 mode: keyData.scale,
                 duration: Math.round(audioBuffer.duration * 100) / 100,
-                method: 'Essentia (Advanced)'
+                method: 'Essentia (Advanced)',
+                loudnessDb: nativeData.loudnessDb,
+                brightness: nativeData.brightness,
+                truePeak: nativeData.truePeak,
+                stereo: nativeData.stereo,
+                balance: nativeData.balance
             };
         }
     } catch (e) {
@@ -161,9 +178,14 @@ export const analyzeAudioFeatures = async (file: File): Promise<AudioFeatures | 
     // Fallback to Native DSP (Worker Result)
     return {
         bpm: nativeBpm,
-        key: undefined, // Let backend or defaults handle this
+        key: undefined,
         mode: '',
         duration: Math.round(audioBuffer.duration * 100) / 100,
-        method: 'Native DSP (Engineering)'
+        method: 'Native DSP (Engineering)',
+        loudnessDb: nativeData.loudnessDb,
+        brightness: nativeData.brightness,
+        truePeak: nativeData.truePeak,
+        stereo: nativeData.stereo,
+        balance: nativeData.balance
     };
 };

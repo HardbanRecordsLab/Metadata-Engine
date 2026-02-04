@@ -26,6 +26,7 @@ from app.routes.pinata import router as pinata_router
 from app.routes.fresh_analysis import router as fresh_router
 from app.routes.export import router as export_router
 from app.routes.tools import router as tools_router
+from app.routes.v2.ipfs import router as ipfs_v2_router
 
 app = FastAPI()
 
@@ -60,6 +61,7 @@ app.include_router(fresh_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
+app.include_router(ipfs_v2_router, prefix="/api/v2")
 
 @app.get("/api/debug/files")
 def debug_files():

@@ -38,7 +38,7 @@ const mergeWithDSP = (data: any, dspFeatures: AudioFeatures | null, fileName: st
         useCases: Array.isArray(data.useCases) ? data.useCases : [],
         language: data.language || "Instrumental",
         vocalStyle: (typeof data.vocalStyle === 'object' && data.vocalStyle !== null) ? data.vocalStyle : { gender: 'none', timbre: 'none', delivery: 'none', emotionalTone: 'none' },
-        structure: data.structure || dspFeatures?.structure || [],
+        structure: (data.structure && data.structure.length > 0) ? data.structure : (dspFeatures?.structure || []),
         duration: data.duration || dspFeatures?.duration || 0,
         coverArt: data.coverArt || undefined
     };
@@ -56,7 +56,7 @@ export const generateMetadata = async (
     onJobCreated?: (jobId: string) => void,
     onProgressUpdate?: (message: string) => void,
     isFresh: boolean = false
-): Promise<Metadata> => {
+): Promise<{ metadata: Metadata; audioFeatures: AudioFeatures | null }> => {
     let dspFeatures: AudioFeatures | null = null;
     let fileHash: string | undefined = undefined;
 
@@ -159,11 +159,10 @@ export const generateMetadata = async (
                     }
                 }
 
-                if (!finalMetadata) {
-                    throw new Error("Analysis timed out. Try again or check server logs.");
-                }
-
-                return finalMetadata;
+                return {
+                    metadata: finalMetadata,
+                    audioFeatures: dspFeatures
+                };
 
             } finally {
                 if (ws.readyState === WebSocket.OPEN) ws.close();
