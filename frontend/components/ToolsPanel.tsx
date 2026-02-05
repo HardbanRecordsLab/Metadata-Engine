@@ -130,15 +130,11 @@ const ToolsPanel: React.FC<{
             }
             else if (currentTool === 'Audio Fingerprinting') endpoint = '/tools/fingerprint';
             else if (currentTool === 'Bulk License Export') {
-                // This tool doesn't need an uploaded file, it uses historical IDs
-                // But for now, we'll mockup the ID collection
                 endpoint = '/tools/bulk-export';
-                formData.append('job_ids', 'batch-1,batch-2'); // Placeholder
+                formData.append('job_ids', ''); // Should be populated from selected history items
             }
             else if (currentTool === 'Stem Separation') {
-                showToast("Stem separation is a high-compute task. Preparing backend workers...", 'info');
-                setIsProcessing(false);
-                return;
+                endpoint = '/mir/separate';
             }
 
             if (!endpoint) {

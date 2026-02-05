@@ -368,7 +368,7 @@ const AppContent: React.FC = () => {
             <Sidebar
                 currentView={view}
                 onChangeView={setView}
-                onOpenAbout={() => setIsAboutModalOpen(true)}
+                onOpenAbout={() => setActiveResourceDoc('docs')}
                 isOpenMobile={isMobileMenuOpen}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
                 onOpenPricing={() => setIsPricingOpen(true)}

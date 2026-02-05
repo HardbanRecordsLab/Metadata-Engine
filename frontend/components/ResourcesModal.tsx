@@ -322,54 +322,48 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
 
                         <div className="relative pl-12">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-white dark:border-dark-card shadow-sm"></div>
-                            <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q1 2023</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Conceptualization</h4>
-                            <p className="text-sm text-slate-500 mt-1">Initial research into browser-based DSP and Python prototypes.</p>
+                            <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q4 2024</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Beta Launch v1.0</h4>
+                            <p className="text-sm text-slate-500 mt-1">Initial release of the core MIR engine and Gemini integration.</p>
                         </div>
 
                         <div className="relative pl-12">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-white dark:border-dark-card shadow-sm"></div>
-                            <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q3 2023</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">AI Integration</h4>
-                            <p className="text-sm text-slate-500 mt-1">First successful tests connecting DSP analysis with LLM (GPT-3) regarding genre classification.</p>
-                        </div>
-
-                        <div className="relative pl-12">
-                            <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-white dark:border-dark-card shadow-sm"></div>
-                            <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q2 2024</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Hybrid Cloud Engine</h4>
-                            <p className="text-sm text-slate-500 mt-1">Launch of the "Privacy-First" architecture, moving 90% of processing to the client-side.</p>
+                            <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q1 2025</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Pro Infrastructure</h4>
+                            <p className="text-sm text-slate-500 mt-1">Deployment of Supabase backend, user accounts, and batch processing capabilities.</p>
                         </div>
 
                         <div className="relative pl-12">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-accent-violet rounded-full border-4 border-white dark:border-dark-card shadow-lg shadow-accent-violet/50"></div>
-                            <div className="mb-1 text-xs font-bold text-accent-violet uppercase tracking-wider">NOW (Q1 2025)</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Production Release v1.3</h4>
-                            <p className="text-sm text-slate-500 mt-1">Feature complete. Batch processing, Copyright Certificates, and Market Pulse launched.</p>
+                            <div className="mb-1 text-xs font-bold text-accent-violet uppercase tracking-wider">NOW (Q1 2026)</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Engine v1.3 - Stability Update</h4>
+                            <p className="text-sm text-slate-500 mt-1">Introduction of Professional Tools, robust MIR formatting, and refined analytics dashboard.</p>
                         </div>
 
                         <div className="relative pl-12 opacity-75">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-slate-300 dark:bg-slate-700 rounded-full border-4 border-white dark:border-dark-card"></div>
-                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q2 2025 (Planned)</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Collaborative Workspaces</h4>
-                            <p className="text-sm text-slate-500 mt-1">Multi-user teams for Record Labels to share catalogs and billing.</p>
+                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q2 2026 (Planned)</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Collaborative Studios</h4>
+                            <p className="text-sm text-slate-500 mt-1">Team workspaces, shared catalogs, and real-time collaboration on metadata sets.</p>
                         </div>
 
                         <div className="relative pl-12 opacity-75">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-slate-300 dark:bg-slate-700 rounded-full border-4 border-white dark:border-dark-card"></div>
-                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q3 2025 (Planned)</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Direct DSP Integration</h4>
-                            <p className="text-sm text-slate-500 mt-1">One-click upload of metadata to Spotify for Artists and Apple Music Connect.</p>
+                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q3 2026 (Planned)</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Direct DPS Publishing</h4>
+                            <p className="text-sm text-slate-500 mt-1">Automated upload to Spotify for Artists, Apple Music, and Beatport directly from the engine.</p>
                         </div>
 
                         <div className="relative pl-12 opacity-75">
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-slate-300 dark:bg-slate-700 rounded-full border-4 border-white dark:border-dark-card"></div>
-                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q4 2025 (Planned)</div>
-                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Mobile Companion App</h4>
-                            <p className="text-sm text-slate-500 mt-1">iOS/Android app for on-the-go catalog management and quick analysis.</p>
+                            <div className="mb-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Q4 2026 (Planned)</div>
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text">DAW Bridge (VST/AU)</h4>
+                            <p className="text-sm text-slate-500 mt-1">Integration directly into Ableton Live, FL Studio, and Logic Pro for real-time metadata syncing.</p>
                         </div>
                     </div>
                 );
+
 
             case 'status':
                 return (
