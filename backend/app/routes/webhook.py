@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 # Plan to Credit Mapping
 PLAN_CREDITS = {
     "Hobby": 50,
-    "Basic": 150,
-    "Pro": 500,
+    "Basic": 120,
+    "Pro": 260,
     "Studio": 2000
 }
 
