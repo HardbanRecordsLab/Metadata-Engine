@@ -46,7 +46,8 @@ export const db = {
             .insert({
                 user_id: userId,
                 file_name: record.input.fileName || 'Unknown File',
-                result: resultPayload
+                result: resultPayload,
+                created_at: new Date().toISOString()
             });
 
         if (error) console.error('Error saving analysis:', error);

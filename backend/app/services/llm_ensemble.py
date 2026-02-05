@@ -219,6 +219,10 @@ RETURN STRICT JSON:
   "useCases": ["Usage 1", "Usage 2", "Usage 3"],
   "mood_vibe": "Detailed atmospheric description (REQUIRED)",
   "energy_level": "Low/Medium/High/Very High (REQUIRED)",
+  "musicalEra": "e.g. 80s Retro, Modern, Early 2000s (REQUIRED)",
+  "productionQuality": "e.g. Lo-Fi, Studio Polished, Raw (REQUIRED)",
+  "dynamics": "e.g. High Dynamic Range, Compressed, Explosive (REQUIRED)",
+  "targetAudience": "e.g. Gen Z, Clubgoers, Relaxing at home (REQUIRED)",
   "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["artist1", "artist2"],
   "confidence": 0.95
@@ -297,6 +301,10 @@ Analyze this track and return STRICT JSON:
   "useCases": ["u1", "u2", "u3"],
   "mood_vibe": "Detailed description (REQUIRED)",
   "energy_level": "Low/Medium/High (REQUIRED)",
+  "musicalEra": "string (REQUIRED)",
+  "productionQuality": "string (REQUIRED)",
+  "dynamics": "string (REQUIRED)",
+  "targetAudience": "string (REQUIRED)",
   "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["string"],
   "confidence": 0.95
@@ -373,6 +381,10 @@ Analyze this track and return STRICT JSON:
   "useCases": ["u1", "u2", "u3"],
   "mood_vibe": "Detailed description (REQUIRED)",
   "energy_level": "Low/Medium/High (REQUIRED)",
+  "musicalEra": "string (REQUIRED)",
+  "productionQuality": "string (REQUIRED)",
+  "dynamics": "string (REQUIRED)",
+  "targetAudience": "string (REQUIRED)",
   "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
   "similar_artists": ["string"],
   "confidence": 0.92
@@ -492,6 +504,10 @@ Analyze this track and return STRICT JSON:
             mood_vibe = "Dynamic musical composition."
 
         energy_level = get_best_string('energy_level', 'Medium')
+        musical_era = get_best_string('musicalEra', 'Modern')
+        prod_quality = get_best_string('productionQuality', 'Studio Polished')
+        dynamics = get_best_string('dynamics', 'Medium')
+        audience = get_best_string('targetAudience', 'General')
 
         # Description (take longest/most detailed)
         descriptions = [r.get('trackDescription') for r in results if r.get('trackDescription') and isinstance(r.get('trackDescription'), str)]
@@ -514,6 +530,10 @@ Analyze this track and return STRICT JSON:
             "trackDescription": track_desc,
             "mood_vibe": mood_vibe,
             "energy_level": energy_level,
+            "musicalEra": musical_era,
+            "productionQuality": prod_quality,
+            "dynamics": dynamics,
+            "targetAudience": audience,
             "similar_artists": similar_artists,
             "confidence": final_conf,
             "meta": {
@@ -705,6 +725,10 @@ Analyze this track and return STRICT JSON:
             "trackDescription": track_desc,
             "mood_vibe": mood_vibe,
             "energy_level": energy_level,
+            "musicalEra": "Modern",
+            "productionQuality": "Studio Polished",
+            "dynamics": "High",
+            "targetAudience": "General",
             "similar_artists": [],
             "confidence": 0.65,
             "meta": {"source": "dsp_fallback"}

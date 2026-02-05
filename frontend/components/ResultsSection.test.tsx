@@ -27,9 +27,18 @@ vi.mock('./results/CommercialLegalCard', () => ({ default: () => <div>Commercial
 vi.mock('./results/ConfidenceMeter', () => ({ default: () => <div>ConfidenceMeter Mock</div> }));
 vi.mock('./results/StructureCard', () => ({ default: () => <div>StructureCard Mock</div> }));
 vi.mock('./results/DistributionCard', () => ({ default: () => <div>DistributionCard Mock</div> }));
-vi.mock('./results/MetadataValidationCard', () => ({ default: () => <div>MetadataValidationCard Mock</div> }));
+vi.mock('./results/ValidationReportCard', () => ({ default: () => <div>ValidationReportCard Mock</div> }));
 vi.mock('./results/VisualsCard', () => ({ default: () => <div>VisualsCard Mock</div> }));
 vi.mock('./results/CopyrightCard', () => ({ default: () => <div>CopyrightCard Mock</div> }));
+vi.mock('./results/ProAnalysisCard', () => ({ default: () => <div>ProAnalysisCard Mock</div> }));
+vi.mock('./results/ExternalServicesCard', () => ({ default: () => <div>ExternalServicesCard Mock</div> }));
+vi.mock('./AudioPlayer', () => ({ default: () => <div>AudioPlayer Mock</div> }));
+vi.mock('../services/releaseValidationService', () => ({
+    validateRelease: vi.fn().mockResolvedValue({
+        overallScore: 90,
+        checks: []
+    })
+}));
 
 
 const mockMetadata: Metadata = {
@@ -84,7 +93,7 @@ describe('ResultsSection Component', () => {
         vi.clearAllMocks();
     });
 
-    it('renders metadata correctly in view mode', () => {
+    it('renders metadata correctly in view mode', async () => {
         render(<ResultsSection {...defaultProps} />);
 
         expect(screen.getByText('Test Song')).toBeDefined();
@@ -96,7 +105,7 @@ describe('ResultsSection Component', () => {
         expect(screen.getByText('IdentificationCard Mock')).toBeDefined();
         expect(screen.getByText('StructureCard Mock')).toBeDefined();
         expect(screen.getByText('DistributionCard Mock')).toBeDefined();
-        expect(screen.getByText('MetadataValidationCard Mock')).toBeDefined();
+        expect(await screen.findByText('ValidationReportCard Mock')).toBeDefined();
         expect(screen.getByText('VisualsCard Mock')).toBeDefined();
         expect(screen.getByText('CopyrightCard Mock')).toBeDefined();
     });

@@ -21,7 +21,7 @@ class MockWebSocket {
   readyState = MockWebSocket.OPEN;
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: ((event: any) => void) | null = null;
-  constructor(_url: string) {}
+  constructor(_url: string) { }
   close() {
     this.readyState = 3;
   }
@@ -75,7 +75,7 @@ describe('geminiService', () => {
     (globalThis as any).fetch = fetchMock;
 
     const dummyFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
-    const result = await generateMetadata('file', false, dummyFile, '', '');
+    const { metadata: result } = await generateMetadata('file', false, dummyFile, '', '');
 
     expect(result.mainGenre).toBe('Pop');
     expect(result.bpm).toBe(128);

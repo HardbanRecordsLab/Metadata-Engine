@@ -41,10 +41,6 @@ DEPRECATED_KEYS = {
     "TEMPO_CHARACTER",
     "ENERGY_LEVEL",
     "explicitContent",
-    "musicalEra",
-    "productionQuality",
-    "dynamics",
-    "targetAudience",
     "tempoCharacter",
     "energyLevel",
 }
@@ -85,6 +81,10 @@ ALLOWED_METADATA_KEYS = {
     "sha256",  # Digital fingerprint
     "energy_level",
     "mood_vibe",
+    "musicalEra",
+    "productionQuality",
+    "dynamics",
+    "targetAudience",
     "validation_report", # Logic cross-check result
 }
 
@@ -146,6 +146,14 @@ def sanitize_metadata(metadata: dict) -> dict:
         cleaned["keywords"] = []
     if "trackDescription" not in cleaned:
         cleaned["trackDescription"] = ""
+    if "musicalEra" not in cleaned:
+        cleaned["musicalEra"] = "Modern"
+    if "productionQuality" not in cleaned:
+        cleaned["productionQuality"] = "Studio Polished"
+    if "dynamics" not in cleaned:
+        cleaned["dynamics"] = "Medium"
+    if "targetAudience" not in cleaned:
+        cleaned["targetAudience"] = "General"
     if "useCases" not in cleaned or not isinstance(cleaned.get("useCases"), list):
         cleaned["useCases"] = []
     if "language" not in cleaned:

@@ -10,7 +10,7 @@ from app.dependencies import get_user_and_check_quota
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/ai", tags=["AI Proxy"])
+router = APIRouter(prefix="/ai", tags=["AI Proxy"])
 
 class ProxyRequest(BaseModel):
     provider: str
@@ -41,6 +41,22 @@ async def ai_proxy(request: ProxyRequest):
                     "Content-Type": "application/json"
                 }
                 response = await client.post(url, json=payload, headers=headers)
+            elif provider == "spotify":
+                from app.routes.spotify import get_spotify_access_token
+                token = await get_spotify_access_token()
+                
+                type = payload.get("type")
+                if type == "search":
+                    query = payload.get("query")
+                    url = "https://api.spotify.com/v1/search"
+                    params = {"q": query, "type": "track", "limit": 1}
+                    response = await client.get(url, headers={"Authorization": f"Bearer {token}"}, params=params)
+                elif type == "features":
+                    track_id = payload.get("trackId")
+                    url = f"https://api.spotify.com/v1/audio-features/{track_id}"
+                    response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+                else:
+                    raise HTTPException(status_code=400, detail=f"Invalid spotify type: {type}")
             else:
                 raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
 

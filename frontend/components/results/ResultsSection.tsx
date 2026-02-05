@@ -18,7 +18,6 @@ import DistributionCard from './DistributionCard';
 import { validateRelease, ValidationReport } from '../../services/releaseValidationService';
 import ValidationReportCard from './ValidationReportCard';
 import ProAnalysisCard from './ProAnalysisCard';
-import CreativeSuiteCard from './CreativeSuiteCard';
 import ExternalServicesCard from './ExternalServicesCard';
 import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
@@ -506,12 +505,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                         />
                     </AnimatedSection>
 
-                    <AnimatedSection delay="340ms">
-                        <CreativeSuiteCard
-                            metadata={editedResults!}
-                            showToast={showToast}
-                        />
-                    </AnimatedSection>
 
                     <AnimatedSection delay="310ms">
                         <CopyrightCard

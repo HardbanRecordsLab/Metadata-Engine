@@ -12,7 +12,8 @@ const UsagePanel: React.FC<UsagePanelProps> = ({ user }) => {
     const [stats, setStats] = useState({
         totalAnalyses: 0,
         storageUsed: '0 GB',
-        efficiency: '99.9%'
+        efficiency: '99.9%',
+        limit: 100
     });
     const [isLoading, setIsLoading] = useState(true);
 

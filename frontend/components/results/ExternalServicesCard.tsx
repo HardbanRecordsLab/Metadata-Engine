@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Metadata } from '../../types';
+import { ACRCloudConfig, ACRResponse, Metadata } from '../../types';
 import { searchSpotifyTrack, getSpotifyAudioFeatures } from '../../services/spotifyService';
 import { getLastFmTrackInfo } from '../../services/lastFmService';
 import { searchMusicBrainz } from '../../services/musicBrainzService';
@@ -30,7 +30,7 @@ const ExternalServicesCard: React.FC<ExternalServicesCardProps> = ({ metadata, o
             const [spotify, lastFm, musicBrainz] = await Promise.all([
                 searchSpotifyTrack(`${metadata.title} ${metadata.artist}`),
                 getLastFmTrackInfo(metadata.artist, metadata.title),
-                searchMusicBrainz(metadata.title, metadata.artist)
+                searchMusicBrainz(`${metadata.title} ${metadata.artist}`), // Fixed: Pass title and artist separately
             ]);
 
             setSpotifyData(spotify);

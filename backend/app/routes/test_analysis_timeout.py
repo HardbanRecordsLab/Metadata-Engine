@@ -1,6 +1,7 @@
 import os
 import importlib
 import time
+import asyncio
 from datetime import datetime
 
 import pytest
@@ -18,31 +19,24 @@ async def test_process_analysis_timeout_sets_job_error(tmp_path, monkeypatch):
 
     importlib.reload(analysis)
 
-    import app.services.audio_analyzer as audio_analyzer
-
     async def noop_send_progress(*_args, **_kwargs):
         return None
 
     monkeypatch.setattr(analysis.ws_manager, "send_progress", noop_send_progress)
 
-    def slow_full_analysis(_file_path: str, _fast: bool = False):
-        time.sleep(2)
-        return {
-            "core": {
-                "bpm": 0,
-                "key": "C",
-                "mode": "Major",
-                "duration_seconds": 0,
-                "structure": [],
-                "moods": [],
-            },
-            "existing_metadata": {},
-        }
+    import app.services.fresh_track_analyzer as fresh_analyzer
+
+    async def slow_analyze_fresh_track(*args, **kwargs):
+        # Simulate a timeout by either sleeping or raising TimeoutError
+        # Here we sleep more than the budget to trigger the outer timeout if possible,
+        # or we just raise it to simulate reaching the limit.
+        await asyncio.sleep(2)
+        raise asyncio.TimeoutError()
 
     monkeypatch.setattr(
-        audio_analyzer.AdvancedAudioAnalyzer,
-        "full_analysis",
-        staticmethod(slow_full_analysis),
+        fresh_analyzer.FreshTrackAnalyzer,
+        "analyze_fresh_track",
+        slow_analyze_fresh_track,
     )
 
     file_path = tmp_path / "a.wav"

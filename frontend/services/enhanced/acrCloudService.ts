@@ -1,5 +1,5 @@
 
-import { ACRCloudConfig, ACRResponse, Metadata } from '../types';
+import { ACRCloudConfig, ACRResponse, Metadata } from '../../types';
 
 const ACR_CONFIG_KEY = 'acr_config';
 
@@ -29,11 +29,12 @@ async function hmacSha1(key: string, message: string): Promise<string> {
 }
 
 export const identifyTrack = async (file: File, config?: ACRCloudConfig): Promise<Metadata | null> => {
-    // 1. Resolve Config: Passed > Saved > Env
+    // 1. Resolve Config: Passed > Saved > Window (Runtime) > Env (Build)
+    const acr_win = (window as any);
     const activeConfig = config || getSavedACRConfig() || {
-        host: (import.meta as any).env.VITE_ACR_HOST || '',
-        accessKey: (import.meta as any).env.VITE_ACR_ACCESS_KEY || '',
-        accessSecret: (import.meta as any).env.VITE_ACR_ACCESS_SECRET || ''
+        host: acr_win.VITE_ACR_HOST || (import.meta as any).env.VITE_ACR_HOST || '',
+        accessKey: acr_win.VITE_ACR_ACCESS_KEY || (import.meta as any).env.VITE_ACR_ACCESS_KEY || '',
+        accessSecret: acr_win.VITE_ACR_ACCESS_SECRET || (import.meta as any).env.VITE_ACR_ACCESS_SECRET || ''
     };
 
     if (!activeConfig.accessKey || !activeConfig.accessSecret) {

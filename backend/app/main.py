@@ -112,11 +112,22 @@ def get_injected_index():
     import json
     s_url = settings.SUPABASE_URL or ""
     s_key = settings.SUPABASE_KEY or ""
+    acr_host = settings.ACR_HOST or ""
+    acr_key = settings.ACR_ACCESS_KEY or ""
+    acr_secret = settings.ACR_ACCESS_SECRET or ""
+    gemini_key = settings.GEMINI_API_KEY or ""
     
-    logger.info(f"Injecting Supabase Config: URL={'set' if s_url else 'MISSING'}, KEY={'set' if s_key else 'MISSING'}")
+    logger.info(f"Injecting Config: Supabase={'set' if s_url else 'MISSING'}, ACR={'set' if acr_key else 'MISSING'}")
     
-    # Use json.dumps to safely escape strings
-    env_script = f"""<script>window.VITE_SUPABASE_URL = {json.dumps(s_url)};window.VITE_SUPABASE_ANON_KEY = {json.dumps(s_key)};console.log("MME: Runtime Config Injected");</script>"""
+    env_script = f"""<script>
+        window.VITE_SUPABASE_URL = {json.dumps(s_url)};
+        window.VITE_SUPABASE_ANON_KEY = {json.dumps(s_key)};
+        window.VITE_ACR_HOST = {json.dumps(acr_host)};
+        window.VITE_ACR_ACCESS_KEY = {json.dumps(acr_key)};
+        window.VITE_ACR_ACCESS_SECRET = {json.dumps(acr_secret)};
+        window.VITE_GEMINI_API_KEY = {json.dumps(gemini_key)};
+        console.log("MME: Runtime Config Injected");
+    </script>"""
     return content.replace("<head>", f"<head>{env_script}")
 
 @app.get("/")

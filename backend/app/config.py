@@ -16,6 +16,9 @@ class Settings:
     DISCOGS_CONSUMER_KEY = os.getenv("DISCOGS_CONSUMER_KEY")
     DISCOGS_CONSUMER_SECRET = os.getenv("DISCOGS_CONSUMER_SECRET")
     AUDD_API_TOKEN = os.getenv("AUDD_API_TOKEN")
+    ACR_HOST = os.getenv("ACR_HOST")
+    ACR_ACCESS_KEY = os.getenv("ACR_ACCESS_KEY")
+    ACR_ACCESS_SECRET = os.getenv("ACR_ACCESS_SECRET")
 
     # Database
     SUPABASE_URL = os.getenv("VITE_SUPABASE_URL") or os.getenv("SUPABASE_URL")

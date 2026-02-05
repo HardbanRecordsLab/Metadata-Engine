@@ -54,7 +54,7 @@ class AnalysisHistory(Base):
     user_id = Column(String, index=True)
     file_name = Column(String)
     result = Column(JSON)
-    timestamp = Column(DateTime)
+    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
 
 # Helper for migrations
 def run_migrations():

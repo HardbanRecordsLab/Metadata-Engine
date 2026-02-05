@@ -1,6 +1,7 @@
 import io
 import json
 import wave
+import os
 from tempfile import NamedTemporaryFile
 
 import pytest
@@ -43,40 +44,53 @@ def test_tag_file_wav_writes_basic_id3_tags(client):
         "vocalStyle": {"gender": "none", "timbre": "none", "delivery": "none", "emotionalTone": "none"},
     }
 
-    with NamedTemporaryFile(suffix=".wav") as tmp:
-        _create_silence_wav(tmp.name)
-        with open(tmp.name, "rb") as f:
+    with NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_name = tmp.name
+    
+    try:
+        _create_silence_wav(tmp_name)
+        with open(tmp_name, "rb") as f:
             response = client.post(
                 "/tag/file",
                 files={"file": ("test.wav", f, "audio/wav")},
                 data={"metadata": json.dumps(meta)},
             )
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
 
     assert response.status_code == 200
     assert response.content
 
-    with NamedTemporaryFile(suffix=".wav") as tagged:
+    with NamedTemporaryFile(suffix=".wav", delete=False) as tagged:
+        tagged_name = tagged.name
         tagged.write(response.content)
-        tagged.flush()
-        audio = WAVE(tagged.name)
+    
+    try:
+        audio = WAVE(tagged_name)
         assert audio.tags is not None
         assert str(audio.tags.get("TIT2")) == "Test Title"
         assert str(audio.tags.get("TPE1")) == "Test Artist"
+    finally:
+        if os.path.exists(tagged_name):
+            os.remove(tagged_name)
 
 
 def test_tag_file_rejects_invalid_metadata_json(client):
-    with NamedTemporaryFile(suffix=".wav") as tmp:
-        _create_silence_wav(tmp.name)
-        with open(tmp.name, "rb") as f:
+    with NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_name = tmp.name
+    
+    try:
+        _create_silence_wav(tmp_name)
+        with open(tmp_name, "rb") as f:
             response = client.post(
                 "/tag/file",
                 files={"file": ("test.wav", f, "audio/wav")},
                 data={"metadata": "{not-json"},
             )
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
 
     assert response.status_code == 400
-    result = response.json()["results"][0]
-    assert result["tagged"] is True
-    assert "isrc" not in result["tags"]
-    assert "tipl" not in result["tags"]
-    assert result["user"] == "test_user"
+    assert response.json()["detail"] == "Invalid metadata JSON"
