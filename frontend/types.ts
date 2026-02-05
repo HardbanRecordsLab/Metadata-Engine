@@ -59,6 +59,7 @@ export interface Metadata {
     iswc?: string;
     upc?: string;
     sha256?: string; // Digital Fingerprint
+    similar_artists?: string[]; // New: List of similar artists
 
     // Pro fields
     moods?: string[]; // Maps to Style/Mood

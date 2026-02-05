@@ -15,6 +15,7 @@ import ConfidenceMeter from './ConfidenceMeter';
 import CopyrightCard from './CopyrightCard';
 import StructureCard from './StructureCard';
 import DistributionCard from './DistributionCard';
+import MarketingCard from './MarketingCard';
 import { validateRelease, ValidationReport } from '../../services/releaseValidationService';
 import ValidationReportCard from './ValidationReportCard';
 import ProAnalysisCard from './ProAnalysisCard';
@@ -235,6 +236,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
             case 'additionalGenres': return "Based on main genre and sonic elements, suggest 3-5 fitting sub-genres.";
             case 'keywords': return "Generate 5-7 keywords relevant to the track for search and discoverability.";
             case 'useCases': return "Suggest 3-5 specific sync and playlist use cases.";
+            case 'targetAudience': return "Identify the primary target audience (demographic/psychographic) for this track.";
             case 'publisher': return "Suggest a fitting record label or publisher, or state 'Independent'.";
             case 'copyright': return "Suggest a standard copyright line for the track, e.g., '© YYYY Artist/Label'.";
             case 'composer': return "Suggest a likely composer(s) for the track.";
@@ -440,6 +442,15 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                     </AnimatedSection>
                     <AnimatedSection delay="190ms">
                         <ClassificationStyleCard
+                            metadata={editedResults!}
+                            isEditing={isEditing}
+                            onFieldUpdate={handleFieldUpdate}
+                            refiningField={refiningField}
+                            onRefine={handleRefine}
+                        />
+                    </AnimatedSection>
+                    <AnimatedSection delay="200ms">
+                        <MarketingCard
                             metadata={editedResults!}
                             isEditing={isEditing}
                             onFieldUpdate={handleFieldUpdate}
