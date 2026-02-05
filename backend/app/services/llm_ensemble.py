@@ -135,15 +135,26 @@ class LLMEnsemble:
         harmonic = audio_features.get('harmonic', {})
         spectral = audio_features.get('spectral', {})
         
-        tempo = rhythm.get('tempo', 120)
+        def _safe_float(val, default=0.0):
+            try:
+                if isinstance(val, (list, np.ndarray)):
+                    return float(np.mean(val)) if len(val) > 0 else default
+                return float(val)
+            except:
+                return default
+
+        tempo = _safe_float(rhythm.get('tempo'), 120)
         key_sig = harmonic.get('key', 'C')
         mode = harmonic.get('mode', 'Major')
-        rms = energy.get('rms_mean', 0.1)
-        dynamic_range = energy.get('dynamic_range', 0.2)
-        centroid = spectral.get('centroid_mean', 2000)
-        rolloff = spectral.get('rolloff_mean', 5000)
-        flatness = spectral.get('flatness_mean', 0.5)
-        hp_ratio = harmonic.get('harmonic_percussive_ratio', 1.0)
+        rms = _safe_float(energy.get('rms_mean'), 0.1)
+        dynamic_range = _safe_float(energy.get('dynamic_range'), 0.2)
+        centroid = _safe_float(spectral.get('centroid_mean'), 2000)
+        rolloff = _safe_float(spectral.get('rolloff_mean'), 5000)
+        flatness = _safe_float(spectral.get('flatness_mean'), 0.5)
+        hp_ratio = _safe_float(harmonic.get('harmonic_percussive_ratio'), 1.0)
+        
+        # Explicit contrast check (previously a list)
+        contrast = _safe_float(spectral.get('contrast_mean'), 0)
         
         if not ml_hints: ml_hints = {}
         
@@ -166,13 +177,13 @@ HARMONY:
 ENERGY & DYNAMICS:
 - RMS Energy: {rms:.3f} (0-0.1=quiet, 0.1-0.2=moderate, >0.2=loud)
 - Dynamic Range: {dynamic_range:.2f} (>0.3=high dynamics, <0.15=compressed)
-- Peak Energy: {energy.get('peak_energy', 0):.3f}
+- Peak Energy: {_safe_float(energy.get('peak_energy'), 0):.3f}
 
 SPECTRAL CHARACTERISTICS:
 - Spectral Centroid: {centroid:.0f} Hz (brightness indicator)
 - Spectral Rolloff: {rolloff:.0f} Hz (frequency distribution)
 - Spectral Flatness: {flatness:.3f} (0=tonal, 1=noisy)
-- Spectral Contrast: {spectral.get('contrast_mean', 0):.2f}
+- Spectral Contrast: {contrast:.2f}
 
 INITIAL HEURISTIC HINTS:
 - Genre hints: {ml_hints.get('genre', {}).get('hints', [])}

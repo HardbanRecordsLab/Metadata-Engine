@@ -34,11 +34,26 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const { user, isAuthenticated, logout } = useAuth();
 
-    const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: Home },
-        { id: 'analyze', label: 'Analyze', icon: Music },
-        { id: 'history', label: 'History', icon: Clock },
-        { id: 'tools', label: 'Tools', icon: Wrench },
+    const menuSections = [
+        {
+            title: 'CORE CONTROL',
+            items: [
+                { id: 'dashboard', label: 'Studio Dashboard', icon: Home },
+                { id: 'analyze', label: 'Audio Analysis', icon: Music },
+            ]
+        },
+        {
+            title: 'CATALOG',
+            items: [
+                { id: 'history', label: 'Analysis History', icon: Clock },
+            ]
+        },
+        {
+            title: 'ADVANCED',
+            items: [
+                { id: 'tools', label: 'Professional Tools', icon: Wrench },
+            ]
+        }
     ];
 
     const handleNavigation = (id: string) => {
@@ -62,56 +77,66 @@ const Sidebar: React.FC<SidebarProps> = ({
                     } ${isCollapsed ? 'lg:w-20' : 'lg:w-72'}`}
             >
                 {/* Logo Section */}
-                <div className={`p-4 ${isCollapsed ? 'flex justify-center' : 'p-8'}`}>
+                <div className={`p-4 ${isCollapsed ? 'flex justify-center' : 'p-8 pb-4'}`}>
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_-5px_rgba(99,102,241,0.5)] shrink-0">
                             <Music className="w-6 h-6 md:w-7 md:h-7 text-white" />
                         </div>
                         {!isCollapsed && (
                             <div className="animate-fade-in">
-                                <h1 className="font-black text-xl text-slate-900 dark:text-white leading-none tracking-tighter whitespace-nowrap">
-                                    STUDIO
+                                <h1 className="font-black text-xl text-slate-900 dark:text-white leading-none tracking-tighter whitespace-nowrap uppercase">
+                                    Studio
                                 </h1>
-                                <span className="text-[10px] font-black text-accent-violet uppercase tracking-[0.3em] whitespace-nowrap">MASTER ENGINE</span>
+                                <span className="text-[10px] font-black text-accent-violet uppercase tracking-[0.3em] whitespace-nowrap">Engine v1.3</span>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-grow p-4 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
-                    {menuItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleNavigation(item.id)}
-                            title={isCollapsed ? item.label : ''}
-                            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'} py-4 rounded-2xl transition-all duration-300 group ${currentView === item.id
-                                ? 'bg-gradient-to-r from-accent-violet to-accent-blue text-white shadow-xl shadow-accent-violet/25'
-                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-                                }`}
-                        >
-                            <div className={`flex items-center gap-4 ${isCollapsed ? 'justify-center w-full' : ''}`}>
-                                <item.icon className={`w-5 h-5 transition-transform duration-300 ${isCollapsed ? '' : 'group-hover:scale-110'} ${currentView === item.id ? 'text-white' : 'text-slate-400 group-hover:text-accent-violet'}`} />
-                                {!isCollapsed && <span className="font-bold tracking-tight">{item.label}</span>}
-                            </div>
-                            {!isCollapsed && currentView === item.id && <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]"></div>}
-                        </button>
+                <nav className="flex-grow p-4 space-y-6 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                    {menuSections.map((section, idx) => (
+                        <div key={idx} className="space-y-2">
+                            {!isCollapsed && (
+                                <h3 className="px-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">
+                                    {section.title}
+                                </h3>
+                            )}
+                            {section.items.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => handleNavigation(item.id)}
+                                    title={isCollapsed ? item.label : ''}
+                                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'} py-3.5 rounded-2xl transition-all duration-300 group ${currentView === item.id
+                                        ? 'bg-gradient-to-r from-accent-violet to-accent-blue text-white shadow-xl shadow-accent-violet/25'
+                                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/5 hover:text-slate-900 dark:hover:text-white text-sm font-bold'
+                                        }`}
+                                >
+                                    <div className={`flex items-center gap-4 ${isCollapsed ? 'justify-center w-full' : ''}`}>
+                                        <item.icon className={`w-5 h-5 transition-transform duration-300 ${isCollapsed ? '' : 'group-hover:scale-110'} ${currentView === item.id ? 'text-white' : 'text-slate-400 group-hover:text-accent-violet'}`} />
+                                        {!isCollapsed && <span className="tracking-tight">{item.label}</span>}
+                                    </div>
+                                    {!isCollapsed && currentView === item.id && <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]"></div>}
+                                </button>
+                            ))}
+                        </div>
                     ))}
 
-                    <div className="pt-8 px-4 opacity-50">
-                        <div className="h-px bg-gradient-to-r from-transparent via-slate-500 to-transparent"></div>
-                    </div>
-
                     <div className="pt-4 px-2 space-y-1">
+                        {!isCollapsed && (
+                            <h3 className="px-3 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">
+                                SUPPORT
+                            </h3>
+                        )}
                         <button
                             onClick={onOpenAbout}
-                            title="Documentation"
+                            title="Help & Wiki"
                             className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-4 px-4'} py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-white/5 transition-all text-sm font-bold group`}
                         >
                             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-accent-violet/20 transition-all">
                                 <Info className="w-4 h-4 group-hover:text-accent-violet transition-colors" />
                             </div>
-                            {!isCollapsed && <span>Documentation</span>}
+                            {!isCollapsed && <span>Help & Wiki</span>}
                         </button>
                     </div>
                 </nav>
@@ -161,11 +186,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 </button>
                                 <button
                                     onClick={() => handleNavigation('usage')}
-                                    title="Usage"
+                                    title="Analytics"
                                     className={`flex flex-col items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group ${isCollapsed ? 'p-2' : 'p-3'}`}
                                 >
                                     <TrendingUp className="w-4 h-4 text-slate-500 group-hover:text-accent-blue transition-colors mb-1" />
-                                    {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Usage</span>}
+                                    {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Analytics</span>}
                                 </button>
                             </div>
 

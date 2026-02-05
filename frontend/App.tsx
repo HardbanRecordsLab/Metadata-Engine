@@ -520,6 +520,7 @@ const AppContent: React.FC = () => {
                 <Footer
                     onOpenLegal={(type) => setActiveLegalDoc(type)}
                     onOpenResource={(type) => setActiveResourceDoc(type)}
+                    onOpenPricing={() => setIsPricingOpen(true)}
                 />
             </div>
 
