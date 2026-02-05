@@ -315,6 +315,41 @@ async def process_analysis(
         cache.set(file_hash, job.result)
 
         logger.info(f"Analysis successfully completed for Job {job_id}")
+        
+        # Step 6: Auto-generate Cover Art (non-critical)
+        try:
+            logger.info(f"Job {job_id}: Generating cover art...")
+            from app.routes.generative import generate_cover, CoverRequest
+            
+            # Prepare cover request from metadata
+            cover_req = CoverRequest(
+                title=job.result.get("title", job.file_name),
+                artist=job.result.get("artist", "Unknown Artist"),
+                genre=job.result.get("mainGenre", "Electronic"),
+                mood=job.result.get("mood_vibe", "Neutral")
+            )
+            
+            # Generate cover
+            cover_result = await generate_cover(cover_req)
+            
+            # Save cover to disk
+            if cover_result and "image" in cover_result:
+                import base64
+                cover_filename = f"{job_id}_cover.jpg"
+                cover_path = os.path.join("uploads", cover_filename)
+                
+                # Decode base64 and save
+                img_data = cover_result["image"].split(",")[1]
+                with open(cover_path, "wb") as f:
+                    f.write(base64.b64decode(img_data))
+                
+                # Update metadata with cover path
+                job.result["coverArt"] = cover_path
+                logger.info(f"Cover art saved: {cover_path}")
+                db.commit()
+        except Exception as cover_err:
+            logger.warning(f"Cover generation failed (non-critical): {cover_err}")
+        
         job.status = "completed"
         job.message = "Analysis complete."
         db.commit()

@@ -18,6 +18,28 @@ from .standards import MAIN_GENRES, SUB_GENRES, MOODS, INSTRUMENTATION, VOCAL_ST
 
 logger = logging.getLogger(__name__)
 
+MUSIC_EXPERT_SYSTEM_PROMPT = """You are a professional music metadata expert with 20+ years of experience in music classification, A&R, and metadata curation for Spotify, Apple Music, and Beatport.
+
+Your expertise includes:
+- Deep knowledge of 500+ music genres and subgenres
+- Understanding of regional music scenes (UK Bass, Detroit Techno, LA Beats)
+- Familiarity with production techniques and their genre indicators
+- Knowledge of music theory, harmony, and rhythm patterns
+- Experience with sync licensing and music library categorization
+
+You classify music based on:
+1. AUDIO FEATURES: BPM, key, energy, spectral characteristics, rhythm patterns
+2. PRODUCTION STYLE: mixing, mastering, sound design, instrumentation
+3. CULTURAL CONTEXT: scene, movement, era, influences
+4. FUNCTIONAL USE: emotional impact, use cases, target audience
+
+You ALWAYS provide:
+- Precise genre classifications (not vague terms like "electronic" when "progressive house" is accurate)
+- Evidence-based reasoning tied to specific audio features
+- Confidence scores that reflect certainty
+- Alternative classifications when uncertain
+"""
+
 
 class LLMEnsemble:
     """
@@ -55,22 +77,22 @@ class LLMEnsemble:
         - 'pro' mode: All 3 models for max accuracy (~35-40s)
         """
         
-        # Zbuduj bogaty kontekst
-        context = self._build_context(audio_features, ml_predictions)
+        # Build enhanced prompt
+        user_prompt = self._build_enhanced_prompt(audio_features, ml_predictions)
         
         # Wybierz modele na podstawie preferencji
         if model_preference == 'flash':
             logger.info("Fast Mode: Using Groq + Gemini only")
             tasks = [
-                self._groq_classify(context),
-                self._gemini_classify(context),
+                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
             ]
         else:
             logger.info("Pro Mode: Using all 3 LLMs (Groq + Gemini + Claude)")
             tasks = [
-                self._groq_classify(context),
-                self._gemini_classify(context),
-                self._claude_classify(context)
+                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                self._claude_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT)
             ]
         
         llm_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -86,85 +108,218 @@ class LLMEnsemble:
             logger.warning(f"Only {len(valid_results)} LLMs responded successfully (min: {min_required})")
             # Fallback do jednego wyniku lub heurystyk
             if valid_results:
-                return valid_results[0]
+                final_result = valid_results[0]
             else:
                 return self._fallback_classification(audio_features)
-        
-        logger.info(f"Consensus voting with {len(valid_results)} LLMs")
-        
-        # Głosowanie konsensusowe
-        consensus = self._vote(valid_results)
+        else:
+            logger.info(f"Consensus voting with {len(valid_results)} LLMs")
+            # Głosowanie konsensusowe
+            final_result = self._vote(valid_results)
         
         # FINAL SAFETY CHECK: If voting produced "Unknown", use fallback
-        if consensus.get('mainGenre') == 'Unknown':
+        if final_result.get('mainGenre') == 'Unknown':
             logger.warning("Consensus voting failed (Unknown Genre). Reverting to DSP fallback.")
             return self._fallback_classification(audio_features)
+            
+        # Validate and refine final result
+        final_result = self._validate_and_refine_classification(final_result, audio_features)
         
-        return consensus
+        return final_result
     
-    def _build_context(self, audio: Dict, ml: Dict = None) -> str:
+    def _build_enhanced_prompt(self, audio_features: Dict, ml_hints: Dict) -> str:
+        """Build a premium prompt with detailed audio context"""
+        
+        # Extract key features
+        rhythm = audio_features.get('rhythm', {})
+        energy = audio_features.get('energy', {})
+        harmonic = audio_features.get('harmonic', {})
+        spectral = audio_features.get('spectral', {})
+        
+        tempo = rhythm.get('tempo', 120)
+        key_sig = harmonic.get('key', 'C')
+        mode = harmonic.get('mode', 'Major')
+        rms = energy.get('rms_mean', 0.1)
+        dynamic_range = energy.get('dynamic_range', 0.2)
+        centroid = spectral.get('centroid_mean', 2000)
+        rolloff = spectral.get('rolloff_mean', 5000)
+        flatness = spectral.get('flatness_mean', 0.5)
+        hp_ratio = harmonic.get('harmonic_percussive_ratio', 1.0)
+        
+        if not ml_hints: ml_hints = {}
+        
+        prompt = f"""Analyze this audio track and provide PRECISE music metadata.
+
+══════════════════════════════════════════════════════════════
+AUDIO FEATURES ANALYSIS:
+══════════════════════════════════════════════════════════════
+
+RHYTHM:
+- BPM: {tempo}
+- Time signature probability: {rhythm.get('time_signature', '4/4')}
+- Rhythm complexity: {rhythm.get('rhythm_complexity', 'medium')}
+
+HARMONY:
+- Key: {key_sig} {mode}
+- Harmonic/Percussive Ratio: {hp_ratio:.2f} (>2.0 = melodic, <1.0 = rhythmic)
+- Chord complexity: {harmonic.get('chord_complexity', 'medium')}
+
+ENERGY & DYNAMICS:
+- RMS Energy: {rms:.3f} (0-0.1=quiet, 0.1-0.2=moderate, >0.2=loud)
+- Dynamic Range: {dynamic_range:.2f} (>0.3=high dynamics, <0.15=compressed)
+- Peak Energy: {energy.get('peak_energy', 0):.3f}
+
+SPECTRAL CHARACTERISTICS:
+- Spectral Centroid: {centroid:.0f} Hz (brightness indicator)
+- Spectral Rolloff: {rolloff:.0f} Hz (frequency distribution)
+- Spectral Flatness: {flatness:.3f} (0=tonal, 1=noisy)
+- Spectral Contrast: {spectral.get('contrast_mean', 0):.2f}
+
+INITIAL HEURISTIC HINTS:
+- Genre hints: {ml_hints.get('genre', {}).get('hints', [])}
+- Mood hints: {ml_hints.get('mood', {}).get('hints', [])}
+
+══════════════════════════════════════════════════════════════
+CLASSIFICATION RULES:
+══════════════════════════════════════════════════════════════
+
+GENRE CLASSIFICATION:
+1. Use SPECIFIC subgenres, not broad categories
+   ❌ BAD: "electronic", "rock", "pop"
+   ✅ GOOD: "progressive house", "indie rock", "synth-pop"
+
+2. Consider BPM ranges for genre:
+   - Downtempo/Ambient: 60-90 BPM
+   - Hip-Hop/Boom Bap: 85-95 BPM
+   - House: 120-130 BPM
+   - Techno: 125-135 BPM
+   - Drum & Bass: 160-180 BPM
+   - Dubstep: 140 BPM (half-time feel)
+
+3. Use Harmonic/Percussive Ratio:
+   - HP > 3.0: Classical, Jazz, Folk, Singer-Songwriter
+   - HP 1.5-3.0: Rock, Indie, Alternative
+   - HP < 1.5: Electronic, Hip-Hop, Trap
+
+4. Regional/Scene-specific terms when applicable:
+   - "UK Garage" not just "garage"
+   - "Detroit Techno" not just "techno"
+   - "Reggaeton" not just "latin"
+
+MOOD CLASSIFICATION:
+Choose moods that reflect BOTH energy and emotional tone:
+- High Energy + Major Key = "Euphoric", "Uplifting", "Energetic"
+- High Energy + Minor Key = "Aggressive", "Intense", "Dark"
+- Low Energy + Major Key = "Peaceful", "Serene", "Hopeful"
+- Low Energy + Minor Key = "Melancholic", "Atmospheric", "Introspective"
+
+INSTRUMENTATION:
+List MAIN instruments (3-5 max), prioritize by prominence:
+- If HP ratio > 2: Focus on melodic instruments
+- If HP ratio < 1: Focus on drums, bass, percussion
+
+KEYWORDS (10-15 terms):
+Include:
+- Genre-related terms
+- Mood descriptors
+- Use cases (e.g., "workout", "meditation", "cinematic")
+- Production style (e.g., "polished", "lo-fi", "vintage")
+- Cultural references if clear
+
+USE CASES (3-7 scenarios):
+Be specific about where this track fits:
+- Sync licensing categories
+- Playlist types
+- Activities/situations
+- Media contexts
+
+══════════════════════════════════════════════════════════════
+CONFIDENCE SCORING:
+══════════════════════════════════════════════════════════════
+
+Rate your confidence (0.0-1.0) based on:
+- 0.90-1.00: Very clear genre with distinctive features
+- 0.75-0.89: Clear primary genre, some ambiguity in subgenre
+- 0.60-0.74: Multiple possible interpretations
+- Below 0.60: Highly experimental or genre-defying
+
+══════════════════════════════════════════════════════════════
+OUTPUT FORMAT (STRICT JSON):
+══════════════════════════════════════════════════════════════
+
+{{
+  "mainGenre": "string (specific subgenre, not broad category)",
+  "additionalGenres": ["array", "of", "related", "subgenres"],
+  "moods": ["array", "of", "3-6", "mood", "descriptors"],
+  "mainInstrument": "string (most prominent)",
+  "instrumentation": ["array", "of", "3-5", "instruments"],
+  "keywords": ["array", "of", "10-15", "descriptive", "terms"],
+  "useCases": ["array", "of", "3-7", "use", "scenarios"],
+  "trackDescription": "2-3 sentence professional description for music library",
+  "vocalStyle": {{
+    "gender": "male|female|mixed|instrumental",
+    "timbre": "description if vocals present",
+    "delivery": "singing style if applicable",
+    "emotionalTone": "vocal emotion if present"
+  }},
+  "energy_level": "Low|Medium|High|Very High",
+  "mood_vibe": "One sentence capturing overall vibe",
+  "confidence": 0.85,
+  "reasoning": "Brief explanation of classification decisions based on audio features",
+  "similar_artists": ["optional array of 3-5 similar artists if confident"]
+}}
+
+IMPORTANT: Base your analysis PRIMARILY on the audio features provided above, not on assumptions. If features indicate an unexpected combination (e.g., slow BPM but high energy), trust the data and classify accordingly."""
+
+        return prompt
+
+    def _validate_and_refine_classification(self, raw_result: Dict, audio_features: Dict) -> Dict:
         """
-        Bogaty kontekst dla LLMs
-        Im więcej danych, tym lepsza klasyfikacja
+        Post-process LLM output to ensure consistency and accuracy
         """
+        if not isinstance(raw_result, dict):
+            return raw_result
+            
+        # Extract features for validation
+        rhythm = audio_features.get('rhythm', {})
+        energy = audio_features.get('energy', {})
         
-        rhythm = audio.get('rhythm', {})
-        harmonic = audio.get('harmonic', {})
-        spectral = audio.get('spectral', {})
-        energy = audio.get('energy', {})
-        timbre = audio.get('timbre', {})
+        tempo = float(rhythm.get('tempo', 120))
+        rms = float(energy.get('rms_mean', 0.1))
         
-        context = f"""# UNRELEASED MUSIC TRACK ANALYSIS
-
-## Audio Signal Characteristics:
-
-### Rhythm & Tempo:
-- BPM: {rhythm.get('tempo', 'unknown')}
-- Beat regularity: {rhythm.get('beat_regularity', 0):.3f} (lower = more regular)
-- Onset strength: {rhythm.get('onset_strength_mean', 0):.3f}
-
-### Harmony & Tonality:
-- Harmonic/Percussive ratio: {harmonic.get('harmonic_percussive_ratio', 1):.2f}
-- Harmonic change rate: {harmonic.get('harmonic_change_rate', 0):.3f}
-- Chroma features: {len(harmonic.get('chroma_cqt_mean', []))} dimensions
-
-### Spectral Profile:
-- Spectral centroid: {spectral.get('centroid_mean', 0):.0f} Hz (brightness)
-- Spectral flatness: {spectral.get('flatness_mean', 0):.3f} (0=tonal, 1=noise)
-- Bandwidth: {spectral.get('bandwidth_mean', 0):.0f} Hz
-- Rolloff: {spectral.get('rolloff_mean', 0):.0f} Hz
-
-### Energy & Dynamics:
-- RMS energy: {energy.get('rms_mean', 0):.4f}
-- Dynamic range: {energy.get('dynamic_range', 0):.4f}
-- Zero crossing rate: {energy.get('zcr_mean', 0):.4f}
-
-### Timbre:
-- MFCC analysis: {len(timbre.get('mfcc_mean', []))} coefficients
-- Timbral complexity: varied
-
-### Track Info:
-- Duration: {audio.get('meta', {}).get('duration', 0):.1f} seconds
-- Total features analyzed: {audio.get('meta', {}).get('total_features', 90)}
-"""
+        # Validation rules
+        validated = raw_result.copy()
         
-        # Dodaj ML predictions jeśli dostępne
-        if ml:
-            context += f"""
-
-## ML Model Hints (if available):
-- Genre prediction: {ml.get('genre', {}).get('primary_genre', 'unknown')}
-- Mood prediction: {ml.get('mood', {}).get('primary_mood', 'unknown')}
-"""
+        # Rule 1: Validate BPM-genre consistency
+        genre = str(validated.get('mainGenre', '')).lower()
+        if 'house' in genre and not (115 <= tempo <= 135):
+            validated['confidence'] = validated.get('confidence', 0.8) * 0.8  # Reduce confidence
+            reasoning = validated.get('reasoning', '')
+            validated['reasoning'] = f"BPM mismatch: {tempo} unusual for {genre}. " + str(reasoning)
         
-        context += """
-
----
-Based on these technical audio features, classify this UNRELEASED track."""
+        # Rule 2: Validate energy-mood consistency
+        moods = validated.get('moods', [])
+        if rms > 0.18 and moods and any(str(m).lower() in ['calm', 'peaceful', 'relaxed'] for m in moods):
+            # Remove contradictory moods
+            validated['moods'] = [m for m in moods if str(m).lower() not in ['calm', 'peaceful', 'relaxed']]
+            if 'Energetic' not in validated['moods']:
+                validated['moods'].append('Energetic')
         
-        return context
+        # Rule 3: Ensure specific subgenres
+        broad_genres = ['electronic', 'rock', 'pop', 'hip hop', 'metal']
+        if genre in broad_genres:
+            validated['confidence'] = validated.get('confidence', 0.8) * 0.7  # Penalize broad classification
+        
+        # Rule 4: Deduplicate and limit arrays
+        if isinstance(validated.get('moods'), list):
+            validated['moods'] = list(set(validated.get('moods', [])))[:6]
+        if isinstance(validated.get('keywords'), list):
+            validated['keywords'] = list(set(validated.get('keywords', [])))[:15]
+        if isinstance(validated.get('additionalGenres'), list):
+            validated['additionalGenres'] = list(set(validated.get('additionalGenres', [])))[:4]
+        
+        return validated
     
-    async def _groq_classify(self, context: str, retries: int = 3) -> Dict:
+    async def _groq_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
         """
         Groq: Llama 3.3 70B with Retry Logic
         """
@@ -174,71 +329,59 @@ Based on these technical audio features, classify this UNRELEASED track."""
         from groq import Groq
         client = Groq(api_key=self.groq_key)
         
-        
-        prompt = f"""{context}
-
-STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
-1. Use these STANDARD LISTS as a guide (choose from them when applicable, but stay accurate):
-   - GENRES: {", ".join(MAIN_GENRES[:20])}...
-   - SUB-GENRES: {", ".join(SUB_GENRES[:20])}...
-   - MOODS: {", ".join(MOODS[:20])}...
-   - INSTRUMENTS: {", ".join(INSTRUMENTATION[:20])}...
-
-2. STRICT QUANTITY REQUIREMENTS:
-   - mainGenre: EXACTLY 1 tag
-   - additionalGenres: 1-2 tags (Sub-Genres)
-   - moods: 2-3 tags
-   - instrumentation: 2-3 tags
-   - mainInstrument: EXACTLY 1 tag. BAN "Vocals" as mainInstrument. If vocal-heavy, choose the backing instrument (e.g., Synthesizer, Guitar, Piano).
-   - keywords: EXACTLY 5 tags
-   - useCases: EXACTLY 3 examples
-   - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical analysis.
-   - mood_vibe: REQUIRED. detailed atmospheric description.
-   - energy_level: REQUIRED.
-
-3. VOCAL STYLE RULES:
-   - If instrumental: "gender": "Instrumental", others "none".
-   - If vocals exist: NEVER use "none". Guess "Male", "Female", "Duet" or "Processed". Populate timbre/delivery/emotionalTone.
-
-4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
-
-RETURN STRICT JSON:
-{{
-  "mainGenre": "primary genre",
-  "additionalGenres": ["sub1", "sub2"],
-  "moods": ["mood1", "mood2", "mood3"],
-  "mainInstrument": "dominant instrument (NOT Vocals)",
-  "instrumentation": ["inst1", "inst2", "inst3"],
-  "vocalStyle": {{
-    "gender": "Male/Female/Duet/Instrumental",
-    "timbre": "Warm/Bright/Raspy/none",
-    "delivery": "Melodic/Rap/Spoken/none",
-    "emotionalTone": "Happy/Sad/Aggressive/none"
-  }},
-  "keywords": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "useCases": ["Usage 1", "Usage 2", "Usage 3"],
-  "mood_vibe": "Detailed atmospheric description (REQUIRED)",
-  "energy_level": "Low/Medium/High/Very High (REQUIRED)",
-  "musicalEra": "e.g. 80s Retro, Modern, Early 2000s (REQUIRED)",
-  "productionQuality": "e.g. Lo-Fi, Studio Polished, Raw (REQUIRED)",
-  "dynamics": "e.g. High Dynamic Range, Compressed, Explosive (REQUIRED)",
-  "targetAudience": "e.g. Gen Z, Clubgoers, Relaxing at home (REQUIRED)",
-  "trackDescription": "Engaging, emotional, market-ready description (min 400 chars).",
-  "similar_artists": ["artist1", "artist2"],
-  "confidence": 0.95
-}}"""
+        if system_prompt:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": context}
+            ]
+        else:
+            # Fallback for legacy calls (should not be reached in new flow)
+            prompt = f"""{context}
+    
+    STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
+    1. Use these STANDARD LISTS as a guide (choose from them when applicable, but stay accurate):
+       - GENRES: {", ".join(MAIN_GENRES[:20])}...
+       - SUB-GENRES: {", ".join(SUB_GENRES[:20])}...
+       - MOODS: {", ".join(MOODS[:20])}...
+       - INSTRUMENTS: {", ".join(INSTRUMENTATION[:20])}...
+    
+    2. STRICT QUANTITY REQUIREMENTS:
+       - mainGenre: EXACTLY 1 tag
+       - additionalGenres: 1-2 tags (Sub-Genres)
+       - moods: 2-3 tags
+       - instrumentation: 2-3 tags
+       - mainInstrument: EXACTLY 1 tag. BAN "Vocals" as mainInstrument. If vocal-heavy, choose the backing instrument (e.g., Synthesizer, Guitar, Piano).
+       - keywords: EXACTLY 5 tags
+       - useCases: EXACTLY 3 examples
+       - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical analysis.
+       - mood_vibe: REQUIRED. detailed atmospheric description.
+       - energy_level: REQUIRED.
+    
+    3. VOCAL STYLE RULES:
+       - If instrumental: "gender": "Instrumental", others "none".
+       - If vocals exist: NEVER use "none". Guess "Male", "Female", "Duet" or "Processed". Populate timbre/delivery/emotionalTone.
+    
+    4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
+    
+    5. RETURN STRICT JSON
+    """
+            messages = [{"role": "user", "content": prompt}]
         
         for attempt in range(retries):
             try:
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=messages,
                     temperature=0.2,
                     max_tokens=1000,
                     response_format={"type": "json_object"}
                 )
                 
-                result = json.loads(response.choices[0].message.content)
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError("Empty response from Groq")
+                    
+                result = json.loads(content)
                 result['llm_source'] = 'groq'
                 return result
             except Exception as e:
@@ -248,7 +391,7 @@ RETURN STRICT JSON:
                     return {'error': str(e), 'llm_source': 'groq'}
                 await asyncio.sleep(2 ** attempt)
 
-    async def _gemini_classify(self, context: str, retries: int = 3) -> Dict:
+    async def _gemini_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
         """
         Gemini 2.0 Flash with REST Transport & Retry Logic
         """
@@ -258,9 +401,21 @@ RETURN STRICT JSON:
         try:
             import google.generativeai as genai
             genai.configure(api_key=self.gemini_key, transport="rest")
+            
+            # Configure model with system instruction if possible or fallback
             model = genai.GenerativeModel('gemini-2.0-flash-exp')
             
-            prompt = f"""{context}
+            if system_prompt:
+                prompt = f"""SYSTEM INSTRUCTIONS:
+{system_prompt}
+
+USER REQUEST:
+{context}
+
+Response must be valid JSON."""
+            else:
+                # Fallback legacy prompt
+                prompt = f"""{context}
 
 STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
 1. Use these STANDARD LISTS as a guide:
@@ -336,7 +491,7 @@ Analyze this track and return STRICT JSON:
             logger.error(f"Gemini classification failed: {e}")
             return {'error': str(e), 'llm_source': 'gemini'}
 
-    async def _claude_classify(self, context: str) -> Dict:
+    async def _claude_classify(self, context: str, system_prompt: str = None) -> Dict:
         """
         Claude Sonnet 3.5
         """
@@ -345,7 +500,13 @@ Analyze this track and return STRICT JSON:
         
         try:
             import aiohttp
-            prompt = f"""{context}
+            
+            if system_prompt:
+                system_arg = system_prompt
+                user_content = context
+            else:
+                system_arg = "You are a helpful music tagging assistant."
+                user_content = f"""{context}
 
 STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
 1. Use these STANDARD LISTS as a guide:
@@ -391,14 +552,19 @@ Analyze this track and return STRICT JSON:
 }}"""
             
             async with aiohttp.ClientSession() as session:
+                payload = {
+                    'model': 'claude-3-5-sonnet-20241022',
+                    'max_tokens': 1000,
+                    'messages': [{'role': 'user', 'content': f"Return ONLY valid JSON: {user_content}"}]
+                }
+                
+                if system_arg:
+                    payload['system'] = system_arg
+                
                 async with session.post(
                     'https://api.anthropic.com/v1/messages',
                     headers={'x-api-key': self.claude_key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json'},
-                    json={
-                        'model': 'claude-3-5-sonnet-20241022',
-                        'max_tokens': 1000,
-                        'messages': [{'role': 'user', 'content': f"Return ONLY valid JSON: {prompt}"}]
-                    },
+                    json=payload,
                     timeout=aiohttp.ClientTimeout(total=20)
                 ) as resp:
                     data = await resp.json()

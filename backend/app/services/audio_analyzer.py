@@ -178,7 +178,7 @@ class AdvancedAudioAnalyzer:
             energy_max = float(np.max(rms))
             energy_std = float(np.std(rms))
 
-            duration = librosa.get_duration(path=file_path)
+            duration = len(y) / sr
             structure = []
             detected_moods = []
 
@@ -211,6 +211,39 @@ class AdvancedAudioAnalyzer:
             mood_vibe = AdvancedAudioAnalyzer._interpret_vibe(final_mode, energy_mean)
 
             if fast:
+                # Fast mode: Simplified metadata derivation
+                # ERA - Estimate based on energy profile
+                if energy_mean > 0.08:
+                    era = "2020s"  # Modern high-energy production
+                elif energy_mean > 0.05:
+                    era = "2010s"
+                else:
+                    era = "Classic"  # Lower energy, vintage feel
+                
+                # QUALITY - Based on energy standard deviation
+                if energy_std > 0.08:
+                    quality = "Professional"
+                elif energy_std > 0.04:
+                    quality = "Studio"
+                else:
+                    quality = "Demo"
+                
+                # DYNAMICS - Based on energy standard deviation
+                if energy_std > 0.07:
+                    dynamics = "High"
+                elif energy_std > 0.04:
+                    dynamics = "Medium"
+                else:
+                    dynamics = "Compressed"
+                
+                # AUDIENCE - Based on energy characteristics
+                if energy_mean > 0.08:
+                    audience = "Mainstream"
+                elif energy_mean < 0.05:
+                    audience = "Indie"
+                else:
+                    audience = "Commercial"
+                
                 return {
                     "bpm": final_bpm,
                     "key": final_key,
@@ -221,6 +254,10 @@ class AdvancedAudioAnalyzer:
                     "duration_seconds": round(duration, 2),
                     "structure": [],
                     "moods": detected_moods,
+                    "era": era,
+                    "quality": quality,
+                    "dynamics": dynamics,
+                    "audience": audience,
                 }
 
             spectral_centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
@@ -247,6 +284,43 @@ class AdvancedAudioAnalyzer:
                 "endTime": round(peak_time + 10, 2),
                 "description": "Peak energy flow / Main hook area."
             })
+
+            # Full mode: Advanced metadata derivation with spectral features
+            # ERA - Estimate based on production characteristics
+            if spectral_centroid > 4000:
+                era = "2020s"  # Modern bright production
+            elif spectral_centroid > 3000:
+                era = "2010s"
+            elif spectral_centroid > 2000:
+                era = "2000s"
+            else:
+                era = "Classic"  # Warmer, vintage sound
+            
+            # QUALITY - Based on spectral flatness and dynamic range
+            if energy_std > 0.08 and spectral_flatness < 0.5:
+                quality = "Professional"
+            elif energy_std > 0.04:
+                quality = "Studio"
+            else:
+                quality = "Demo"
+            
+            # DYNAMICS - Based on energy standard deviation
+            if energy_std > 0.07:
+                dynamics = "High"
+            elif energy_std > 0.04:
+                dynamics = "Medium"
+            else:
+                dynamics = "Compressed"
+            
+            # AUDIENCE - Based on complexity and energy
+            if energy_mean > 0.08 and spectral_contrast > 20:
+                audience = "Mainstream"
+            elif energy_mean < 0.05:
+                audience = "Indie"
+            elif spectral_contrast < 15:
+                audience = "Underground"
+            else:
+                audience = "Commercial"
 
             return {
                 "bpm": final_bpm,
@@ -278,6 +352,10 @@ class AdvancedAudioAnalyzer:
                     "beat_count": 0, # Simplify
                 },
                 "mfcc": mfcc_mean,
+                "era": era,
+                "quality": quality,
+                "dynamics": dynamics,
+                "audience": audience,
             }
         except Exception as e:
             logger.error(f"Core analysis failed: {e}")
