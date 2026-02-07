@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Metadata } from '../types';
-import { Shield, Globe, Clock, FileSignature, Music, Hash, ShieldCheck, X } from './icons';
+import { Shield, Globe, Clock, FileSignature, Music, Hash, ShieldCheck, X, Download } from './icons';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface CertificateViewerProps {
     metadata: Metadata;
@@ -14,6 +16,7 @@ interface CertificateViewerProps {
 const CertificateViewer: React.FC<CertificateViewerProps> = ({
     metadata, sha256, timestamp, ipfsUrl, ipfsHash, onClose
 }) => {
+    const certificateRef = useRef<HTMLDivElement>(null);
 
     // Helper to join arrays
     const join = (arr?: string[]) => arr && arr.length ? arr.join(', ') : 'None';
@@ -26,11 +29,46 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
+    // PDF Export Handler
+    const handleDownloadPDF = async () => {
+        if (!certificateRef.current) return;
+
+        try {
+            const canvas = await html2canvas(certificateRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            const imgY = 0;
+
+            pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            pdf.save(`Certificate_${metadata.title || 'Unknown'}_${new Date(timestamp).toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+            alert('Failed to generate PDF. Please try again.');
+        }
+    };
+
     // PDF-style White Paper Design
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
             {/* Certificate Container - A4-ish Aspect Ratio */}
-            <div className="relative w-full max-w-[900px] bg-white text-slate-900 shadow-2xl my-10 min-h-[1100px] flex flex-col font-sans">
+            <div ref={certificateRef} className="relative w-full max-w-[900px] bg-white text-slate-900 shadow-2xl my-10 min-h-[1100px] flex flex-col font-sans">
 
                 {/* Decorative Border (Double Line) */}
                 <div className="absolute inset-2 border-[3px] border-amber-600 rounded-sm pointer-events-none"></div>
@@ -220,6 +258,15 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
                     title="Close Certificate"
                 >
                     <X className="w-5 h-5" />
+                </button>
+
+                {/* DOWNLOAD PDF BUTTON (Floating) */}
+                <button
+                    onClick={handleDownloadPDF}
+                    className="absolute top-4 right-16 p-2 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-full transition-colors text-emerald-600 border border-emerald-200"
+                    title="Download as PDF"
+                >
+                    <Download className="w-5 h-5" />
                 </button>
             </div>
         </div>

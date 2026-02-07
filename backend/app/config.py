@@ -5,9 +5,12 @@ load_dotenv(override=True)
 
 
 class Settings:
-    # AI APIs
+    # AI APIs (5-Model Ensemble)
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Legacy, kept for fallback
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    XAI_API_KEY = os.getenv("XAI_API_KEY")
 
     # Music APIs
     SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
@@ -15,7 +18,8 @@ class Settings:
     LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")
     DISCOGS_CONSUMER_KEY = os.getenv("DISCOGS_CONSUMER_KEY")
     DISCOGS_CONSUMER_SECRET = os.getenv("DISCOGS_CONSUMER_SECRET")
-    AUDD_API_TOKEN = os.getenv("AUDD_API_TOKEN")
+    ACOUSTID_API_KEY = os.getenv("ACOUSTID_API_KEY")
+    ACOUSTID_API_TOKEN = os.getenv("ACOUSTID_API_TOKEN")  # For submitting fingerprints
     ACR_HOST = os.getenv("ACR_HOST")
     ACR_ACCESS_KEY = os.getenv("ACR_ACCESS_KEY")
     ACR_ACCESS_SECRET = os.getenv("ACR_ACCESS_SECRET")

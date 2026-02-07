@@ -1,6 +1,6 @@
 {
   "name": "music-metadata-engine-unified",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Unified Music Metadata Engine with Frontend and Backend",
   "scripts": {
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
