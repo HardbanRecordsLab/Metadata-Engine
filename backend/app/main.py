@@ -30,6 +30,13 @@ from app.routes.v2.ipfs import router as ipfs_v2_router
 
 app = FastAPI()
 
+# Startup Event
+from app.startup import ensure_admin_user
+
+@app.on_event("startup")
+async def startup_event():
+    ensure_admin_user()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
