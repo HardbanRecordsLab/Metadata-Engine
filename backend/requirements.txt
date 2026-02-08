@@ -6,7 +6,7 @@ httpx
 pydantic>=2.0.0
 python-multipart
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 
 # === Database ===
 # supabase
