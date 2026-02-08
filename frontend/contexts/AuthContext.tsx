@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserTier } from '../types';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+// import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'; // REMOVED
 import { db } from '../services/databaseService';
 
 interface AuthContextType {
@@ -19,208 +19,144 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_URL = '/api/auth'; // Relative path, proxied by Nginx/Vite
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
     const checkIsAdmin = (email: string): boolean => {
-        const admins = ['rzeszotary94@gmail.com', 'hardbanrecordslab.pl@gmail.com'];
+        const admins = [
+            'hardbanrecordslab.pl@gmail.com'
+        ];
         return admins.some(admin => admin.toLowerCase() === email.toLowerCase());
     };
 
-    const fetchUserProfile = async (authId: string, email: string) => {
-        // First check if user is a hardcoded admin
-        if (checkIsAdmin(email)) {
-            setUser({
-                id: authId,
-                email: email,
-                name: 'Administrator',
-                tier: 'studio',
-                createdAt: Date.now(),
-                credits: 999999999 // Effectively unlimited
-            });
-            setIsLoading(false);
-            return;
-        }
-
+    const fetchUserProfile = async (accessToken: string) => {
         try {
-            const profile = await db.getProfile(authId);
-            if (profile) {
-                setUser({
-                    id: authId,
-                    email: email,
-                    name: profile.full_name || email.split('@')[0],
-                    // [BYPASS] Force PRO tier for everyone during beta
-                    tier: 'pro', // profile.tier as UserTier,
-                    createdAt: new Date(profile.created_at).getTime(),
-                    credits: 99999 // profile.credits || 0 
-                });
-            } else {
-                // Default new user profile (Starter)
-                setUser({
-                    id: authId,
-                    email: email,
-                    name: email.split('@')[0],
-                    tier: 'starter',
-                    createdAt: Date.now(),
-                    credits: 5 // Default free credits
-                });
-
-                // Try to create profile asynchronously
-                try {
-                    await db.createProfile(authId, email, email.split('@')[0], 'starter', 5);
-                } catch (e) {
-                    console.warn("Profile creation check:", e);
+            const response = await fetch(`${API_URL}/me`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
                 }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch user profile');
             }
+
+            const userData = await response.json();
+            
+            // Map backend user to frontend User type
+            const isAdm = checkIsAdmin(userData.email);
+            
+            setUser({
+                id: userData.id,
+                email: userData.email,
+                name: userData.email.split('@')[0], // Fallback name
+                tier: isAdm ? 'studio' : (userData.user_metadata?.tier || 'starter'),
+                createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+                credits: isAdm ? 999999999 : (userData.user_metadata?.credits || 5)
+            });
+
         } catch (error) {
             console.error("Failed to fetch user profile", error);
-            // Fallback safest state
-            setUser({
-                id: authId,
-                email: email,
-                name: email.split('@')[0],
-                tier: 'starter',
-                createdAt: Date.now(),
-                credits: 0
-            });
+            setUser(null);
+            localStorage.removeItem('access_token');
+            setToken(null);
         }
         setIsLoading(false);
     };
 
     const refetchUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            await fetchUserProfile(session.user.id, session.user.email!);
+        const currentToken = localStorage.getItem('access_token');
+        if (currentToken) {
+            await fetchUserProfile(currentToken);
         } else {
             setUser(null);
         }
     };
 
     useEffect(() => {
-        if (!isSupabaseConfigured) {
-            console.warn("Supabase not configured. Auth disabled.");
+        if (token) {
+            fetchUserProfile(token);
+        } else {
             setIsLoading(false);
-            return;
         }
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
-                await fetchUserProfile(session.user.id, session.user.email!);
-            } else {
-                setUser(null);
-                setIsLoading(false);
-            }
-        });
-
-        // Initial session check with timeout safety
-        supabase.auth.getSession()
-            .then(({ data: { session } }) => {
-                if (session?.user) {
-                    return fetchUserProfile(session.user.id, session.user.email!);
-                } else {
-                    setIsLoading(false);
-                }
-            })
-            .catch(err => {
-                console.error("Supabase session check failed:", err);
-                setIsLoading(false);
-            });
-
-        // Fallback safety: ensure loading stops even if Supabase hangs
-        const timeoutId = setTimeout(() => {
-            if (isLoading) {
-                console.warn("Auth initialization timed out. Proceeding as guest.");
-                setIsLoading(false);
-            }
-        }, 5000);
-
-        return () => {
-            clearTimeout(timeoutId);
-            if (subscription) subscription.unsubscribe();
-        };
-    }, []);
+    }, [token]);
 
     const login = async (email: string, password: string) => {
-        if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        await refetchUser();
+        const response = await fetch(`${API_URL}/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Login failed');
+        }
+
+        const data = await response.json();
+        const accessToken = data.access_token;
+        
+        localStorage.setItem('access_token', accessToken);
+        setToken(accessToken);
+        await fetchUserProfile(accessToken);
     };
 
     const loginWithGoogle = async () => {
-        if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin
-            }
-        });
-        if (error) throw error;
+        // Not implemented locally yet
+        alert("Google login not supported in local mode yet.");
     };
 
     const register = async (email: string, name: string, password: string) => {
-        if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
-        const { error, data } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: { full_name: name },
-                emailRedirectTo: window.location.origin
-            }
+        const response = await fetch(`${API_URL}/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
         });
-        if (error) throw error;
 
-        if (data.user) {
-            try {
-                await db.createProfile(data.user.id, email, name, 'starter', 5);
-            } catch (profileError) {
-                console.warn("Profile creation warning during register:", profileError);
-            }
-
-            if (!data.session) {
-                throw new Error("REGISTRATION_SUCCESS_CONFIRM_EMAIL");
-            }
-
-            await refetchUser();
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Registration failed');
         }
+
+        // Auto login after register? Or ask to login?
+        // Let's just ask to login for now, or auto-login if backend returned token (it doesn't yet).
+        // User created.
+        await login(email, password);
     };
 
     const resetPassword = async (email: string) => {
-        if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin
-        });
-        if (error) throw error;
+        // Not implemented locally yet
+        alert("Password reset not supported in local mode yet.");
     };
 
     const logout = async () => {
-        if (!isSupabaseConfigured) {
-            setUser(null);
-            return;
-        }
-        await supabase.auth.signOut();
+        localStorage.removeItem('access_token');
+        setToken(null);
         setUser(null);
     };
 
     const upgradeTier = async (tier: UserTier) => {
-        if (!user) return;
-
-        // Admins cannot change tier (fixed to studio/infinite)
-        if (checkIsAdmin(user.email)) return;
-
-        try {
-            await db.upgradeTier(user.id, tier);
-            await refetchUser();
-        } catch (e) {
-            console.error("Upgrade failed", e);
-            throw new Error("Failed to upgrade subscription.");
-        }
+        // Todo: Call API to upgrade tier
+        console.log("Upgrade tier not implemented yet");
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, loginWithGoogle, register, resetPassword, logout, upgradeTier, refetchUser }}>
+        <AuthContext.Provider value={{
+            user,
+            isAuthenticated: !!user,
+            isLoading,
+            login,
+            loginWithGoogle,
+            register,
+            resetPassword,
+            logout,
+            upgradeTier,
+            refetchUser
+        }}>
             {children}
         </AuthContext.Provider>
     );
@@ -228,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (!context) {
+    if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;

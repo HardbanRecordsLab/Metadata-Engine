@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabaseClient';
 import { getFullUrl } from '../apiConfig';
 
 const wait = (ms: number) => {
@@ -8,8 +7,7 @@ const wait = (ms: number) => {
 };
 
 const callProxyEndpoint = async (provider: string, payload: any): Promise<any> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || "";
+    const token = localStorage.getItem('access_token') || "";
 
     const response = await fetch(getFullUrl('/ai/proxy'), {
         method: 'POST',

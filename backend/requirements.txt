@@ -5,12 +5,14 @@ python-dotenv
 httpx
 pydantic>=2.0.0
 python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
 
 # === Database ===
-supabase
+# supabase
+# supabase
 sqlalchemy>=2.0.0
 psycopg2-binary
-supabase-auth>=0.1.0
 email-validator
 
 # === AI / LLM ===

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { X, Gift, AlertCircle } from './icons';
 import Button from './Button';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient'; // For API call with auth token
+// import { supabase } from '../lib/supabaseClient'; // REMOVED
 
 interface RedeemCodeModalProps {
     onClose: () => void;
@@ -28,8 +28,8 @@ const RedeemCodeModal: React.FC<RedeemCodeModalProps> = ({ onClose, showToast })
         }
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
                 setError("Session expired. Please log in again.");
                 setIsSubmitting(false);
                 return;
@@ -39,7 +39,7 @@ const RedeemCodeModal: React.FC<RedeemCodeModalProps> = ({ onClose, showToast })
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ code })
             });

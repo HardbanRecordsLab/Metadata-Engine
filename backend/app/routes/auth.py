@@ -1,88 +1,114 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
-from app.supabase_client import supabase
-# Note: gotrue is deprecated, using generic exception handling instead
+from sqlalchemy.orm import Session
+from app.db import get_db, User
+from app.security import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
+from jose import jwt, JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# This scheme will be used to extract the JWT from the Authorization header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
-
 
 class SignUpRequest(BaseModel):
     email: EmailStr
     password: str
 
-
 class SignInRequest(BaseModel):
     email: EmailStr
     password: str
 
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
 
-@router.post("/signup")
-async def signup(request: SignUpRequest):
+@router.post("/signup", response_model=UserResponse)
+async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     """
-    Handles user registration and sets a default quota.
+    Handles user registration.
     """
-    try:
-        # Create a new user in Supabase Auth with default quota
-        user = supabase.auth.sign_up(
-            {
-                "email": request.email,
-                "password": request.password,
-                "options": {"data": {"analysis_limit": 10, "analysis_count": 0}},
-            }
-        )
-        return {
-            "message": "User created successfully. Please check your email for verification.",
-            "user": user,
-        }
-    except Exception as e:
-        # Handle auth errors (e.g., email already exists)
-        error_msg = str(e) if hasattr(e, '__str__') else "Authentication error"
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
-    except Exception as e:
+    # Check if user exists
+    existing_user = db.query(User).filter(User.email == request.email).first()
+    if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
         )
-
+    
+    # Create new user
+    user = User(
+        email=request.email,
+        hashed_password=get_password_hash(request.password)
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return user
 
 @router.post("/signin")
-async def signin(request: SignInRequest):
+async def signin(request: SignInRequest, db: Session = Depends(get_db)):
     """
     Authenticates a user and returns a session object (including JWT).
     """
-    try:
-        # Authenticate the user with email and password
-        session = supabase.auth.sign_in_with_password(
-            {"email": request.email, "password": request.password}
-        )
-        return session
-    except Exception as e:
-        # Handle auth errors (e.g., invalid credentials)
-        error_msg = str(e) if hasattr(e, '__str__') else "Authentication failed"
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error_msg)
-    except Exception as e:
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
         )
-
+    
+    access_token = create_access_token(subject=user.id)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": "authenticated"
+        }
+    }
 
 @router.get("/me")
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """
     Gets the current user's profile from the provided JWT.
     """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        # Verify the token and get the user
-        user_response = supabase.auth.get_user(token)
-        # Supabase Python client returns a response object with a 'user' attribute
-        return user_response.user
-    except Exception as e:
-        # Handle auth errors (e.g., invalid token)
-        error_msg = str(e) if hasattr(e, '__str__') else "Invalid token"
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {error_msg}",
-        )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+        
+    # Return structure compatible with existing app logic (mocking Supabase user object structure)
+    class SupabaseUserLike:
+        def __init__(self, user_obj):
+            self.id = user_obj.id
+            self.email = user_obj.email
+            self.app_metadata = {}
+            self.user_metadata = {
+                "tier": user_obj.tier or "starter",
+                "credits": user_obj.credits if user_obj.credits is not None else 5,
+                "analysis_limit": 100, # Legacy
+                "analysis_count": 0    # Legacy
+            }
+            self.aud = "authenticated"
+            self.created_at = user_obj.created_at.isoformat() if user_obj.created_at else None
+
+    return SupabaseUserLike(user)

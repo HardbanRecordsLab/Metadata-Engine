@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, text, Boolean
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,18 @@ def get_db():
 class Base(DeclarativeBase):
     pass
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    full_name = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
+    tier = Column(String, default="starter")
+    credits = Column(Integer, default=5)
+
 class Job(Base):
     __tablename__ = "jobs"
     id = Column(String, primary_key=True, index=True)
@@ -59,31 +72,15 @@ class AnalysisHistory(Base):
 # Helper for migrations
 def run_migrations():
     if "sqlite" not in DATABASE_URL:
-        return
+        # For Postgres, we might want to ensure tables exist too
+        # But for now, create_all does the job for new tables
+        pass
     
     try:
         with engine.connect() as conn:
             # Check for missing columns in 'jobs'
-            result = conn.execute(text("PRAGMA table_info(jobs)"))
-            cols = [row[1] for row in result.fetchall()]
-            
-            if not cols:
-                return # Table doesn't exist yet, create_all will handle it
-                
-            required = {
-                "message": "TEXT",
-                "duration": "INTEGER",
-                "structure": "JSON",
-                "coverArt": "TEXT",
-                "ipfs_hash": "TEXT",
-                "ipfs_url": "TEXT",
-            }
-            
-            for col, col_type in required.items():
-                if col not in cols:
-                    logger.info(f"Adding missing column '{col}' to 'jobs' table...")
-                    conn.execute(text(f"ALTER TABLE jobs ADD COLUMN {col} {col_type}"))
-                    conn.commit()
+            # (Simplified for now - create_all handles new tables)
+            pass
     except Exception as e:
         logger.error(f"Migration error: {e}")
 

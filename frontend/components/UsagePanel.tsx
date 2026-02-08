@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Database, Zap, Clock, Globe, Shield } from './icons';
-import { supabase } from '../lib/supabaseClient';
 import Button from './Button';
 import { getFullUrl } from '../apiConfig';
 
@@ -20,10 +19,9 @@ const UsagePanel: React.FC<UsagePanelProps> = ({ user }) => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
+                const token = localStorage.getItem('access_token');
+                if (!token) return;
 
-                const token = session.access_token;
                 const res = await fetch(getFullUrl('/history/'), {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -100,50 +98,34 @@ const UsagePanel: React.FC<UsagePanelProps> = ({ user }) => {
                                     className="w-full bg-accent-violet/20 group-hover:bg-accent-violet/50 rounded-t-lg transition-all duration-300"
                                     style={{ height: `${h}%` }}
                                 ></div>
-                                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 uppercase">
-                                    Day {i + 1}
-                                </div>
                             </div>
                         ))}
                     </div>
-                    <div className="flex justify-between items-center mt-10 pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <span className="text-xs font-bold text-slate-500">LAST 12 DAYS ANALYSIS LOAD</span>
-                        <div className="flex gap-4">
-                            <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                                <div className="w-2 h-2 rounded-full bg-accent-violet"></div> VOLUME
-                            </span>
-                        </div>
-                    </div>
                 </div>
-
-                <div className="panel-card space-y-6">
-                    <h3 className="text-xl font-bold mb-2 dark:text-white">Services Distribution</h3>
-
-                    {[
-                        { label: 'AI Tagging Engine', value: 75, color: 'bg-accent-violet' },
-                        { label: 'Copyright Registry', value: 15, color: 'bg-accent-blue' },
-                        { label: 'Stem Separation', value: 10, color: 'bg-accent-emerald' },
-                    ].map((s, i) => (
-                        <div key={i} className="space-y-2">
-                            <div className="flex justify-between text-sm font-bold">
-                                <span className="dark:text-slate-300">{s.label}</span>
-                                <span className="text-slate-500">{s.value}%</span>
+                <div className="panel-card">
+                    <h3 className="text-xl font-bold mb-6 dark:text-white">System Status</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span className="font-medium dark:text-slate-300">API Gateway</span>
                             </div>
-                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div className={`${s.color} h-full transition-all duration-1000`} style={{ width: `${s.value}%` }}></div>
-                            </div>
+                            <span className="text-emerald-500 font-bold">Operational</span>
                         </div>
-                    ))}
-
-                    <div className="mt-8 p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Clock className="w-5 h-5 text-slate-400" />
-                            <div>
-                                <p className="text-xs font-bold dark:text-white">Next Reset</p>
-                                <p className="text-[10px] text-slate-500">In 12 days (Aug 1st)</p>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span className="font-medium dark:text-slate-300">Database Cluster</span>
                             </div>
+                            <span className="text-emerald-500 font-bold">Operational</span>
                         </div>
-                        <Button variant="outline" size="sm">Manage Quotas</Button>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span className="font-medium dark:text-slate-300">AI Model Ensemble</span>
+                            </div>
+                            <span className="text-emerald-500 font-bold">Operational</span>
+                        </div>
                     </div>
                 </div>
             </div>
