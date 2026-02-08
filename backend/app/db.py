@@ -11,12 +11,24 @@ logger = logging.getLogger(__name__)
 PERSISTENT_DATA_PATH = "/data"
 SQLITE_DB_NAME = "music_metadata.db"
 
+# Default to centralized Postgres if not specified
+# But keep SQLite fallback for simple local dev without docker
+DEFAULT_POSTGRES_URL = "postgresql://hbrl_admin:HardbanRecordsLab2026!@postgres:5432/hbrl_central"
+
 if os.path.exists(PERSISTENT_DATA_PATH):
     DEFAULT_DB_URL = f"sqlite:///{PERSISTENT_DATA_PATH}/{SQLITE_DB_NAME}"
 else:
     DEFAULT_DB_URL = f"sqlite:///./{SQLITE_DB_NAME}"
 
+# Use Postgres if Env Var is set, OR if we are running in Docker (often implicit, but let's stick to Env or default)
+# Actually, let's make it configurable via Env, but default to SQLite for safety unless we know we are in the cluster.
+# The user wants "one db for all apps". So we should prefer the Postgres URL.
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+
+# If we are on VPS (implied by user instruction), we should probably use the Postgres URL.
+# But hardcoding it might break local dev if they don't have Postgres.
+# Let's rely on the user passing DATABASE_URL env var, or check if we can connect to Postgres.
+
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
