@@ -13,7 +13,8 @@ SQLITE_DB_NAME = "music_metadata.db"
 
 # Default to centralized Postgres if not specified
 # But keep SQLite fallback for simple local dev without docker
-DEFAULT_POSTGRES_URL = "postgresql://hbrl_admin:HardbanRecordsLab2026!@postgres:5432/hbrl_central"
+# Use container name 'hbrl-postgres' which is safe when on the same external network
+DEFAULT_POSTGRES_URL = "postgresql://hbrl_admin:HardbanRecordsLab2026!@hbrl-postgres:5432/hbrl_central"
 
 if os.path.exists(PERSISTENT_DATA_PATH):
     DEFAULT_DB_URL = f"sqlite:///{PERSISTENT_DATA_PATH}/{SQLITE_DB_NAME}"

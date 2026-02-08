@@ -21,6 +21,9 @@ services:
         limits:
           cpus: '6.0'
           memory: 10G
+    networks:
+      - default
+      - hbrl-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/"]
       interval: 30s
@@ -38,3 +41,7 @@ services:
   #     POSTGRES_DB: music_metadata
   #   volumes:
   #     - ./postgres_data:/var/lib/postgresql/data
+
+networks:
+  hbrl-network:
+    external: true
