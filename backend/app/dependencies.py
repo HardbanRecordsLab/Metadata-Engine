@@ -1,14 +1,13 @@
 from fastapi import Depends, HTTPException, status
 from app.routes.auth import get_current_user
-from app.supabase_client import supabase
-from app.types import User
-
-
-
+from app.db import get_db, User
+from app.security import SECRET_KEY, ALGORITHM
+from sqlalchemy.orm import Session
+from jose import jwt, JWTError
 from fastapi import Header
 from typing import Optional
 
-async def get_current_user_optional(authorization: Optional[str] = Header(None)):
+async def get_current_user_optional(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
     """
     Permissive dependency that tries to get the user but returns None if no token or invalid token.
     Doesn't raise 401.
@@ -22,8 +21,15 @@ async def get_current_user_optional(authorization: Optional[str] = Header(None))
         if scheme.lower() != "bearer" or not token:
             return None
             
-        user_response = supabase.auth.get_user(token)
-        return user_response.user
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+            
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    except JWTError:
+        return None
     except Exception:
         return None
 
@@ -44,14 +50,20 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
         # Admin users bypass all quota checks
         return current_user
         
-    user_metadata = current_user.user_metadata or {}
-    analysis_count = user_metadata.get("analysis_count", 0)
-    analysis_limit = user_metadata.get("analysis_limit", 10)
-
-    if analysis_count >= analysis_limit:
+    # Check credits directly from User model
+    # If credits is None, assume default 5 (starter)
+    credits = current_user.credits if current_user.credits is not None else 5
+    
+    # Check if we should enforce quota based on credits
+    # Simple logic: 1 analysis = 1 credit? 
+    # Or just check if they have credits > 0?
+    # Based on original code, it checked "analysis_count" vs "analysis_limit".
+    # We are moving to a credit system (User.credits).
+    
+    if credits <= 0:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Quota exceeded. Limit: {analysis_limit}, Used: {analysis_count}",
+            detail=f"Quota exceeded. You have {credits} credits left.",
         )
 
     return current_user
@@ -59,23 +71,22 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
 
 async def increment_user_quota(user_id: str):
     """
-    Increments the analysis count for a given user.
+    Decrements the credit count for a given user.
     """
-    if not supabase_admin:
-        print("CRITICAL: Cannot increment quota - Supabase Admin client not initialized.")
-        return
-
+    # Note: This function needs a DB session, but dependencies are usually injected.
+    # Since this is a helper function, we might need to pass db explicitly or create a new session.
+    # For now, let's create a new session to be safe.
+    from app.db import SessionLocal
+    
+    db = SessionLocal()
     try:
-        # First, get the current count using admin client
-        response = supabase_admin.auth.admin.get_user_by_id(user_id)
-        current_metadata = response.user.user_metadata or {}
-        current_count = current_metadata.get("analysis_count", 0)
-
-        # Then, update with the incremented count
-        updated_metadata = {**current_metadata, "analysis_count": current_count + 1}
-        supabase_admin.auth.admin.update_user_by_id(
-            user_id, {"user_metadata": updated_metadata}
-        )
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            # Decrement credits
+            if user.credits is not None and user.credits > 0:
+                user.credits -= 1
+                db.commit()
     except Exception as e:
-        # Log this error, but don't block the user's request from completing
-        print(f"CRITICAL: Failed to increment quota for user {user_id}. Error: {e}")
+        print(f"CRITICAL: Failed to update quota for user {user_id}. Error: {e}")
+    finally:
+        db.close()

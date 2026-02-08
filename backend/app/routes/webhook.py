@@ -3,7 +3,7 @@ import hashlib
 import json
 from fastapi import APIRouter, Request, HTTPException, status
 from app.config import settings
-from app.supabase_client import supabase_admin
+from app.db import SessionLocal, User
 import logging
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
@@ -21,7 +21,7 @@ PLAN_CREDITS = {
 async def lemonsqueezy_webhook(request: Request):
     """
     Handles Lemon Squeezy webhooks for payment success.
-    Updates user quota in Supabase.
+    Updates user quota in local DB.
     """
     if not settings.LEMONSQUEEZY_WEBHOOK_SECRET:
         logger.error("Lemon Squeezy Webhook Secret not configured.")
@@ -86,35 +86,34 @@ async def lemonsqueezy_webhook(request: Request):
         
         logger.info(f"Processing order for User {user_id}: Plan {plan_name} ({credits_to_add} credits)")
 
-        # 5. Update Supabase
-        if not supabase_admin:
-            logger.error("Supabase Admin client missing. Cannot update quota.")
-            raise HTTPException(status_code=500, detail="Database configuration error")
-
-        # Get current user metadata
-        user_resp = supabase_admin.auth.admin.get_user_by_id(user_id)
-        current_meta = user_resp.user.user_metadata or {}
-        
-        # Update limit (set new limit) and reset count (optional, or keep count)
-        # Decision: Buying a plan sets the LIMIT for the period.
-        # Assuming monthly subscription model where limit is "per month" or "total credits"?
-        # For now: We SET the analysis_limit to the plan amount.
-        
-        updated_meta = {
-            **current_meta,
-            "analysis_limit": credits_to_add,
-            "plan_tier": plan_name,
-            "last_payment_date": attributes.get("created_at")
-        }
-        
-        supabase_admin.auth.admin.update_user_by_id(
-            user_id, 
-            {"user_metadata": updated_meta}
-        )
-        
-        logger.info(f"Successfully updated quota for User {user_id}")
-        return {"status": "success", "user_id": user_id, "plan": plan_name, "credits": credits_to_add}
+        # 5. Update Local DB
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                logger.error(f"User {user_id} not found in database.")
+                # We return 200 to acknowledge webhook, but log error
+                return {"status": "error", "reason": "User not found"}
+            
+            # Update tier and credits
+            user.tier = plan_name.lower()
+            # If user has existing credits, add to them? Or reset?
+            # Usually add.
+            current_credits = user.credits if user.credits is not None else 0
+            user.credits = current_credits + credits_to_add
+            
+            db.commit()
+            logger.info(f"Updated user {user_id}: +{credits_to_add} credits, tier {plan_name}")
+            
+        except Exception as e:
+            logger.error(f"Database error updating quota: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Database error")
+        finally:
+            db.close()
+            
+        return {"status": "success", "credits_added": credits_to_add, "new_tier": plan_name}
 
     except Exception as e:
-        logger.error(f"Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error processing webhook payload: {e}")
+        raise HTTPException(status_code=500, detail="Processing error")
