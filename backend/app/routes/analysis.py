@@ -474,8 +474,12 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
     await ws_manager.connect(websocket, job_id)
     try:
         while True:
-            # Keep connection alive
-            await websocket.receive_text()
+            try:
+                # Wait for any message from client, but timeout every 10s to send heartbeat
+                await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
+            except asyncio.TimeoutError:
+                # Send heartbeat to keep connection alive
+                await websocket.send_json({"status": "ping", "message": "keep-alive"})
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, job_id)
     except Exception as e:
