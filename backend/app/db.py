@@ -74,6 +74,16 @@ class Job(Base):
     ipfs_url = Column(String, nullable=True)
     timestamp = Column(DateTime)
 
+class RedeemCode(Base):
+    __tablename__ = "redeem_codes"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True)
+    credits = Column(Integer)
+    max_uses = Column(Integer, default=1)
+    used_count = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
+
 class AnalysisHistory(Base):
     __tablename__ = "analysis_history"
     id = Column(Integer, primary_key=True, index=True)
