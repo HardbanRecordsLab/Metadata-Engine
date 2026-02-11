@@ -156,3 +156,7 @@ async def catch_all(path: str):
         
     # 3. Otherwise, it's a React route -> serve index.html
     return HTMLResponse(get_injected_index())
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
