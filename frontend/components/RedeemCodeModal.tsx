@@ -35,7 +35,7 @@ const RedeemCodeModal: React.FC<RedeemCodeModalProps> = ({ onClose, showToast })
                 return;
             }
 
-            const response = await fetch('/api/redeem-code', {
+            const response = await fetch('/api/quota/redeem', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
