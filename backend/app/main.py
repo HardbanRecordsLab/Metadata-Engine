@@ -39,7 +39,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -144,17 +144,22 @@ async def serve_root():
 # Support for SPA routing - capture everything else that's not a static file or API
 @app.get("/{path:path}")
 async def catch_all(path: str):
-    # 1. Check if file exists in frontend/dist (e.g. favicon.ico, robots.txt)
-    # We only serve from the dist folder.
-    full_path = os.path.join(frontend_dist_path, path)
+    # 1. Security Check: Prevent Path Traversal
+    safe_base = os.path.abspath(frontend_dist_path)
+    full_path = os.path.abspath(os.path.join(frontend_dist_path, path))
+    
+    if not full_path.startswith(safe_base):
+        return HTMLResponse(content="Access Denied", status_code=403)
+
+    # 2. Check if file exists in frontend/dist (e.g. favicon.ico, robots.txt)
     if os.path.exists(full_path) and os.path.isfile(full_path):
         return FileResponse(full_path)
 
-    # 2. If it looks like a file (has extension) but doesn't exist locally -> 404
+    # 3. If it looks like a file (has extension) but doesn't exist locally -> 404
     if "." in path.split("/")[-1]:
         return HTMLResponse(content=f"Asset not found: {path}", status_code=404)
         
-    # 3. Otherwise, it's a React route -> serve index.html
+    # 4. Otherwise, it's a React route -> serve index.html
     return HTMLResponse(get_injected_index())
 
 if __name__ == "__main__":
