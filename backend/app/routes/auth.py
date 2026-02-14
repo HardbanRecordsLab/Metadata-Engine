@@ -42,7 +42,7 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
     # Create new user
     user = User(
         email=request.email,
-        hashed_password=get_password_hash(request.password)
+        password_hash=get_password_hash(request.password)
     )
     db.add(user)
     db.commit()
@@ -56,7 +56,7 @@ async def signin(request: SignInRequest, db: Session = Depends(get_db)):
     Authenticates a user and returns a session object (including JWT).
     """
     user = db.query(User).filter(User.email == request.email).first()
-    if not user or not verify_password(request.password, user.hashed_password):
+    if not user or not verify_password(request.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"

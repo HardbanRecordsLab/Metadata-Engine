@@ -29,6 +29,9 @@ class Settings:
     SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
     SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
+    
+    # CORS
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 
     # Payment
     LEMONSQUEEZY_WEBHOOK_SECRET = os.getenv("LEMONSQUEEZY_WEBHOOK_SECRET")
