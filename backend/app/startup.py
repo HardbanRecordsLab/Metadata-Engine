@@ -13,7 +13,7 @@ def ensure_admin_user():
             logger.info(f"Creating admin user: {admin_email}")
             admin_user = User(
                 email=admin_email,
-                hashed_password=get_password_hash("REDACTED-PASSWORD"),
+                password_hash=get_password_hash("REDACTED-PASSWORD"),
                 is_active=True,
                 is_superuser=True,
                 tier="studio",
