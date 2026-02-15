@@ -49,4 +49,13 @@ async def get_history(
         .order_by(AnalysisHistory.created_at.desc())
         .all()
     )
-    return history_records
+    return [
+        {
+            "id": h.id,
+            "user_id": h.user_id,
+            "file_name": h.file_name,
+            "result": h.result,
+            "created_at": h.created_at.isoformat() if getattr(h, "created_at", None) else None,
+        }
+        for h in history_records
+    ]
