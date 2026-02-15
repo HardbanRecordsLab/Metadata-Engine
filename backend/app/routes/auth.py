@@ -112,3 +112,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             self.created_at = user_obj.created_at.isoformat() if user_obj.created_at else None
 
     return SupabaseUserLike(user)
+
+@router.post("/analysis/generate")
+async def generate_analysis_token(db: Session = Depends(get_db)):
+    """
+    Mock endpoint for legacy frontend compatibility.
+    """
+    # In V2, we don't need a specific analysis token as we use session auth
+    # This endpoint is kept to prevent 404/405 errors from the frontend
+    return {
+        "status": "success", 
+        "token": "mock_analysis_token",
+        "message": "Analysis authorized"
+    }
+
+@router.post("/generate/hash")
+async def generate_hash_endpoint(data: dict):
+    """
+    Mock endpoint for legacy hash generation.
+    """
+    return {
+        "hash": "mock_hash_12345",
+        "status": "success"
+    }
