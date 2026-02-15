@@ -14,16 +14,22 @@ router = APIRouter(tags=["legacy"])
 async def get_history_legacy(
     db: Session = Depends(get_db), current_user: Any = Depends(get_current_user)
 ):
-    """
-    Legacy endpoint: GET /history
-    """
     history_records = (
         db.query(AnalysisHistory)
         .filter(AnalysisHistory.user_id == str(current_user.id))
         .order_by(AnalysisHistory.created_at.desc())
         .all()
     )
-    return history_records
+    return [
+        {
+            "id": h.id,
+            "user_id": h.user_id,
+            "file_name": h.file_name,
+            "result": h.result,
+            "created_at": h.created_at.isoformat() if getattr(h, "created_at", None) else None,
+        }
+        for h in history_records
+    ]
 
 # ==================== REAL AUTH PROXIES ====================
 # The legacy frontend might also call /auth/signin and /auth/me directly
