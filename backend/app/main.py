@@ -39,9 +39,15 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=[
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "https://app-metadata.hardbanrecordslab.online",
+        "https://metadata.hardbanrecordslab.online",
+        "*"  # Fallback for development
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 
