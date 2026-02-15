@@ -15,13 +15,18 @@ export const db = {
     // --- HISTORY ---
     fetchHistory: async (userId: string): Promise<AnalysisRecord[]> => {
         try {
-            // Remove trailing slash to match backend legacy router
             const response = await fetch(`${API_BASE}/history`, {
                 headers: getHeaders()
             });
             
             if (!response.ok) {
-                console.error('Error fetching history:', response.statusText);
+                console.error('Error fetching history:', response.status, response.statusText);
+                return [];
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                console.error('Error fetching history: expected JSON, got', contentType);
                 return [];
             }
 
