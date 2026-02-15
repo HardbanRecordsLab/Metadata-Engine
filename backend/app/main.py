@@ -59,8 +59,8 @@ app.add_middleware(
 # from app.routes.legacy import router as legacy_router
 # app.include_router(legacy_router)
 
-@app.post("/auth/analysis/generate")
-@app.post("/auth/analysis/generate/")
+@app.api_route("/auth/analysis/generate", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
+@app.api_route("/auth/analysis/generate/", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
 async def generate_analysis_token_legacy_direct():
     token = secrets.token_urlsafe(32)
     return {
@@ -74,8 +74,8 @@ async def generate_analysis_token_legacy_direct():
 async def options_analysis_generate_direct():
     return {}
 
-@app.post("/auth/generate/hash")
-@app.post("/auth/generate/hash/")
+@app.api_route("/auth/generate/hash", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
+@app.api_route("/auth/generate/hash/", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
 async def generate_hash_legacy_direct(file: UploadFile = File(None), content: str = Form(None)):
     if file is not None:
         data = await file.read()
