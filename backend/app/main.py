@@ -46,6 +46,7 @@ app.add_middleware(
         "https://metadata.hardbanrecordslab.online",
         "*"  # Fallback for development
     ],
+    allow_origin_regex='https://.*\.hardbanrecordslab\.online', # Allow all subdomains
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
@@ -75,6 +76,16 @@ app.include_router(export_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
 app.include_router(ipfs_v2_router, prefix="/api/v2")
+
+# === LEGACY COMPATIBILITY LAYER ===
+from app.routes.legacy import router as legacy_router
+app.include_router(legacy_router)
+# Also include other legacy routers explicitly if legacy_router doesn't cover everything
+# But prefer legacy_router as it is cleaner
+# app.include_router(auth_router) # Removed to avoid conflict if legacy_router handles it
+# app.include_router(history_router) # Removed
+# app.include_router(analysis_router) # Removed
+# app.include_router(generative_router) # Removed
 
 @app.get("/api/debug/files")
 def debug_files():
