@@ -15,7 +15,7 @@ class HistoryCreate(BaseModel):
     result: Dict[str, Any]
 
 
-@router.post("/", response_model=None)  # Response model can be defined if needed
+@router.post("", response_model=None)
 async def add_history(
     history_data: HistoryCreate,
     db: Session = Depends(get_db),
@@ -36,7 +36,7 @@ async def add_history(
     return history_entry
 
 
-@router.get("/", response_model=List[Dict[str, Any]])
+@router.get("", response_model=List[Dict[str, Any]])
 async def get_history(
     db: Session = Depends(get_db), current_user: Any = Depends(get_current_user)
 ):
