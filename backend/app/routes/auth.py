@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from app.db import get_db, User
 from app.security import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from jose import jwt, JWTError
+import hashlib
+import secrets
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -114,24 +116,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return SupabaseUserLike(user)
 
 @router.post("/analysis/generate")
-async def generate_analysis_token(db: Session = Depends(get_db)):
-    """
-    Mock endpoint for legacy frontend compatibility.
-    """
-    # In V2, we don't need a specific analysis token as we use session auth
-    # This endpoint is kept to prevent 404/405 errors from the frontend
+async def generate_analysis_token():
+    token = secrets.token_urlsafe(32)
     return {
         "status": "success", 
-        "token": "mock_analysis_token",
+        "token": token,
         "message": "Analysis authorized"
     }
 
 @router.post("/generate/hash")
-async def generate_hash_endpoint(data: dict):
-    """
-    Mock endpoint for legacy hash generation.
-    """
+async def generate_hash_endpoint(file: UploadFile = File(None), content: str = Form(None)):
+    if file is not None:
+        data = await file.read()
+    elif content is not None:
+        data = content.encode("utf-8")
+    else:
+        raise HTTPException(status_code=400, detail="No file or content provided")
+    sha256 = hashlib.sha256(data).hexdigest()
     return {
-        "hash": "mock_hash_12345",
+        "hash": sha256,
+        "sha256": sha256,
         "status": "success"
     }

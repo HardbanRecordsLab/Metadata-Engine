@@ -1,7 +1,9 @@
 import starlette.formparsers
 import logging
 import os
-from fastapi import FastAPI
+import hashlib
+import secrets
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
@@ -54,8 +56,44 @@ app.add_middleware(
 
 # === LEGACY COMPATIBILITY LAYER (MOUNT FIRST) ===
 # Mount legacy router BEFORE any other routers or catch-all to ensure priority
-from app.routes.legacy import router as legacy_router
-app.include_router(legacy_router)
+# from app.routes.legacy import router as legacy_router
+# app.include_router(legacy_router)
+
+@app.post("/auth/analysis/generate")
+@app.post("/auth/analysis/generate/")
+async def generate_analysis_token_legacy_direct():
+    token = secrets.token_urlsafe(32)
+    return {
+        "status": "success", 
+        "token": token,
+        "message": "Analysis authorized"
+    }
+
+@app.options("/auth/analysis/generate")
+@app.options("/auth/analysis/generate/")
+async def options_analysis_generate_direct():
+    return {}
+
+@app.post("/auth/generate/hash")
+@app.post("/auth/generate/hash/")
+async def generate_hash_legacy_direct(file: UploadFile = File(None), content: str = Form(None)):
+    if file is not None:
+        data = await file.read()
+    elif content is not None:
+        data = content.encode("utf-8")
+    else:
+        raise HTTPException(status_code=400, detail="No file or content provided")
+    sha256 = hashlib.sha256(data).hexdigest()
+    return {
+        "hash": sha256,
+        "sha256": sha256,
+        "status": "success"
+    }
+
+@app.options("/auth/generate/hash")
+@app.options("/auth/generate/hash/")
+async def options_generate_hash_direct():
+    return {}
 
 # API Routes
 app.include_router(proxy_router, prefix="/api")
