@@ -10,6 +10,7 @@ router = APIRouter(tags=["legacy"])
 
 # ==================== HISTORY (GET /history) ====================
 @router.get("/history", response_model=List[Dict[str, Any]])
+@router.get("/history/", response_model=List[Dict[str, Any]])
 async def get_history_legacy(
     db: Session = Depends(get_db), current_user: Any = Depends(get_current_user)
 ):
@@ -26,6 +27,7 @@ async def get_history_legacy(
 
 # ==================== AUTH MOCKS ====================
 @router.post("/auth/generate/hash")
+@router.post("/auth/generate/hash/")
 async def generate_hash_legacy(data: dict = {}):
     """
     Legacy endpoint: POST /auth/generate/hash
@@ -36,6 +38,7 @@ async def generate_hash_legacy(data: dict = {}):
     }
 
 @router.post("/auth/analysis/generate")
+@router.post("/auth/analysis/generate")
 async def generate_analysis_token_legacy():
     """
     Legacy endpoint: POST /auth/analysis/generate
@@ -45,6 +48,15 @@ async def generate_analysis_token_legacy():
         "token": "mock_analysis_token",
         "message": "Analysis authorized"
     }
+
+# Explicit OPTIONS handlers for pre-flight requests if middleware fails
+@router.options("/auth/generate/hash")
+async def options_generate_hash():
+    return {}
+
+@router.options("/auth/analysis/generate")
+async def options_analysis_generate():
+    return {}
 
 # ==================== REAL AUTH PROXIES ====================
 # The legacy frontend might also call /auth/signin and /auth/me directly
