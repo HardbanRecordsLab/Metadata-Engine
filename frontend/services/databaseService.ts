@@ -1,5 +1,5 @@
 
-import { AnalysisRecord, Metadata, UserTier } from '../types';
+import { AnalysisRecord, UserTier } from '../types';
 
 const API_BASE = '/api';
 
@@ -83,7 +83,7 @@ export const db = {
             });
             if (!response.ok) return null;
             return await response.json();
-        } catch (error) {
+        } catch {
             return null;
         }
     },

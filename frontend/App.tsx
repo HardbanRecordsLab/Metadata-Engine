@@ -26,6 +26,8 @@ import ValidationPanel from './components/ValidationPanel';
 import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import UsagePanel from './components/UsagePanel';
+import BatchAnalysisPanel from './components/BatchAnalysisPanel';
+import StemSeparationPanel from './components/StemSeparationPanel';
 
 // Lazy Load Heavy Components
 const BulkEditor = lazy(() => import('./components/BulkEditor'));
@@ -33,7 +35,7 @@ const HistoryPanel = lazy(() => import('./components/HistoryPanel'));
 
 
 type Theme = 'light' | 'dark';
-type View = 'dashboard' | 'analyze' | 'results' | 'history' | 'tools' | 'bulk-edit' | 'settings' | 'usage';
+type View = 'dashboard' | 'analyze' | 'results' | 'history' | 'tools' | 'batch' | 'stems' | 'bulk-edit' | 'settings' | 'usage';
 
 interface ToastState {
     message: string;
@@ -116,8 +118,8 @@ const AppContent: React.FC = () => {
                 e.returnValue = '';
             }
         };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+        globalThis.addEventListener('beforeunload', handleBeforeUnload as any);
+        return () => globalThis.removeEventListener('beforeunload', handleBeforeUnload as any);
     }, [isProcessingBatch]);
 
     useEffect(() => {
@@ -131,8 +133,8 @@ const AppContent: React.FC = () => {
             if ((e.metaKey || e.ctrlKey) && e.key === '3') setView('history');
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        globalThis.addEventListener('keydown', handleKeyDown as any);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown as any);
     }, []);
 
     const toggleTheme = () => {
@@ -389,8 +391,9 @@ const AppContent: React.FC = () => {
                         <h2 className="text-lg font-bold capitalize text-slate-700 dark:text-slate-200">
                             {view === 'dashboard' ? 'Dashboard' :
                                 view === 'analyze' ? 'Audio Analysis' :
-                                    view === 'results' ? 'Analysis Results' :
+                                        view === 'results' ? 'Analysis Results' :
                                         view === 'history' ? 'History' : 'Tools'}
+                                            {view === 'stems' ? 'Stem Separation' : ''}
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
@@ -494,6 +497,16 @@ const AppContent: React.FC = () => {
                             </div>
                         )}
 
+                        {view === 'batch' && (
+                            <div className="max-w-6xl mx-auto">
+                                <BatchAnalysisPanel />
+                            </div>
+                        )}
+                        {view === 'stems' && (
+                            <div className="max-w-6xl mx-auto">
+                                <StemSeparationPanel />
+                            </div>
+                        )}
                         {view === 'settings' && (
                             <SettingsPanel
                                 user={user}

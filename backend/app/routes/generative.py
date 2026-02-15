@@ -7,6 +7,9 @@ import random
 import base64
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+import httpx
+import asyncio
+from urllib.parse import quote
 
 from app.config import settings
 from app.dependencies import get_user_and_check_quota
@@ -87,127 +90,192 @@ async def refine_metadata_field(request: RefineFieldRequest):
     return await call_groq_json(prompt)
 
 
-# --- Cover Generation (Local Pillow Fallback) ---
-
 class CoverRequest(BaseModel):
     title: str
     artist: str
     genre: str = "Electronic"
     mood: str = "Neutral"
 
-def get_gradient_colors(genre: str):
-    """Return start/end colors based on genre."""
-    genre = genre.lower()
-    if "metal" in genre or "rock" in genre:
-        return (20, 0, 0), (100, 0, 0) # Dark Red
-    if "pop" in genre:
-        return (255, 105, 180), (255, 20, 147) # Pink/HotPink
-    if "jazz" in genre or "blues" in genre:
-        return (0, 0, 50), (20, 20, 100) # Dark Blue
-    if "electronic" in genre or "techno" in genre:
-        return (0, 0, 0), (0, 255, 200) # Cyberpunk Cyan
-    if "ambient" in genre:
-        return (200, 200, 255), (255, 255, 255) # Ethereal White/Blue
-    # Default
-    return (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)), \
-           (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
+class CoverGenerationService:
+    @staticmethod
+    async def generate_enhanced_prompt(title: str, artist: str, genre: str, mood: str | None = None) -> str:
+        title_keywords = title.lower().split()[:3]
+        mood_descriptor = mood or genre
+
+        visual_themes = {
+            "electronic": "neon, cyberpunk, digital waves, laser",
+            "ambient": "ethereal, soft focus, atmospheric, clouds, mist",
+            "rock": "gritty, raw texture, urban, metallic, dark",
+            "pop": "vibrant, colorful, dynamic, pop-art style",
+            "jazz": "vintage, smoky, warm tones, retro, vinyl",
+            "classical": "elegant, orchestral, ornate, dramatic lighting",
+            "hip-hop": "urban, street art, graffiti, bold colors, dynamic",
+            "folk": "natural, rustic, warm, acoustic, vintage",
+        }
+
+        theme = visual_themes.get(genre.lower(), "abstract, artistic")
+
+        prompt = f"""
+        Album cover art for: "{title}" by {artist}
+        Genre: {genre}
+        Mood: {mood_descriptor}
+        Style: {theme}, professional design, high quality, 8k
+        Requirements: visually represents the song title metaphorically or literally
+        """
+
+        return prompt.strip()
+
+    @staticmethod
+    async def fetch_from_pollinations(
+        title: str,
+        artist: str,
+        genre: str,
+        retries: int = 3,
+    ) -> Image.Image | None:
+        for attempt in range(retries):
+            try:
+                prompt = await CoverGenerationService.generate_enhanced_prompt(
+                    title, artist, genre
+                )
+
+                image_prompt = f"{artist} - {title}. {prompt}"
+                encoded = quote(image_prompt)
+                url = f"https://pollinations.ai/p/{encoded}?width=1024&height=1024&nologo=true"
+
+                async with httpx.AsyncClient(timeout=25.0) as client:
+                    response = await client.get(url)
+
+                    if response.status_code == 200:
+                        return Image.open(BytesIO(response.content)).convert("RGB")
+
+                    if attempt < retries - 1:
+                        await asyncio.sleep(2**attempt)
+
+            except Exception as e:
+                logger.warning(f"Pollinations attempt {attempt + 1} failed: {e}")
+                if attempt < retries - 1:
+                    await asyncio.sleep(2**attempt)
+
+        return None
+
+    @staticmethod
+    def create_smart_gradient(genre: str, title: str) -> Image.Image:
+        genre_colors = {
+            "metal": [(30, 0, 20), (120, 0, 0)],
+            "rock": [(50, 25, 0), (150, 50, 0)],
+            "pop": [(255, 105, 180), (255, 192, 203)],
+            "electronic": [(0, 0, 0), (0, 255, 200)],
+            "ambient": [(200, 220, 255), (100, 180, 255)],
+            "jazz": [(20, 20, 80), (60, 60, 150)],
+            "classical": [(139, 69, 19), (210, 180, 140)],
+            "hip-hop": [(0, 0, 0), (255, 215, 0)],
+        }
+
+        colors = genre_colors.get(
+            genre.lower(),
+            [(50, 50, 50), (100, 100, 100)],
+        )
+
+        start_color, end_color = colors
+
+        width, height = 1024, 1024
+        base = Image.new("RGB", (width, height), start_color)
+        overlay = Image.new("RGB", (width, height), end_color)
+
+        mask = Image.new("L", (width, height))
+        mask_data = []
+        for y in range(height):
+            mask_data.extend([int(255 * (y / height))] * width)
+        mask.putdata(mask_data)
+
+        base.paste(overlay, (0, 0), mask)
+        return base
+
 
 @router.post("/cover")
 async def generate_cover(request: CoverRequest):
-    """
-    Generate a high-quality cover art image.
-    1. Fetches a thematic background from pollinations.ai based on title and genre.
-    2. Overlays the Title and Artist name with premium typography.
-    """
     try:
-        import httpx
-        from urllib.parse import quote
-        
-        width, height = 1024, 1024
-        
-        # Step 1: Create a prompt for the background image
-        genre_safe = request.genre or "General"
-        title_safe = request.title or "Track"
-        artist_safe = request.artist or "Artist"
-        
-        # User Requirement: Structure: "{Artist} - {Title}. {Visual Prompt specifically related to title}"
-        image_prompt = f"{title_safe} - {artist_safe}. {genre_safe} aesthetic, cinematic lighting, 8k resolution, highly detailed"
-        encoded_prompt = quote(image_prompt)
-        image_url = f"https://pollinations.ai/p/{encoded_prompt}?width={width}&height={height}&seed={random.randint(0, 1000000)}&nologo=true"
-        
-        logger.info(f"Fetching thematic background: {image_url}")
-        
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                img_res = await client.get(image_url)
-                if img_res.status_code == 200:
-                    base = Image.open(BytesIO(img_res.content)).convert('RGB')
-                else:
-                    logger.warning(f"Pollinations fetch returned status: {img_res.status_code}")
-                    raise Exception(f"Failed to fetch image: {img_res.status_code}")
-        except Exception as fetch_err:
-            logger.warning(f"Pollinations fetch failed ({fetch_err}), using gradient fallback.")
-            # Fallback to gradient if external service fails
-            start_color, end_color = get_gradient_colors(request.genre)
-            base = Image.new('RGB', (width, height), start_color)
-            top = Image.new('RGB', (width, height), end_color)
-            mask = Image.new('L', (width, height))
-            mask_data = []
-            for y in range(height):
-                mask_data.extend([int(255 * (y / height))] * width)
-            mask.putdata(mask_data)
-            base.paste(top, (0, 0), mask)
+        logger.info(f"Generating cover for: {request.title} by {request.artist}")
 
-        # Step 2: Overlay Typography
-        draw = ImageDraw.Draw(base, "RGBA")
-        
-        # Overlay a subtle dark gradient at the bottom for text legibility
-        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-        overlay_draw = ImageDraw.Draw(overlay)
-        for i in range(height // 2, height):
-            alpha = int(180 * ((i - height // 2) / (height // 2)))
-            overlay_draw.line([(0, i), (width, i)], fill=(0, 0, 0, alpha))
-        base = Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
-        draw = ImageDraw.Draw(base)
+        base_image = await CoverGenerationService.fetch_from_pollinations(
+            request.title,
+            request.artist,
+            request.genre,
+            retries=2,
+        )
 
-        # Fonts
-        try:
-            # Try some common high-quality fonts on Windows
-            font_title = ImageFont.truetype("arialbd.ttf", 80) # Bold
-            font_artist = ImageFont.truetype("arial.ttf", 50)
-        except:
-             font_title = ImageFont.load_default()
-             font_artist = ImageFont.load_default()
-             
-        def draw_centered_text(text, font, y_pos, color=(255, 255, 255)):
-            try:
-                # Pillow >= 10.0.0
-                left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
-                w, h = right - left, bottom - top
-                x = (width - w) / 2
-                # Draw subtle drop shadow
-                draw.text((x+2, y_pos+2), text, font=font, fill=(0,0,0,128))
-                draw.text((x, y_pos), text, font=font, fill=color)
-            except:
-                # Legacy Pillow
-                w, h = draw.textsize(text, font=font)
-                x = (width - w) / 2
-                draw.text((x, y_pos), text, font=font, fill=color)
+        if not base_image:
+            logger.info("External services failed, generating gradient...")
+            base_image = CoverGenerationService.create_smart_gradient(
+                request.genre,
+                request.title,
+            )
 
-        draw_centered_text(request.title.upper(), font_title, height - 200)
-        draw_centered_text(request.artist, font_artist, height - 100)
-        
-        # Save to buffer
+        base_image = _overlay_text_on_cover(
+            base_image,
+            request.title,
+            request.artist,
+        )
+
         buffer = BytesIO()
-        base.save(buffer, format="JPEG", quality=90)
+        base_image.save(buffer, format="JPEG", quality=95)
         buffer.seek(0)
-        
         img_str = base64.b64encode(buffer.getvalue()).decode()
+
         return {"image": f"data:image/jpeg;base64,{img_str}"}
 
     except Exception as e:
-        logger.error(f"Cover generation failed: {e}")
+        logger.error(f"Cover generation critical failure: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _overlay_text_on_cover(image: Image.Image, title: str, artist: str) -> Image.Image:
+    width, height = image.size
+    draw = ImageDraw.Draw(image, "RGBA")
+
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+
+    for i in range(height // 2, height):
+        alpha = int(200 * ((i - height // 2) / (height // 2)))
+        overlay_draw.line(
+            [(0, i), (width, i)],
+            fill=(0, 0, 0, alpha),
+        )
+
+    image = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(image)
+
+    try:
+        font_title = ImageFont.truetype("arialbd.ttf", 90)
+        font_artist = ImageFont.truetype("arial.ttf", 60)
+    except Exception:
+        font_title = ImageFont.load_default()
+        font_artist = ImageFont.load_default()
+
+    def draw_text(text: str, font: ImageFont.ImageFont, y_pos: int) -> None:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        x_pos = (width - text_width) / 2
+
+        draw.text(
+            (x_pos + 3, y_pos + 3),
+            text,
+            font=font,
+            fill=(0, 0, 0, 150),
+        )
+
+        draw.text(
+            (x_pos, y_pos),
+            text,
+            font=font,
+            fill=(255, 255, 255, 255),
+        )
+
+    draw_text(title.upper(), font_title, height - 250)
+    draw_text(artist, font_artist, height - 100)
+
+    return image
 
 
 # --- Certificate Generation ---

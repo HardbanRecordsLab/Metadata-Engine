@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Wrench, Zap, Trash2, Search, FileJson, Music, Shield, AlertTriangle, CheckCircle2, XCircle } from './icons';
+import { Zap, Trash2, Search, FileJson, Music, Shield, AlertTriangle, XCircle, Mic } from './icons';
 import Button from './Button';
 import { getFullUrl } from '../apiConfig';
 
@@ -48,12 +48,20 @@ const ToolsPanel: React.FC<{
     const [showResultsModal, setShowResultsModal] = useState(false);
     const [toolResult, setToolResult] = useState<any>(null);
     const [selectedFormat, setSelectedFormat] = useState('mp3');
+    const [showBulkExportModal, setShowBulkExportModal] = useState(false);
+    const [bulkJobIds, setBulkJobIds] = useState('');
     const tools = [
         {
             title: "Audio Fingerprinting",
             description: "Check if your track matches any existing songs in institutional registries to avoid copyright claims.",
             icon: <Search className="w-6 h-6" />,
             isPro: true
+        },
+        {
+            title: "Transcription",
+            description: "Transcribe speech/lyrics from audio using Whisper-based pipeline.",
+            icon: <Mic className="w-6 h-6" />,
+            isPro: false
         },
         {
             title: "Metadata Stripper",
@@ -99,6 +107,11 @@ const ToolsPanel: React.FC<{
             setShowOptionsModal(true);
             return;
         }
+        if (title === 'Bulk License Export') {
+            setCurrentTool(title);
+            setShowBulkExportModal(true);
+            return;
+        }
 
         // Open file picker
         setCurrentTool(title);
@@ -108,6 +121,38 @@ const ToolsPanel: React.FC<{
     const handleActionWithOptions = () => {
         setShowOptionsModal(false);
         fileInputRef.current?.click();
+    };
+    const handleBulkExport = async () => {
+        setShowBulkExportModal(false);
+        if (!bulkJobIds.trim()) {
+            showToast('Provide job IDs (comma-separated).', 'info');
+            return;
+        }
+        try {
+            setIsProcessing(true);
+            const formData = new FormData();
+            formData.append('job_ids', bulkJobIds);
+            const response = await fetch(getFullUrl('/tools/bulk-export'), {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error('Bulk export failed.');
+            const blob = await response.blob();
+            const url = globalThis.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mme_bulk_export_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast('Bulk export completed! File downloaded.', 'success');
+        } catch (err) {
+            showToast(`Error: ${(err as Error).message}`, 'error');
+        } finally {
+            setIsProcessing(false);
+            setCurrentTool(null);
+            setBulkJobIds('');
+        }
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +174,7 @@ const ToolsPanel: React.FC<{
                 formData.append('target_format', selectedFormat);
             }
             else if (currentTool === 'Audio Fingerprinting') endpoint = '/tools/fingerprint';
+            else if (currentTool === 'Transcription') endpoint = '/analysis/transcribe';
             else if (currentTool === 'Bulk License Export') {
                 endpoint = '/tools/bulk-export';
                 formData.append('job_ids', ''); // Should be populated from selected history items
@@ -154,10 +200,10 @@ const ToolsPanel: React.FC<{
             const contentType = response.headers.get('Content-Type');
             if (contentType === 'application/octet-stream') {
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
+                const url = globalThis.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `mme_${currentTool.replace(/\s+/g, '_').toLowerCase()}_${file.name}`;
+                a.download = `mme_${currentTool.replaceAll(/\s+/g, '_').toLowerCase()}_${file.name}`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -206,7 +252,7 @@ const ToolsPanel: React.FC<{
 
                         {currentTool === 'Format Converter' && (
                             <div className="space-y-4 mb-8">
-                                <label className="block text-sm font-bold text-slate-500 uppercase">Target Format</label>
+                                <label htmlFor="target-format" className="block text-sm font-bold text-slate-500 uppercase">Target Format</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {['mp3', 'wav', 'flac', 'aiff'].map(fmt => (
                                         <button
@@ -224,6 +270,28 @@ const ToolsPanel: React.FC<{
                         <div className="flex gap-4">
                             <Button variant="outline" className="flex-1" onClick={() => setShowOptionsModal(false)}>Cancel</Button>
                             <Button variant="primary" className="flex-1 grad-violet" onClick={handleActionWithOptions}>Pick File & Launch</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Export Modal */}
+            {showBulkExportModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
+                        <h3 className="text-2xl font-bold mb-6 dark:text-white">Bulk License Export</h3>
+                        <label htmlFor="bulk-job-ids" className="block text-sm font-bold text-slate-500 uppercase mb-2">Job IDs (comma-separated)</label>
+                        <textarea
+                            id="bulk-job-ids"
+                            value={bulkJobIds}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBulkJobIds(e.target.value)}
+                            className="w-full p-3 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                            rows={4}
+                            placeholder="job123, job456, job789"
+                        />
+                        <div className="flex gap-4 mt-6">
+                            <Button variant="outline" className="flex-1" onClick={() => setShowBulkExportModal(false)}>Cancel</Button>
+                            <Button variant="primary" className="flex-1 grad-violet" onClick={handleBulkExport}>Export ZIP</Button>
                         </div>
                     </div>
                 </div>
