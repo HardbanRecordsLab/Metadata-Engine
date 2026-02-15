@@ -316,39 +316,8 @@ async def process_analysis(
 
         logger.info(f"Analysis successfully completed for Job {job_id}")
         
-        # Step 6: Auto-generate Cover Art (non-critical)
-        try:
-            logger.info(f"Job {job_id}: Generating cover art...")
-            from app.routes.generative import generate_cover, CoverRequest
-            
-            # Prepare cover request from metadata
-            cover_req = CoverRequest(
-                title=job.result.get("title", job.file_name),
-                artist=job.result.get("artist", "Unknown Artist"),
-                genre=job.result.get("mainGenre", "Electronic"),
-                mood=job.result.get("mood_vibe", "Neutral")
-            )
-            
-            # Generate cover
-            cover_result = await generate_cover(cover_req)
-            
-            # Save cover to disk
-            if cover_result and "image" in cover_result:
-                import base64
-                cover_filename = f"{job_id}_cover.jpg"
-                cover_path = os.path.join("uploads", cover_filename)
-                
-                # Decode base64 and save
-                img_data = cover_result["image"].split(",")[1]
-                with open(cover_path, "wb") as f:
-                    f.write(base64.b64decode(img_data))
-                
-                # Update metadata with cover path
-                job.result["coverArt"] = cover_path
-                logger.info(f"Cover art saved: {cover_path}")
-                db.commit()
-        except Exception as cover_err:
-            logger.warning(f"Cover generation failed (non-critical): {cover_err}")
+        # Cover art generation intentionally not performed automatically.
+        # It is available on-demand via a dedicated endpoint.
         
         job.status = "completed"
         job.message = "Analysis complete."
@@ -393,6 +362,74 @@ async def process_analysis(
         #     except:
         #         pass
 
+@router.post("/cover/generate/{job_id}")
+async def generate_cover_for_job(job_id: str, db: Session = Depends(get_db)):
+    """
+    On-demand cover generation for a job. Uses analyzed metadata (title/artist/genre/mood).
+    Saves the generated cover to uploads/{job_id}_cover.jpg and records the path in job.result["coverArt"].
+    """
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status not in ("completed", "processing", "pending"):
+        raise HTTPException(status_code=400, detail="Invalid job status")
+
+    from app.routes.generative import generate_cover, CoverRequest
+    import base64
+
+    cover_req = CoverRequest(
+        title=job.result.get("title", job.file_name),
+        artist=job.result.get("artist", "Unknown Artist"),
+        genre=job.result.get("mainGenre", "Electronic"),
+        mood=job.result.get("moods", ["Neutral"])[0]
+        if isinstance(job.result.get("moods"), list) and job.result.get("moods")
+        else job.result.get("mood_vibe", "Neutral"),
+    )
+
+    await ws_manager.send_progress(
+        job_id,
+        "Generating album cover art...",
+        progress=85,
+        status="processing",
+    )
+
+    try:
+        cover_result = await asyncio.wait_for(
+            generate_cover(cover_req),
+            timeout=45.0,
+        )
+    except asyncio.TimeoutError:
+        await ws_manager.send_progress(job_id, "Cover generation timeout", progress=85, status="processing")
+        raise HTTPException(status_code=504, detail="Cover generation timeout")
+
+    if not cover_result or "image" not in cover_result:
+        raise HTTPException(status_code=500, detail="Cover generation failed")
+
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    cover_filename = f"{job_id}_cover.jpg"
+    cover_path = os.path.join(upload_dir, cover_filename)
+
+    img_data = (
+        cover_result["image"].split(",", 1)[1]
+        if "," in cover_result["image"]
+        else cover_result["image"]
+    )
+
+    with open(cover_path, "wb") as f:
+        f.write(base64.b64decode(img_data))
+
+    job.result["coverArt"] = cover_path
+    db.commit()
+
+    await ws_manager.send_progress(
+        job_id,
+        "Cover art generated successfully",
+        progress=90,
+        status="processing",
+    )
+
+    return {"coverPath": cover_path, "status": "success"}
 @router.post("/generate")
 async def generate_analysis(
     background_tasks: BackgroundTasks,

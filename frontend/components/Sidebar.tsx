@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Music, Clock, Wrench, Settings, LogOut, Info, Star, User as UserIcon, TrendingUp, Gift, ChevronLeft, ChevronRight } from './icons';
+import { Home, Music, Clock, Wrench, Settings, LogOut, Info, Star, User as UserIcon, TrendingUp, Gift, ChevronLeft, ChevronRight, Zap } from './icons';
 import { useAuth } from '../contexts/AuthContext';
 import { UserTier } from '../types';
 
@@ -52,6 +52,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             title: 'ADVANCED',
             items: [
                 { id: 'tools', label: 'Professional Tools', icon: Wrench },
+                { id: 'batch', label: 'Batch Analysis', icon: Wrench },
+                { id: 'stems', label: 'Stem Separation', icon: Zap },
             ]
         }
     ];
