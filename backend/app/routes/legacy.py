@@ -19,7 +19,7 @@ async def get_history_legacy(
     """
     history_records = (
         db.query(AnalysisHistory)
-        .filter(AnalysisHistory.user_id == current_user.id)
+        .filter(AnalysisHistory.user_id == str(current_user.id))
         .order_by(AnalysisHistory.created_at.desc())
         .all()
     )

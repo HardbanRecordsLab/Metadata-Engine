@@ -359,10 +359,10 @@ async def process_analysis(
         if job.user_id:
             try:
                 history_entry = AnalysisHistory(
-                    user_id=job.user_id,
+                    user_id=str(job.user_id),
                     file_name=job.file_name,
                     result=job.result,
-                    timestamp=datetime.utcnow()
+                    created_at=datetime.utcnow()
                 )
                 db.add(history_entry)
                 logger.info(f"Archived Job {job_id} to history for user {job.user_id}")

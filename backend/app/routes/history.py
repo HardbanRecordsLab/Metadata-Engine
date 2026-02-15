@@ -25,7 +25,7 @@ async def add_history(
     Adds a new analysis record for the currently authenticated user.
     """
     history_entry = AnalysisHistory(
-        user_id=current_user.id,
+        user_id=str(current_user.id),
         file_name=history_data.file_name,
         result=history_data.result,
         created_at=datetime.utcnow(),
@@ -45,7 +45,7 @@ async def get_history(
     """
     history_records = (
         db.query(AnalysisHistory)
-        .filter(AnalysisHistory.user_id == current_user.id)
+        .filter(AnalysisHistory.user_id == str(current_user.id))
         .order_by(AnalysisHistory.created_at.desc())
         .all()
     )
