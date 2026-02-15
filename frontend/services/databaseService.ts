@@ -15,7 +15,8 @@ export const db = {
     // --- HISTORY ---
     fetchHistory: async (userId: string): Promise<AnalysisRecord[]> => {
         try {
-            const response = await fetch(`${API_BASE}/history/`, {
+            // Remove trailing slash to match backend legacy router
+            const response = await fetch(`${API_BASE}/history`, {
                 headers: getHeaders()
             });
             
@@ -54,7 +55,7 @@ export const db = {
                 inputType: record.inputType
             };
 
-            await fetch(`${API_BASE}/history/`, {
+            await fetch(`${API_BASE}/history`, {
                 method: 'POST',
                 headers: getHeaders(),
                 body: JSON.stringify({
