@@ -54,26 +54,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === LEGACY COMPATIBILITY LAYER (MOUNT FIRST) ===
-# Mount legacy router BEFORE any other routers or catch-all to ensure priority
-# from app.routes.legacy import router as legacy_router
-# app.include_router(legacy_router)
-
-@app.api_route("/auth/analysis/generate", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
-@app.api_route("/auth/analysis/generate/", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
-async def generate_analysis_token_legacy_direct():
-    token = secrets.token_urlsafe(32)
-    return {
-        "status": "success", 
-        "token": token,
-        "message": "Analysis authorized"
-    }
-
-@app.options("/auth/analysis/generate")
-@app.options("/auth/analysis/generate/")
-async def options_analysis_generate_direct():
-    return {}
-
 @app.api_route("/auth/generate/hash", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
 @app.api_route("/auth/generate/hash/", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
 async def generate_hash_legacy_direct(file: UploadFile = File(None), content: str = Form(None)):
@@ -110,6 +90,7 @@ app.include_router(batch_router, prefix="/api")
 app.include_router(tagging_router, prefix="/api")
 app.include_router(ddex_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
+app.include_router(analysis_router, prefix="/auth")
 app.include_router(generative_router, prefix="/api")
 app.include_router(ai_proxy_router, prefix="/api")
 app.include_router(pinata_router, prefix="/api")
