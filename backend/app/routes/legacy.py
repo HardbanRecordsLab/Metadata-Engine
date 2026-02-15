@@ -25,39 +25,6 @@ async def get_history_legacy(
     )
     return history_records
 
-# ==================== AUTH MOCKS ====================
-@router.post("/auth/generate/hash")
-@router.post("/auth/generate/hash/")
-async def generate_hash_legacy(data: dict = {}):
-    """
-    Legacy endpoint: POST /auth/generate/hash
-    """
-    return {
-        "hash": "mock_hash_12345",
-        "status": "success"
-    }
-
-@router.post("/auth/analysis/generate")
-@router.post("/auth/analysis/generate")
-async def generate_analysis_token_legacy():
-    """
-    Legacy endpoint: POST /auth/analysis/generate
-    """
-    return {
-        "status": "success", 
-        "token": "mock_analysis_token",
-        "message": "Analysis authorized"
-    }
-
-# Explicit OPTIONS handlers for pre-flight requests if middleware fails
-@router.options("/auth/generate/hash")
-async def options_generate_hash():
-    return {}
-
-@router.options("/auth/analysis/generate")
-async def options_analysis_generate():
-    return {}
-
 # ==================== REAL AUTH PROXIES ====================
 # The legacy frontend might also call /auth/signin and /auth/me directly
 # We need to expose them here if the prefixed router include failed
