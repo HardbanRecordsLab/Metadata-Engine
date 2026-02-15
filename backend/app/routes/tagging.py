@@ -9,6 +9,7 @@ import shutil
 import json
 import logging
 from mutagen.wave import WAVE
+from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TCON, TDRC, COMM, TXXX, TBPM, TPUB, TCOP, TKEY, WCOP, TRCK, TLAN, TPE2, TCOM, TEXT, TSRC, APIC
 from mutagen.flac import FLAC, Picture
 from app.utils.audio_metadata import is_valid_isrc
@@ -51,6 +52,42 @@ ALLOWED_TXXX = {
     "PRODUCER",
 }
 
+
+def validate_and_normalize_metadata(meta: dict) -> dict:
+    if not meta.get("title") or not isinstance(meta.get("title"), str):
+        raise HTTPException(
+            status_code=400,
+            detail="Missing or invalid 'title' - must be a string",
+        )
+
+    if not meta.get("artist") or not isinstance(meta.get("artist"), str):
+        raise HTTPException(
+            status_code=400,
+            detail="Missing or invalid 'artist' - must be a string",
+        )
+
+    meta["title"] = str(meta["title"]).strip()
+    meta["artist"] = str(meta["artist"]).strip()
+    meta["album"] = str(meta.get("album", "Single")).strip()
+
+    for key in ["title", "artist", "album"]:
+        meta[key] = meta[key].replace("\n", " ").replace("\r", " ").strip()
+
+    return meta
+
+
+def parse_title_artist(filename: str) -> tuple[str, str]:
+    name = filename.rsplit(".", 1)[0]
+
+    if " - " in name:
+        parts = name.split(" - ", 1)
+        return parts[0].strip(), parts[1].strip()
+    if " – " in name:
+        parts = name.split(" – ", 1)
+        return parts[0].strip(), parts[1].strip()
+
+    return "Unknown Artist", name.strip()
+
 def cleanup_file(path: str):
     try:
         if os.path.exists(path):
@@ -59,7 +96,7 @@ def cleanup_file(path: str):
         logger.error(f"Error cleaning up file {path}: {e}")
 
 def _sanitize_meta(meta: dict):
-    for k in list(meta.keys()):
+    for k in meta.keys():
         if k in DEPRECATED_KEYS and meta.get(k) not in (None, "", [], {}):
             raise HTTPException(status_code=400, detail="SCHEMA_VIOLATION: deprecated field referenced")
 
@@ -118,6 +155,13 @@ async def tag_file(
         raise HTTPException(status_code=400, detail="Invalid metadata JSON")
     _sanitize_meta(meta)
 
+    if not meta.get("title") or not meta.get("artist"):
+        parsed_artist, parsed_title = parse_title_artist(file.filename)
+        meta.setdefault("title", parsed_title)
+        meta.setdefault("artist", parsed_artist)
+
+    meta = validate_and_normalize_metadata(meta)
+
     # Create temp file
     suffix = os.path.splitext(file.filename)[1].lower()
     fd, path = tempfile.mkstemp(suffix=suffix)
@@ -175,6 +219,13 @@ async def tag_existing_job(
     try:
         meta = json.loads(metadata)
         _sanitize_meta(meta)
+
+        if not meta.get("title") or not meta.get("artist"):
+            parsed_artist, parsed_title = parse_title_artist(job.file_name)
+            meta.setdefault("title", parsed_title)
+            meta.setdefault("artist", parsed_artist)
+
+        meta = validate_and_normalize_metadata(meta)
         
         # If no coverArt in metadata but jobId exists, try to find local cover
         if not meta.get("coverArt") and job_id:
@@ -320,7 +371,7 @@ def tag_id3_common(audio, meta):
 def tag_mp3(path, meta):
     try:
         audio = MP3(path, ID3=ID3)
-    except:
+    except Exception:
         audio = MP3(path)
         audio.add_tags()
     
@@ -333,7 +384,7 @@ def tag_mp3(path, meta):
 def tag_wav(path, meta):
     try:
         audio = WAVE(path)
-    except:
+    except Exception:
         # If headers are weird, mutagen might fail, but WAVE usually works on valid WAVs
         return 
     
@@ -346,7 +397,7 @@ def tag_wav(path, meta):
 def tag_flac(path, meta):
     try:
         audio = FLAC(path)
-    except:
+    except Exception:
         return
 
     if meta.get("title"):

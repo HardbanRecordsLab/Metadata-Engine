@@ -29,6 +29,7 @@ from app.routes.fresh_analysis import router as fresh_router
 from app.routes.export import router as export_router
 from app.routes.tools import router as tools_router
 from app.routes.v2.ipfs import router as ipfs_v2_router
+from app.routes.generative import CertificateRequest, generate_certificate as generate_certificate_handler
 
 app = FastAPI()
 
@@ -74,6 +75,11 @@ async def generate_hash_legacy_direct(file: UploadFile = File(None), content: st
 @app.options("/auth/generate/hash/")
 async def options_generate_hash_direct():
     return {}
+
+
+@app.post("/auth/generate/certificate")
+async def generate_certificate_legacy_direct(request: CertificateRequest):
+    return await generate_certificate_handler(request)
 
 # API Routes
 app.include_router(proxy_router, prefix="/api")

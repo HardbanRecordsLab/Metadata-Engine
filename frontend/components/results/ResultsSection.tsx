@@ -3,6 +3,9 @@ import { Metadata, AnalysisRecord, UserTier } from '../../types';
 import { refineMetadataField } from '../../services/geminiService';
 import { embedMetadata } from '../../services/taggingService';
 import { Download, Pencil, ArrowLeft, RotateCcw, RotateCw } from '../icons';
+import { ExportModal } from '../imported/ExportModal';
+import TranscriptionViewer from '../TranscriptionViewer';
+import IPFSPanel from '../IPFSPanel';
 import VisualsCard from './VisualsCard';
 import ResultsSkeleton from './ResultsSkeleton';
 import Button from '../Button';
@@ -20,6 +23,7 @@ import { validateRelease, ValidationReport } from '../../services/releaseValidat
 import ValidationReportCard from './ValidationReportCard';
 import ProAnalysisCard from './ProAnalysisCard';
 import ExternalServicesCard from './ExternalServicesCard';
+import ExternalDataCard from './ExternalDataCard';
 import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
 
@@ -106,6 +110,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
     const [isFileReadable, setIsFileReadable] = useState(true);
     const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     // Verify file accessibility
     useEffect(() => {
@@ -378,6 +383,11 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                                 </>
                             )}
                         </Button>
+                        {currentAnalysis?.jobId && (
+                            <Button onClick={() => setShowExportModal(true)} variant="secondary" size="sm">
+                                <Download className="w-4 h-4" /> Export
+                            </Button>
+                        )}
                         <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm">
                             <Pencil className="w-4 h-4" /> Edit
                         </Button>
@@ -440,6 +450,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             audioFeatures={audioFeatures}
                         />
                     </AnimatedSection>
+                    <TranscriptionViewer transcript={(editedResults as any)?.lyrics || (results as any)?.lyrics} />
                     <AnimatedSection delay="190ms">
                         <ClassificationStyleCard
                             metadata={editedResults!}
@@ -516,6 +527,12 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                         />
                     </AnimatedSection>
 
+                    <AnimatedSection delay="335ms">
+                        <ExternalDataCard
+                            title={editedResults!.title}
+                            artist={editedResults!.artist}
+                        />
+                    </AnimatedSection>
 
                     <AnimatedSection delay="310ms">
                         <CopyrightCard
@@ -526,8 +543,21 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             jobId={currentAnalysis?.jobId}
                         />
                     </AnimatedSection>
+                    <AnimatedSection delay="315ms">
+                        <IPFSPanel
+                            metadata={editedResults!}
+                        />
+                    </AnimatedSection>
                 </div>
             </div>
+
+            {showExportModal && currentAnalysis?.jobId && (
+                <ExportModal
+                    jobId={currentAnalysis.jobId}
+                    metadata={editedResults!}
+                    onClose={() => setShowExportModal(false)}
+                />
+            )}
 
             {isEditing && (
                 <div className="flex justify-end gap-4 mt-8 animate-fade-in">

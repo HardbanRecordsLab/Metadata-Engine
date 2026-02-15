@@ -90,13 +90,9 @@ export const embedMetadata = async (file: File | null, metadata: Metadata, jobId
     try {
         console.log("Starting tagging via Backend API...");
 
-        // Optimize payload: if we have a jobId, the server already has the generated cover art.
-        // We only send coverArt if it was manually changed (not a data:image URL from our server).
+        // Payload: zawsze wysyłamy podaną przez użytkownika okładkę (data:image) jeśli jest dostępna.
+        // Nie zakładamy, że serwer ma wygenerowaną okładkę bez wyraźnej akcji użytkownika.
         const optimizedMetadata = { ...metadata };
-        if (jobId && optimizedMetadata.coverArt?.startsWith('data:image')) {
-            console.log("[TaggingService] Stripping redundant coverArt from payload for job tagging.");
-            delete optimizedMetadata.coverArt;
-        }
 
         const formData = new FormData();
         formData.append('metadata', JSON.stringify(optimizedMetadata));
