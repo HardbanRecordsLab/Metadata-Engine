@@ -4,10 +4,7 @@ from jose import jwt
 import bcrypt
 from app.config import settings
 
-# Helper to get a secret key. 
-# We use SUPABASE_KEY as a fallback if no explicit SECRET_KEY is set, 
-# to ensure smooth transition without requiring new env vars immediately.
-SECRET_KEY = settings.SUPABASE_KEY or "REDACTED-JWT-SECRET"
+SECRET_KEY = settings.SECRET_KEY or "REDACTED-JWT-SECRET"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
 

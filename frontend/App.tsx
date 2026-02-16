@@ -80,6 +80,7 @@ const AppContent: React.FC = () => {
     // UserTier and Credits from AuthContext
     const userTier = user?.tier || 'starter';
     const userCredits = user?.credits || 0;
+    const isAdmin = !!user?.isAdmin;
     const displayProfile = user ? { name: user.name, tier: user.tier, credits: user.credits } : { name: 'Guest', tier: 'starter' as const, credits: 0 };
 
 
@@ -441,11 +442,11 @@ const AppContent: React.FC = () => {
                                         userCredits={userCredits}
                                         onOpenPricing={() => setIsPricingOpen(true)}
                                         onOpenCloudImport={() => {
-                                            if (userTier === 'starter') { setIsPricingOpen(true); showToast("Cloud import is a Pro feature", 'info'); }
+                                            if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Cloud Import.", 'info'); }
                                             else { setIsCloudImportOpen(true); }
                                         }}
                                         onOpenBulkEdit={() => {
-                                            if (userTier === 'starter') { setIsPricingOpen(true); showToast("Bulk editing is a Pro feature", 'info'); }
+                                            if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Bulk Editing.", 'info'); }
                                             else { setView('bulk-edit'); }
                                         }}
                                         isFresh={isFresh}

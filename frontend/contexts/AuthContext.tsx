@@ -26,10 +26,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
     const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
-    const checkIsAdmin = (email: string): boolean => {
-        const admins = [
-            'hardbanrecordslab.pl@gmail.com'
-        ];
+    const checkIsAdmin = (email: string, meta: any): boolean => {
+        if (meta && typeof meta.is_superuser !== 'undefined') {
+            return !!meta.is_superuser;
+        }
+        const admins = ['hardbanrecordslab.pl@gmail.com'];
         return admins.some(admin => admin.toLowerCase() === email.toLowerCase());
     };
 
@@ -46,17 +47,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             const userData = await response.json();
-            
-            // Map backend user to frontend User type
-            const isAdm = checkIsAdmin(userData.email);
-            
+            const isAdm = checkIsAdmin(userData.email, userData.user_metadata);
             setUser({
                 id: userData.id,
                 email: userData.email,
                 name: userData.email.split('@')[0], // Fallback name
                 tier: isAdm ? 'studio' : (userData.user_metadata?.tier || 'starter'),
                 createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
-                credits: isAdm ? 999999999 : (userData.user_metadata?.credits || 5)
+                credits: isAdm ? 999999999 : (userData.user_metadata?.credits || 5),
+                isAdmin: isAdm
             });
 
         } catch (error) {

@@ -107,6 +107,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             self.user_metadata = {
                 "tier": user_obj.tier or "starter",
                 "credits": user_obj.credits if user_obj.credits is not None else 5,
+                "is_superuser": bool(getattr(user_obj, "is_superuser", False)),
                 "analysis_limit": 100, # Legacy
                 "analysis_count": 0    # Legacy
             }
