@@ -24,7 +24,6 @@ vi.mock('./results/TrackIdentityCard', () => ({
 vi.mock('./results/SonicAnalysisDisplay', () => ({ default: () => <div>SonicAnalysisDisplay Mock</div> }));
 vi.mock('./results/ClassificationStyleCard', () => ({ default: () => <div>ClassificationStyleCard Mock</div> }));
 vi.mock('./results/CommercialLegalCard', () => ({ default: () => <div>CommercialLegalCard Mock</div> }));
-vi.mock('./results/ConfidenceMeter', () => ({ default: () => <div>ConfidenceMeter Mock</div> }));
 vi.mock('./results/StructureCard', () => ({ default: () => <div>StructureCard Mock</div> }));
 vi.mock('./results/DistributionCard', () => ({ default: () => <div>DistributionCard Mock</div> }));
 vi.mock('./results/ValidationReportCard', () => ({ default: () => <div>ValidationReportCard Mock</div> }));
@@ -101,13 +100,8 @@ describe('ResultsSection Component', () => {
         expect(screen.getByText('SonicAnalysisDisplay Mock')).toBeDefined();
         expect(screen.getByText('ClassificationStyleCard Mock')).toBeDefined();
         expect(screen.getByText('CommercialLegalCard Mock')).toBeDefined();
-        expect(screen.getByText('ConfidenceMeter Mock')).toBeDefined();
         expect(screen.getByText('IdentificationCard Mock')).toBeDefined();
         expect(screen.getByText('StructureCard Mock')).toBeDefined();
-        expect(screen.getByText('DistributionCard Mock')).toBeDefined();
-        expect(await screen.findByText('ValidationReportCard Mock')).toBeDefined();
-        expect(screen.getByText('VisualsCard Mock')).toBeDefined();
-        expect(screen.getByText('CopyrightCard Mock')).toBeDefined();
     });
 
     it('toggles edit mode and allows field updates through TrackIdentityCard', async () => {

@@ -5,22 +5,14 @@ import { embedMetadata } from '../../services/taggingService';
 import { Download, Pencil, ArrowLeft, RotateCcw, RotateCw } from '../icons';
 import { ExportModal } from '../imported/ExportModal';
 import TranscriptionViewer from '../TranscriptionViewer';
-import IPFSPanel from '../IPFSPanel';
 import ResultsSkeleton from './ResultsSkeleton';
 import Button from '../Button';
 import TrackIdentityCard from './TrackIdentityCard';
 import SonicAnalysisDisplay from './SonicAnalysisDisplay';
 import ClassificationStyleCard from './ClassificationStyleCard';
-import ConfidenceMeter from './ConfidenceMeter';
-import CopyrightCard from './CopyrightCard';
 import StructureCard from './StructureCard';
 import MarketingCard from './MarketingCard';
-import CommercialLegalCard from './CommercialLegalCard';
-import { validateRelease, ValidationReport } from '../../services/releaseValidationService';
-import ValidationReportCard from './ValidationReportCard';
 import ProAnalysisCard from './ProAnalysisCard';
-import ExternalServicesCard from './ExternalServicesCard';
-import ExternalDataCard from './ExternalDataCard';
 import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
 
@@ -41,54 +33,6 @@ interface ResultsSectionProps {
 
 const AUTOSAVE_KEY = 'music-metadata-autosave';
 
-const validateGenreRules = (metadata: Metadata): { scoreMod: number, issues: string[] } => {
-    const issues: string[] = [];
-    let scoreMod = 0;
-    const genre = (metadata.mainGenre || '').toLowerCase();
-    const bpm = metadata.bpm || 0;
-
-    if ((genre.includes('hip-hop') || genre.includes('rap')) && bpm > 160 && !genre.includes('trap')) {
-        scoreMod -= 10;
-        issues.push(`Suspiciously high BPM (${bpm}) for Hip-Hop.`);
-    }
-
-    if ((genre.includes('house') || genre.includes('techno') || genre.includes('trance')) && (bpm < 110 || bpm > 150)) {
-        scoreMod -= 10;
-        issues.push(`BPM (${bpm}) atypical for EDM/House genre.`);
-    }
-
-    if ((genre.includes('drum and bass') || genre.includes('dnb')) && bpm < 160) {
-        scoreMod -= 10;
-        issues.push(`BPM (${bpm}) too low for Drum and Bass.`);
-    }
-    return { scoreMod, issues };
-};
-
-// --- Helper Hook ---
-const useConfidenceValidator = (editedResults: Metadata | null, uploadedFile: File | null) => {
-    const [score, setScore] = useState(100);
-    const [issues, setIssues] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (!editedResults) {
-            setScore(100);
-            setIssues([]);
-            return;
-        }
-
-        const genreCheck = validateGenreRules(editedResults);
-
-        const totalScore = Math.max(0, 100 + genreCheck.scoreMod);
-        const totalIssues = [...genreCheck.issues];
-
-        setScore(totalScore);
-        setIssues(totalIssues);
-
-    }, [editedResults, uploadedFile]);
-
-    return { score, issues };
-};
-
 const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
     <div className="text-center py-16 animate-fade-in">
         <p className="text-red-500 text-lg font-bold">An error occurred</p>
@@ -105,7 +49,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
     const [refiningField, setRefiningField] = useState<keyof Metadata | null>(null);
     const [isTaggingFile, setIsTaggingFile] = useState(false);
     const [isFileReadable, setIsFileReadable] = useState(true);
-    const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showExportModal, setShowExportModal] = useState(false);
     const durationSyncedRef = useRef(false);
@@ -131,9 +74,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
             setIsFileReadable(true);
         }
     };
-
-    // Use the validator hook to reduce complexity
-    const { score: confidenceScore, issues: confidenceIssues } = useConfidenceValidator(editedResults, uploadedFile);
 
     useEffect(() => {
         setEditedResults(results);
@@ -174,12 +114,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
             localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
         }
     }, [isEditing, editedResults, currentAnalysis]);
-
-    useEffect(() => {
-        if (editedResults) {
-            validateRelease(uploadedFile, editedResults, audioFeatures).then(setValidationReport);
-        }
-    }, [editedResults, audioFeatures, uploadedFile]);
 
     useEffect(() => {
         if (!editedResults || !audioFeatures || !audioFeatures.duration || durationSyncedRef.current) return;
@@ -276,15 +210,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
         } finally {
             setRefiningField(null);
         }
-    };
-
-    const handleExternalMetadataUpdate = (newMetadata: Partial<Metadata>) => {
-        if (!editedResults) return;
-        setUndoStack(prev => [...prev, { ...editedResults }]);
-        setRedoStack([]);
-        const merged = { ...editedResults, ...newMetadata };
-        setEditedResults(merged);
-        onUpdateResults(merged);
     };
 
     const handleDownload = async () => {
@@ -427,8 +352,8 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                 <AudioPlayer file={uploadedFile} />
             </AnimatedSection>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 gap-8">
+                <div className="space-y-6">
                     <AnimatedSection delay="150ms">
                         <TrackIdentityCard
                             metadata={editedResults!}
@@ -490,48 +415,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                     </AnimatedSection>
                 </div>
 
-                <div className="lg:col-span-1 space-y-6">
-                    {validationReport && (
-                        <AnimatedSection delay="260ms">
-                            <ValidationReportCard
-                                report={validationReport}
-                            />
-                        </AnimatedSection>
-                    )}
-
-                    <AnimatedSection delay="310ms">
-                        <ConfidenceMeter score={confidenceScore} issues={confidenceIssues} />
-                    </AnimatedSection>
-
-                    <AnimatedSection delay="330ms">
-                        <ExternalServicesCard
-                            metadata={editedResults!}
-                            onEnrichMetadata={handleExternalMetadataUpdate}
-                        />
-                    </AnimatedSection>
-
-                    <AnimatedSection delay="335ms">
-                        <ExternalDataCard
-                            title={editedResults!.title}
-                            artist={editedResults!.artist}
-                        />
-                    </AnimatedSection>
-
-                    <AnimatedSection delay="310ms">
-                        <CopyrightCard
-                            metadata={editedResults!}
-                            file={uploadedFile}
-                            onUpdateFile={onUpdateFile}
-                            showToast={showToast}
-                            jobId={currentAnalysis?.jobId}
-                        />
-                    </AnimatedSection>
-                    <AnimatedSection delay="315ms">
-                        <IPFSPanel
-                            metadata={editedResults!}
-                        />
-                    </AnimatedSection>
-                </div>
             </div>
 
             {showExportModal && currentAnalysis?.jobId && (
