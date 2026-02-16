@@ -48,14 +48,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 { id: 'history', label: 'Analysis History', icon: Clock },
             ]
         },
-        {
-            title: 'ADVANCED',
-            items: [
-                { id: 'tools', label: 'Professional Tools', icon: Wrench },
-                { id: 'batch', label: 'Batch Analysis', icon: Wrench },
-                { id: 'stems', label: 'Stem Separation', icon: Zap },
-            ]
-        }
+        // ADVANCED section with Professional Tools, Batch Analysis, Stem Separation has been removed
     ];
 
     const handleNavigation = (id: string) => {
