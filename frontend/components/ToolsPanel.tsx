@@ -70,12 +70,6 @@ const ToolsPanel: React.FC<{
             isPro: false
         },
         {
-            title: "Stem Separation",
-            description: "Separate vocals, drums, and bass from any track using AI-driven isolation. (High-Compute)",
-            icon: <Zap className="w-6 h-6" />,
-            isPro: true
-        },
-        {
             title: "Bulk License Export",
             description: "Generate a single master document containing all IPFS fingerprints for your recent analyses.",
             icon: <FileJson className="w-6 h-6" />,
@@ -178,9 +172,6 @@ const ToolsPanel: React.FC<{
             else if (currentTool === 'Bulk License Export') {
                 endpoint = '/tools/bulk-export';
                 formData.append('job_ids', ''); // Should be populated from selected history items
-            }
-            else if (currentTool === 'Stem Separation') {
-                endpoint = '/mir/separate';
             }
 
             if (!endpoint) {
