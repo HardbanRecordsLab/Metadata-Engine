@@ -26,8 +26,7 @@ import ValidationPanel from './components/ValidationPanel';
 import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import UsagePanel from './components/UsagePanel';
-import BatchAnalysisPanel from './components/BatchAnalysisPanel';
-import StemSeparationPanel from './components/StemSeparationPanel';
+// BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
 
 // Lazy Load Heavy Components
 const BulkEditor = lazy(() => import('./components/BulkEditor'));
@@ -392,9 +391,8 @@ const AppContent: React.FC = () => {
                         <h2 className="text-lg font-bold capitalize text-slate-700 dark:text-slate-200">
                             {view === 'dashboard' ? 'Dashboard' :
                                 view === 'analyze' ? 'Audio Analysis' :
-                                        view === 'results' ? 'Analysis Results' :
+                                    view === 'results' ? 'Analysis Results' :
                                         view === 'history' ? 'History' : 'Tools'}
-                                            {view === 'stems' ? 'Stem Separation' : ''}
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
@@ -495,17 +493,6 @@ const AppContent: React.FC = () => {
                                     showToast={showToast}
                                     userTier={userTier}
                                 />
-                            </div>
-                        )}
-
-                        {view === 'batch' && (
-                            <div className="max-w-6xl mx-auto">
-                                <BatchAnalysisPanel />
-                            </div>
-                        )}
-                        {view === 'stems' && (
-                            <div className="max-w-6xl mx-auto">
-                                <StemSeparationPanel />
                             </div>
                         )}
                         {view === 'settings' && (
