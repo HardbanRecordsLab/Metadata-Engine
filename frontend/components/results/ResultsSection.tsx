@@ -15,6 +15,7 @@ import ConfidenceMeter from './ConfidenceMeter';
 import CopyrightCard from './CopyrightCard';
 import StructureCard from './StructureCard';
 import MarketingCard from './MarketingCard';
+import CommercialLegalCard from './CommercialLegalCard';
 import { validateRelease, ValidationReport } from '../../services/releaseValidationService';
 import ValidationReportCard from './ValidationReportCard';
 import ProAnalysisCard from './ProAnalysisCard';
@@ -475,6 +476,16 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             onFieldUpdate={handleFieldUpdate}
                             refiningField={refiningField}
                             onRefine={handleRefine}
+                        />
+                    </AnimatedSection>
+                    <AnimatedSection delay="205ms">
+                        <CommercialLegalCard
+                            metadata={editedResults!}
+                            isEditing={isEditing}
+                            onFieldUpdate={handleFieldUpdate}
+                            refiningField={refiningField}
+                            onRefine={handleRefine}
+                            showToast={showToast}
                         />
                     </AnimatedSection>
                 </div>
