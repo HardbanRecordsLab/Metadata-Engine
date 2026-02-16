@@ -72,16 +72,7 @@ const ResultsSkeleton: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Commercial & Legal Card Skeleton */}
-                    <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
-                        <SkeletonBlock className="h-6 w-48 mb-6" />
-                        <div className="grid grid-cols-2 gap-4">
-                            <SkeletonBlock className="h-16 w-full" />
-                            <SkeletonBlock className="h-16 w-full" />
-                            <SkeletonBlock className="h-16 w-full" />
-                            <SkeletonBlock className="h-16 w-full" />
-                        </div>
-                    </div>
+                    {/* Commercial & Legal Card Skeleton removed */}
                 </div>
 
                 {/* Sidebar Skeleton */}
