@@ -176,7 +176,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
                                     variant="primary"
                                     className={`flex-1 justify-center ${hash ? 'bg-emerald-600 hover:bg-emerald-700' : 'opacity-50'} text-white border-none`}
                                 >
-                                    <Stamp className="w-4 h-4 mr-2" /> View Certificate
+                                    <Stamp className="w-4 h-4 mr-2" /> View / Download PDF
                                 </Button>
 
                                 <Button

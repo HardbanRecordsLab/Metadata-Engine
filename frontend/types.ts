@@ -16,6 +16,7 @@ export interface User {
     avatarUrl?: string;
     createdAt: number;
     credits: number; // New: Number of remaining analyses
+    isAdmin?: boolean;
 }
 
 export interface UserProfile { // Legacy compatibility

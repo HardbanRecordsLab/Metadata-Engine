@@ -10,6 +10,7 @@ interface SonicAnalysisDisplayProps {
     onFieldUpdate: (field: keyof Metadata, value: any) => void;
     refiningField: keyof Metadata | null;
     onRefine: (field: keyof Metadata) => void;
+    audioFeatures?: any;
 }
 
 const EditableInput: React.FC<{
@@ -75,7 +76,7 @@ const SonicField: React.FC<{
 );
 
 const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
-    metadata, isEditing, onFieldUpdate, refiningField, onRefine
+    metadata, isEditing, onFieldUpdate, refiningField, onRefine, audioFeatures
 }) => {
     return (
         <Card>
@@ -91,17 +92,17 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <SonicField
-                    label="BPM" value={metadata.bpm} field="bpm"
+                    label="BPM" value={audioFeatures?.bpm ?? metadata.bpm} field="bpm"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
                     icon={<Hash className="w-5 h-5" />} unit="BPM" type="number"
                 />
                 <SonicField
-                    label="KEY" value={metadata.key} field="key"
+                    label="KEY" value={audioFeatures?.key ?? metadata.key} field="key"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
                     icon={<Key className="w-5 h-5" />}
                 />
                 <SonicField
-                    label="MODE" value={metadata.mode} field="mode"
+                    label="MODE" value={audioFeatures?.mode ?? metadata.mode} field="mode"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
                     icon={<Key className="w-5 h-5" />}
                 />

@@ -142,7 +142,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose, onUpgrade }) => {
                 <div className="text-6xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
                     ${currentPlan.price}
                 </div>
-                <p className="text-slate-500 font-medium mb-6">per month</p>
+                <p className="text-slate-500 font-medium mb-6">for credits</p>
                 
                 <div className="text-2xl font-bold text-accent-violet mb-2">{currentPlan.credits}</div>
                 <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 max-w-md">{currentPlan.desc}</p>
@@ -167,7 +167,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose, onUpgrade }) => {
                 </div>
             </div>
 
-            <Button 
+                <Button 
                 variant="primary" 
                 className="w-full py-4 text-lg rounded-xl shadow-xl shadow-accent-violet/20 hover:scale-[1.01] transition-transform" 
                 onClick={() => handleCheckout(selectedPaidTier)}
@@ -180,7 +180,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose, onUpgrade }) => {
                     </div>
                 ) : (
                     <>
-                        Subscribe to {currentPlan.name}
+                        Buy {currentPlan.credits}
                     </>
                 )}
             </Button>
