@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Hugging Face Spaces
+# Multi-stage Dockerfile for Music Metadata Engine
 # Builds both frontend and backend in a single container
 
 # ==================== STAGE 1: Frontend Build ====================
@@ -16,7 +16,7 @@ RUN npm ci --legacy-peer-deps
 COPY frontend/ ./
 
 # Build production bundle
-RUN npm run build
+RUN node node_modules/vite/bin/vite.js build
 
 # ==================== STAGE 2: Python Backend ====================
 FROM python:3.10-slim
@@ -29,10 +29,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user (HF Spaces requires UID 1000)
+# Create user
 RUN useradd -m -u 1000 user
 
-# Create necessary directories as root and set permissions
+# Create necessary directories and set permissions
 RUN mkdir -p /home/user/app/temp_uploads /home/user/app/logs /data && \
     chown -R user:user /home/user/app /data && \
     chmod -R 777 /data /home/user/app/temp_uploads /home/user/app/logs
@@ -58,13 +58,16 @@ COPY --chown=user backend/ ./
 # Copy built frontend from stage 1
 COPY --from=frontend-builder --chown=user /build/frontend/dist ./frontend/dist
 
-# Hugging Face Spaces listens on port 7860
+# Port
 EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:7860/ || exit 1
+    CMD curl -f http://localhost:7860/api/worker_status || exit 1
+
+# Copy entrypoint script
+COPY --chown=user backend/entrypoint.sh /home/user/app/entrypoint.sh
+RUN chmod +x /home/user/app/entrypoint.sh
 
 # Start application
-# Uses --workers 1 as base, but for HF Pro (4 vCPU+) it will scale if WEB_CONCURRENCY is set
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]
+CMD ["/home/user/app/entrypoint.sh"]

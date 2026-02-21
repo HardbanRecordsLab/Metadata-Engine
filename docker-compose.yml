@@ -12,6 +12,8 @@ services:
       - "8888:7860" # Mapowanie portu 8888 na zewnętrz (możesz zmienić na 80)
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=sqlite:////data/music_metadata.db
     volumes:
       - ./data:/data
       - ./logs:/home/user/app/logs
@@ -25,11 +27,10 @@ services:
       - default
       - hbrl-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7860/"]
+      test: [ "CMD", "curl", "-f", "http://localhost:7860/" ]
       interval: 30s
       timeout: 10s
       retries: 3
-
   # OPCJONALNIE: Jeśli chcesz własną bazę danych zamiast Supabase
   # db:
   #   image: postgres:15-alpine

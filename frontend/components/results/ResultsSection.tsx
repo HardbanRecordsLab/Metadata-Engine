@@ -13,6 +13,7 @@ import ClassificationStyleCard from './ClassificationStyleCard';
 import StructureCard from './StructureCard';
 import MarketingCard from './MarketingCard';
 import ProAnalysisCard from './ProAnalysisCard';
+import CommercialLegalCard from './CommercialLegalCard';
 import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
 
