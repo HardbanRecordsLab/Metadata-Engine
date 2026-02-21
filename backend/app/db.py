@@ -1,19 +1,18 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, text, Boolean, ForeignKey, Float
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 import logging
 import uuid
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Determine database path (use /data on HF Spaces for persistence if available)
+# Determine database path
 PERSISTENT_DATA_PATH = "/data"
 SQLITE_DB_NAME = "music_metadata.db"
 
 # Default to centralized Postgres if not specified
-# But keep SQLite fallback for simple local dev without docker
-# Use container name 'hbrl-postgres' which is safe when on the same external network
 DEFAULT_POSTGRES_URL = "postgresql://hbrl_admin:HardbanRecordsLab2026!@hbrl-postgres:5432/hbrl_central"
 
 if os.path.exists(PERSISTENT_DATA_PATH):
@@ -21,14 +20,7 @@ if os.path.exists(PERSISTENT_DATA_PATH):
 else:
     DEFAULT_DB_URL = f"sqlite:///./{SQLITE_DB_NAME}"
 
-# Use Postgres if Env Var is set, OR if we are running in Docker (often implicit, but let's stick to Env or default)
-# Actually, let's make it configurable via Env, but default to SQLite for safety unless we know we are in the cluster.
-# The user wants "one db for all apps". So we should prefer the Postgres URL.
-DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
-
-# If we are on VPS (implied by user instruction), we should probably use the Postgres URL.
-# But hardcoding it might break local dev if they don't have Postgres.
-# Let's rely on the user passing DATABASE_URL env var, or check if we can connect to Postgres.
+DATABASE_URL = "sqlite:////data/music_metadata.db"
 
 engine = create_engine(
     DATABASE_URL,
@@ -49,30 +41,33 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = Column(String, unique=True, index=True)
-    password_hash = Column(String)
+    email = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, nullable=True) # Optional for legacy
+    password_hash = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
+    is_premium = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     tier = Column(String, default="starter")
     credits = Column(Integer, default=5)
+    api_key = Column(String, unique=True, nullable=True, default=lambda: str(uuid.uuid4()))
 
 class Job(Base):
     __tablename__ = "jobs"
     id = Column(String, primary_key=True, index=True)
     user_id = Column(String, index=True, nullable=True)
-    status = Column(String, default="pending")
-    file_name = Column(String)
+    status = Column(String, default="pending", index=True)
+    file_name = Column(String, nullable=False)
     result = Column(JSON, nullable=True)
     error = Column(String, nullable=True)
     message = Column(String, nullable=True)
-    duration = Column(Integer, nullable=True)
+    duration = Column(Float, nullable=True)
     structure = Column(JSON, nullable=True)
     coverArt = Column(String, nullable=True)
-    ipfs_hash = Column(String, nullable=True)
+    ipfs_hash = Column(String, nullable=True, unique=True)
     ipfs_url = Column(String, nullable=True)
-    timestamp = Column(DateTime)
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 class RedeemCode(Base):
     __tablename__ = "redeem_codes"
@@ -82,7 +77,7 @@ class RedeemCode(Base):
     max_uses = Column(Integer, default=1)
     used_count = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class AnalysisHistory(Base):
     __tablename__ = "analysis_history"
@@ -90,19 +85,35 @@ class AnalysisHistory(Base):
     user_id = Column(String, index=True)
     file_name = Column(String)
     result = Column(JSON)
-    created_at = Column(DateTime, default=text('CURRENT_TIMESTAMP'))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    certificate_id = Column(String, unique=True, index=True)
+    user_id = Column(String, index=True, nullable=True)
+    job_id = Column(String, ForeignKey("jobs.id"), nullable=True)
+    file_name = Column(String)
+    sha256 = Column(String, index=True)
+    certificate_metadata = Column(JSON)
+    verification_status = Column(String, default="pending")
+    price_usd = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class VerificationEvent(Base):
+    __tablename__ = "verification_events"
+    id = Column(Integer, primary_key=True, index=True)
+    certificate_id = Column(String, ForeignKey("certificates.id"))
+    status = Column(String)
+    client_ip = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 # Helper for migrations
 def run_migrations():
-    if "sqlite" not in DATABASE_URL:
-        # For Postgres, we might want to ensure tables exist too
-        # But for now, create_all does the job for new tables
-        pass
-    
     try:
         with engine.connect() as conn:
-            # Check for missing columns in 'jobs'
-            # (Simplified for now - create_all handles new tables)
+            # We could add column checks here if needed
             pass
     except Exception as e:
         logger.error(f"Migration error: {e}")

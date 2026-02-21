@@ -206,6 +206,24 @@ def sanitize_metadata(metadata: dict) -> dict:
                 "emotionalTone": str(vs.get("emotionalTone") or "").strip(),
             }
 
+    non_empty_arrays = ("additionalGenres", "moods", "instrumentation", "keywords", "useCases")
+    for key in non_empty_arrays:
+        value = cleaned.get(key)
+        if isinstance(value, list) and not value:
+            if key == "additionalGenres":
+                cleaned[key] = ["Unknown Subgenre"]
+            elif key == "moods":
+                cleaned[key] = ["Unspecified"]
+            elif key == "instrumentation":
+                cleaned[key] = ["Unspecified"]
+            elif key == "keywords":
+                cleaned[key] = ["Unspecified"]
+            elif key == "useCases":
+                cleaned[key] = ["General"]
+
+    if not cleaned.get("trackDescription"):
+        cleaned["trackDescription"] = "Track description pending. Auto-filled to keep record complete."
+
     return cleaned
 
 
@@ -290,7 +308,6 @@ async def process_analysis(
         if not metadata.get("artist"):
              metadata["artist"] = "Unknown Artist"
 
-        # Step 3: Add SHA-256 and Common Fields
         metadata["sha256"] = file_hash
         await ws_manager.send_progress(job_id, "Syncing metadata...", progress=80)
         

@@ -1,9 +1,11 @@
+import asyncio
+import os
+import shutil
+import time
+from datetime import datetime, timedelta
 import starlette.formparsers
 import logging
-import os
-import hashlib
-import secrets
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
@@ -17,99 +19,167 @@ starlette.formparsers.MultiPartParser.max_fields_size = LIMIT_MB * 1024 * 1024
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app.main")
 
-from app.routes import (
-    proxy_router, spotify_router, lastfm_router, discogs_router,
-    audd_router, auth_router, history_router, quota_router,
-    tagging_router, ddex_router, analysis_router, generative_router,
-    health_router, mir_router, ai_proxy_router, cwr_router,
-    batch_router, system_router, webhook
-)
-from app.routes.pinata import router as pinata_router
-from app.routes.fresh_analysis import router as fresh_router
-from app.routes.export import router as export_router
-from app.routes.tools import router as tools_router
-from app.routes.v2.ipfs import router as ipfs_v2_router
-from app.routes.generative import CertificateRequest, generate_certificate as generate_certificate_handler
+TEMP_DIR = "temp_uploads"
+CLEANUP_INTERVAL = 3600  # 1 hour
+TEMP_FILE_MAX_AGE = 86400  # 24 hours
 
-app = FastAPI()
-
-# Startup Event
-from app.startup import ensure_admin_user
-
-@app.on_event("startup")
-async def startup_event():
-    ensure_admin_user()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "http://localhost:3000",
-        "https://app-metadata.hardbanrecordslab.online",
-        "https://metadata.hardbanrecordslab.online",
-        "*"  # Fallback for development
-    ],
-    allow_origin_regex='https://.*\.hardbanrecordslab\.online', # Allow all subdomains
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
-    allow_headers=["*"],
-)
-
-@app.api_route("/auth/generate/hash", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
-@app.api_route("/auth/generate/hash/", methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"])
-async def generate_hash_legacy_direct(file: UploadFile = File(None), content: str = Form(None)):
-    if file is not None:
-        data = await file.read()
-    elif content is not None:
-        data = content.encode("utf-8")
-    else:
-        raise HTTPException(status_code=400, detail="No file or content provided")
-    sha256 = hashlib.sha256(data).hexdigest()
-    return {
-        "hash": sha256,
-        "sha256": sha256,
-        "status": "success"
-    }
-
-@app.options("/auth/generate/hash")
-@app.options("/auth/generate/hash/")
-async def options_generate_hash_direct():
-    return {}
+async def cleanup_temp_files():
+    """Periodic cleanup of temporary files"""
+    while True:
+        try:
+            await asyncio.sleep(CLEANUP_INTERVAL)
+            
+            if not os.path.exists(TEMP_DIR):
+                continue
+            
+            now = time.time()
+            removed_count = 0
+            
+            for filename in os.listdir(TEMP_DIR):
+                filepath = os.path.join(TEMP_DIR, filename)
+                
+                if os.path.isfile(filepath):
+                    file_age = now - os.path.getmtime(filepath)
+                    
+                    if file_age > TEMP_FILE_MAX_AGE:
+                        try:
+                            os.remove(filepath)
+                            removed_count += 1
+                            logger.info(f"Cleaned up temp file: {filename}")
+                        except Exception as e:
+                            logger.error(f"Failed to remove {filename}: {e}")
+            
+            if removed_count > 0:
+                logger.info(f"Cleanup: removed {removed_count} files")
+        
+        except Exception as e:
+            logger.error(f"Cleanup error: {e}")
 
 
-@app.post("/auth/generate/certificate")
-async def generate_certificate_legacy_direct(request: CertificateRequest):
-    return await generate_certificate_handler(request)
+def setup_app():
+    """Initialize FastAPI app"""
+    from app.routes import (
+        proxy_router, spotify_router, lastfm_router, discogs_router,
+        audd_router, auth_router, history_router, quota_router,
+        tagging_router, ddex_router, analysis_router, generative_router,
+        health_router, mir_router, ai_proxy_router, cwr_router,
+        batch_router, system_router, webhook_router, certificate_router
+    )
+    from app.routes.fresh_analysis import router as fresh_router
+    from app.routes.export import router as export_router
+    from app.routes.tools import router as tools_router
+    from app.startup import ensure_admin_user
+    
+    app = FastAPI(
+        title="Music Metadata Engine",
+        description="AI-Powered Audio Analysis",
+        version="2.1.0"
+    )
+    
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:8080",
+            "http://localhost:3000",
+            "https://app-metadata.hardbanrecordslab.online",
+            "https://metadata.hardbanrecordslab.online",
+            "*"  # Fallback for development
+        ],
+        allow_origin_regex='https://.*\.hardbanrecordslab\.online', # Allow all subdomains
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
+        allow_headers=["*"],
+    )
+    
+    # Create temp directory
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    
+    # Initialize database
+    # init_db() # This is handled by Base.metadata.create_all(bind=engine) in db.py
+    
+    # Include routers
+    app.include_router(proxy_router, prefix="/api")
+    app.include_router(health_router, prefix="/api")
+    app.include_router(mir_router, prefix="/api")
+    app.include_router(spotify_router, prefix="/api")
+    app.include_router(lastfm_router, prefix="/api")
+    app.include_router(discogs_router, prefix="/api")
+    app.include_router(audd_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api")
+    app.include_router(history_router, prefix="/api")
+    app.include_router(quota_router, prefix="/api")
+    app.include_router(batch_router, prefix="/api")
+    app.include_router(tagging_router, prefix="/api")
+    app.include_router(analysis_router, prefix="/api")
+    app.include_router(generative_router, prefix="/api")
+    app.include_router(system_router, prefix="/api")
+    app.include_router(webhook_router, prefix="/api")
+    app.include_router(certificate_router, prefix="/api")
 
-# API Routes
-app.include_router(proxy_router, prefix="/api")
-app.include_router(health_router, prefix="/api")
-app.include_router(mir_router, prefix="/api")
-app.include_router(spotify_router, prefix="/api")
-app.include_router(lastfm_router, prefix="/api")
-app.include_router(discogs_router, prefix="/api")
-app.include_router(audd_router, prefix="/api")
-app.include_router(auth_router, prefix="/api")
-app.include_router(history_router, prefix="/api")
-app.include_router(quota_router, prefix="/api")
-app.include_router(batch_router, prefix="/api")
-app.include_router(tagging_router, prefix="/api")
-app.include_router(analysis_router, prefix="/api")
-app.include_router(generative_router, prefix="/api")
-app.include_router(system_router, prefix="/api")
+    # AUTH Routes
+    app.include_router(analysis_router, prefix="/auth")
+    app.include_router(ddex_router, prefix="/auth")
+    app.include_router(cwr_router, prefix="/auth")
+    app.include_router(ai_proxy_router, prefix="/auth")
+    app.include_router(fresh_router, prefix="/auth")
+    app.include_router(export_router, prefix="/auth")
+    app.include_router(tools_router, prefix="/auth")
+    
+    # Startup event
+    @app.on_event("startup")
+    async def startup_event_handler():
+        logger.info("🚀 Starting application...")
+        ensure_admin_user()
+        
+        # Start cleanup task
+        asyncio.create_task(cleanup_temp_files())
+        
+        # Clean old files on startup
+        cleanup_old_files()
+        
+        logger.info("✅ Application ready!")
+    
+    # Shutdown event
+    @app.on_event("shutdown")
+    async def shutdown_event_handler():
+        logger.info("🛑 Shutting down...")
+        
+        # Final cleanup
+        if os.path.exists(TEMP_DIR):
+            try:
+                shutil.rmtree(TEMP_DIR)
+                logger.info("✅ Temp directory cleaned")
+            except Exception as e:
+                logger.error(f"Failed to remove temp directory: {e}")
+    
+    return app
 
-# AUTH Routes
-app.include_router(analysis_router, prefix="/auth")
-app.include_router(ddex_router, prefix="/auth")
-app.include_router(cwr_router, prefix="/auth")
-app.include_router(ai_proxy_router, prefix="/auth")
-app.include_router(pinata_router, prefix="/auth")
-app.include_router(fresh_router, prefix="/auth")
-app.include_router(export_router, prefix="/auth")
-app.include_router(tools_router, prefix="/auth")
 
-# Public V2 Routes
-app.include_router(ipfs_v2_router, prefix="/api/v2")
+def cleanup_old_files():
+    """Clean old files on startup"""
+    if not os.path.exists(TEMP_DIR):
+        return
+    
+    now = time.time()
+    removed = 0
+    
+    for filename in os.listdir(TEMP_DIR):
+        filepath = os.path.join(TEMP_DIR, filename)
+        if os.path.isfile(filepath):
+            age = now - os.path.getmtime(filepath)
+            if age > TEMP_FILE_MAX_AGE:
+                try:
+                    os.remove(filepath)
+                    removed += 1
+                except:
+                    pass
+    
+    if removed > 0:
+        logger.info(f"Startup cleanup: removed {removed} files")
+
+
+app = setup_app()
 
 @app.get("/api/debug/files")
 def debug_files():
@@ -205,4 +275,9 @@ async def catch_all(path: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8888,
+        reload=False
+    )

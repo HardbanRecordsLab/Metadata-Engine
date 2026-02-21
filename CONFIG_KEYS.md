@@ -26,16 +26,6 @@ Zapisz w: `/srv/hbrl/Metadata-Engine/.env` lub w `docker-compose` jako environme
   - Skąd: Lemon Squeezy → Store Settings → Webhooks
   - Gdzie: `.env` backendu
 
-- PINATA_JWT
-  - Cel: autoryzacja w Pinata (pin JSON/plików)
-  - Skąd: Pinata → API Keys (JWT lub Bearer)
-  - Gdzie: `.env` backendu
-
-- PINATA_GATEWAY
-  - Cel: adres bramki IPFS do wyświetlania zasobów
-  - Skąd: własna bramka lub Pinata, np. `https://gateway.pinata.cloud/ipfs/`
-  - Gdzie: `.env` backendu
-
 - GROQ_API_KEY
   - Cel: transkrypcja/LLM (Whisper przez Groq)
   - Skąd: Groq Cloud → API Keys
