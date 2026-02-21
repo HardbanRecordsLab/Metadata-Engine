@@ -376,7 +376,14 @@ const ToolsPanel: React.FC<{
 
             <div className="text-center mb-10 relative py-12 px-6 overflow-hidden rounded-[2.5rem] bg-slate-900/40 border border-white/5">
                 <div className="absolute inset-0 opacity-20 pointer-events-none">
-                    <img src="assets/pro_mic.png" className="w-full h-full object-cover blur-sm" alt="Pro Mic" />
+                    <img
+                        src="/assets/pro_mic.png"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/assets/studio_hero.png';
+                        }}
+                        className="w-full h-full object-cover blur-sm"
+                        alt="Pro Mic"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
                 </div>
                 <div className="relative z-10">

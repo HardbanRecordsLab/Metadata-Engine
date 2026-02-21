@@ -38,14 +38,7 @@ A comprehensive music metadata extraction and enrichment system that combines DS
 - **DDEX ERN 4.3**: XML for professional music distribution (Spotify, Apple Music)
 - **CWR V2.1**: Common Works Registration for PRO (ASCAP, BMI, GEMA)
 
-### 🌐 **IPFS Certificate**
-- **JSON-based certificate** uploaded to Pinata (IPFS)
-- **PDF-style viewer** with legal disclaimer & verification URL
-- **Cryptographic proof** of file existence (SHA-256 hash)
-- **Berne Convention** compliant for "Prior Art" claims
-
 ### 🚀 **Advanced Features**
-- **Batch Processing**: Concurrent analysis of multiple files (3x faster)
 - **AI Cover Art Generator**: Pollinations.ai with gradient fallback
 - **Premium UI/UX**: Glassmorphic design with dark mode
 
@@ -56,7 +49,6 @@ A comprehensive music metadata extraction and enrichment system that combines DS
 - **Music Producers**: Accurate BPM/key for mixing & DJing
 - **Labels & Distributors**: DDEX-compliant metadata for global distribution
 - **Sync Licensing**: Mood/use case tagging for music supervisors
-- **Copyright Protection**: IPFS certificates for proof of existence
 - **PRO Registration**: CWR exports for royalty collection
 
 ---
@@ -78,7 +70,6 @@ A comprehensive music metadata extraction and enrichment system that combines DS
 
 **Infrastructure**:
 - Hugging Face Spaces (Docker)
-- Pinata (IPFS storage)
 - SQLite (job queue)
 
 ---
@@ -89,7 +80,7 @@ A comprehensive music metadata extraction and enrichment system that combines DS
 2. **Analyze** - wait 30-45 seconds for DSP + AI processing
 3. **Review** metadata across 5 result cards
 4. **Export** in your preferred format (CSV/JSON/DDEX/CWR)
-5. **Protect** your work with IPFS certificate
+5. **Save** your work with tagged audio and export formats
 
 ---
 
@@ -109,7 +100,6 @@ A comprehensive music metadata extraction and enrichment system that combines DS
 ### Generative
 - `POST /generate/cover` - AI cover art
 - `POST /generate/hash` - SHA-256 hash
-- `POST /generate/certificate` - IPFS certificate
 
 ### Tagging
 - `POST /tag/mp3` - ID3 tagging
@@ -125,8 +115,6 @@ Required for full functionality:
 
 ```bash
 GEMINI_API_KEY=your_gemini_key
-PINATA_JWT=your_pinata_jwt
-PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
 ```
 
 Optional (enrichment):
@@ -159,7 +147,6 @@ Built with:
 - [Essentia](https://essentia.upf.edu/) - Audio analysis framework
 - [Librosa](https://librosa.org/) - Audio DSP library
 - [Gemini 2.0](https://deepmind.google/technologies/gemini/) - Google's AI model
-- [Pinata](https://pinata.cloud/) - IPFS pinning service
 
 ---
 

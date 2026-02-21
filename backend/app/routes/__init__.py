@@ -18,3 +18,5 @@ from .generative import router as generative_router
 from .ai_proxy import router as ai_proxy_router
 from .cwr import router as cwr_router
 from .system import router as system_router
+from .webhook import router as webhook_router
+from .certificate import router as certificate_router
