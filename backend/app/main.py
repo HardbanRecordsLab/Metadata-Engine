@@ -235,7 +235,7 @@ def get_injected_index():
     acr_secret = settings.ACR_ACCESS_SECRET or ""
     gemini_key = settings.GEMINI_API_KEY or ""
     
-    logger.info(f"Injecting Config: Supabase={'set' if s_url else 'MISSING'}, ACR={'set' if acr_key else 'MISSING'}")
+    logger.debug(f"Injecting runtime config into index.html")
     
     env_script = f"""<script>
         window.VITE_SUPABASE_URL = {json.dumps(s_url)};
