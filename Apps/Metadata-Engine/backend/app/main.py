@@ -228,8 +228,6 @@ def get_injected_index():
         content = f.read()
     
     import json
-    s_url = settings.SUPABASE_URL or ""
-    s_key = settings.SUPABASE_KEY or ""
     acr_host = settings.ACR_HOST or ""
     acr_key = settings.ACR_ACCESS_KEY or ""
     acr_secret = settings.ACR_ACCESS_SECRET or ""
@@ -238,8 +236,6 @@ def get_injected_index():
     logger.debug(f"Injecting runtime config into index.html")
     
     env_script = f"""<script>
-        window.VITE_SUPABASE_URL = {json.dumps(s_url)};
-        window.VITE_SUPABASE_ANON_KEY = {json.dumps(s_key)};
         window.VITE_ACR_HOST = {json.dumps(acr_host)};
         window.VITE_ACR_ACCESS_KEY = {json.dumps(acr_key)};
         window.VITE_ACR_ACCESS_SECRET = {json.dumps(acr_secret)};

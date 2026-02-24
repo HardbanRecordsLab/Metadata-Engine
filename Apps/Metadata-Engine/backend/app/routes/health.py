@@ -12,8 +12,7 @@ async def diagnose_system():
         "backend_version": "0.1.0",
         "environment_variables": {
             "AUDD_API_TOKEN": "Present" if settings.AUDD_API_TOKEN else "Missing",
-            "SUPABASE_URL": "Present" if settings.SUPABASE_URL else "Missing",
-            "SUPABASE_KEY": "Present" if settings.SUPABASE_KEY else "Missing",
+            "SECRET_KEY": "Present" if settings.SECRET_KEY else "Missing",
             "GEMINI_API_KEY": (
                 "Present" if settings.GEMINI_API_KEY else "Missing"
             ),  # Legacy if using Puter
