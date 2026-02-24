@@ -65,7 +65,7 @@ class DeepAudioAnalyzer:
             
             # ===== METADATA =====
             features['meta'] = {
-                'duration': float(len(y) / sr),
+                'duration': float(duration),
                 'sample_rate': sr,
                 'total_features': 90
             }
