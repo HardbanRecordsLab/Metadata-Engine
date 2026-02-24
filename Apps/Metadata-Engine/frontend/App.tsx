@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { generateMetadata } from './services/geminiService';
 import { Metadata, AnalysisRecord, BatchItem } from './types';
 import Header from './components/Header';
