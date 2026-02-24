@@ -1,0 +1,61 @@
+﻿# Node
+node_modules/
+dist/
+.vercel
+.vscode
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+backend/music_metadata.db
+*.db
+backend/analysis_cache.db
+
+# Data & Uploads
+backend/uploads/
+backend/temp_processing/
+backend/temp_uploads/
+frontend/public/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (keep only deployment docs)
+docs/
+*.pdf
+
+# Audio files
+*.mp3
+*.wav
+*.flac
+*.aiff
+
+# Misc junk
+all_files.txt
+mp3tag_mapping.txt
+backend/test_fresh.py
+backend/models/
+
+# Development artifacts
+*.log
+logs/
+*.bak
+.cache/
+*.tmp
+
+# Build artifacts
+*.pyc
+*.pyo

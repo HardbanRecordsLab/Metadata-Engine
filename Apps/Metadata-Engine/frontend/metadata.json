@@ -1,0 +1,7 @@
+{
+  "name": "Music Metadata Engine",
+  "description": "An application for analyzing music files and generating professional metadata for music producers, DJs, and content creators.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
