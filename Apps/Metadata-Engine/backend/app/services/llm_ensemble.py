@@ -18,26 +18,31 @@ from .standards import MAIN_GENRES, SUB_GENRES, MOODS, INSTRUMENTATION, VOCAL_ST
 
 logger = logging.getLogger(__name__)
 
-MUSIC_EXPERT_SYSTEM_PROMPT = """You are a professional music metadata expert with 20+ years of experience in music classification, A&R, and metadata curation for Spotify, Apple Music, and Beatport.
+MUSIC_EXPERT_SYSTEM_PROMPT = """You are a world-class music metadata expert and A&R consultant with 25+ years of experience curating catalogs for Spotify, Apple Music, Beatport, Juno, and major sync licensing agencies.
 
-Your expertise includes:
-- Deep knowledge of 500+ music genres and subgenres
-- Understanding of regional music scenes (UK Bass, Detroit Techno, LA Beats)
-- Familiarity with production techniques and their genre indicators
-- Knowledge of music theory, harmony, and rhythm patterns
-- Experience with sync licensing and music library categorization
+## Your expertise covers:
+- 600+ distinct genres and subgenres across all global scenes
+- Scene-specific nuances: UK Bass, Detroit Techno, LA Beats, Afrobeats, Brazilian Baile Funk, French House
+- Production fingerprinting: identifying eras, techniques, gear from audio signatures
+- Music theory mastery: harmonic analysis, modal tonality, polyrhythms
+- Sync licensing: knowing exactly which cue a track fits (action scene, documentary, luxury ad, tearjerker)
+- Marketing copy: writing library descriptions that sell to music supervisors and playlist curators
 
-You classify music based on:
-1. AUDIO FEATURES: BPM, key, energy, spectral characteristics, rhythm patterns
-2. PRODUCTION STYLE: mixing, mastering, sound design, instrumentation
-3. CULTURAL CONTEXT: scene, movement, era, influences
-4. FUNCTIONAL USE: emotional impact, use cases, target audience
+## DSP-to-Genre mapping examples (use as a guide, not a rigid rule):
+- BPM 120-128 + high spectral flatness + 4/4 kick = House / Tech House
+- BPM 140 + half-time + heavy bass + minor key = Dubstep / Bass Music  
+- BPM 80-95 + low spectral flatness + high harmonic ratio = Lo-Fi / Hip-Hop
+- BPM 160-180 + complex rhythmic patterns + mid-high spectral centroid = Drum & Bass
+- BPM 128-140 + rising spectral energy + supersaw pads = Trance / Progressive Trance
+- High harmonic ratio + complex chord changes + swing tempo = Jazz / Neo-Soul
+- Very low spectral flatness + slow tempo + reverb pads = Ambient / Neo-Classical
 
-You ALWAYS provide:
-- Precise genre classifications (not vague terms like "electronic" when "progressive house" is accurate)
-- Evidence-based reasoning tied to specific audio features
-- Confidence scores that reflect certainty
-- Alternative classifications when uncertain
+## Quality standards:
+- ALWAYS use specific subgenres ("Melodic Techno" not "Techno", "Neo Soul" not "R&B")
+- ALWAYS provide evidence-based reasoning tied to specific DSP values
+- ALWAYS write descriptions as if pitching to a music supervisor — evocative, commercial, professional
+- NEVER fall back to generic terms unless truly cross-genre
+- NEVER use placeholder text or repeat the same phrase across fields
 """
 
 
@@ -141,13 +146,14 @@ class LLMEnsemble:
         return final_result
     
     def _build_enhanced_prompt(self, audio_features: Dict, ml_hints: Dict) -> str:
-        """Build a premium prompt with detailed audio context"""
+        """Build a premium prompt with rich audio context and quality-focused output guidance."""
         
         # Extract key features
         rhythm = audio_features.get('rhythm', {})
         energy = audio_features.get('energy', {})
         harmonic = audio_features.get('harmonic', {})
         spectral = audio_features.get('spectral', {})
+        meta = audio_features.get('meta', {})
         
         def _safe_float(val, default=0.0):
             try:
@@ -166,141 +172,158 @@ class LLMEnsemble:
         rolloff = _safe_float(spectral.get('rolloff_mean'), 5000)
         flatness = _safe_float(spectral.get('flatness_mean'), 0.5)
         hp_ratio = _safe_float(harmonic.get('harmonic_percussive_ratio'), 1.0)
-        
-        # Explicit contrast check (previously a list)
         contrast = _safe_float(spectral.get('contrast_mean'), 0)
+        duration = _safe_float(meta.get('duration'), 0)
+        
+        # Additional DSP context
+        vocal_presence = _safe_float(energy.get('vocal_presence', energy.get('zcr_mean')), 0)
+        bass_energy = _safe_float(spectral.get('bass_energy', rolloff * 0.1), 0)
+        
+        # Energy interpretation helper
+        if rms > 0.20: energy_label = "Very High (loud, club-ready)"
+        elif rms > 0.14: energy_label = "High (energetic, active)"
+        elif rms > 0.08: energy_label = "Medium (balanced)"
+        elif rms > 0.04: energy_label = "Low (calm, ambient)"
+        else:           energy_label = "Very Low (whisper, meditative)"
+        
+        # Brightness interpretation
+        if centroid > 4000:   brightness = "Bright/Harsh (cymbal-heavy, upper harmonics dominant)"
+        elif centroid > 2500: brightness = "Mid-Bright (clear, present, modern sound)"
+        elif centroid > 1500: brightness = "Warm/Mid (balanced, full-bodied)"
+        else:                 brightness = "Dark/Deep (bass-heavy, sub-dominant)"
         
         if not ml_hints: ml_hints = {}
         
-        prompt = f"""Analyze this audio track and provide PRECISE music metadata.
+        prompt = f"""Analyze this audio track and provide PRECISE, PROFESSIONAL music metadata for a world-class catalog.
 
-══════════════════════════════════════════════════════════════
-AUDIO FEATURES ANALYSIS:
-══════════════════════════════════════════════════════════════
+╔══════════════════════════════════════════════════════════════╗
+║                    AUDIO FINGERPRINT DATA                    ║
+╚══════════════════════════════════════════════════════════════╝
 
-RHYTHM:
-- BPM: {tempo}
-- Time signature probability: {rhythm.get('time_signature', '4/4')}
-- Rhythm complexity: {rhythm.get('rhythm_complexity', 'medium')}
+🕐 DURATION: {f"{int(duration//60)}:{int(duration%60):02d}" if duration > 0 else "Unknown"}
 
-HARMONY:
-- Key: {key_sig} {mode}
-- Harmonic/Percussive Ratio: {hp_ratio:.2f} (>2.0 = melodic, <1.0 = rhythmic)
-- Chord complexity: {harmonic.get('chord_complexity', 'medium')}
+⚡ RHYTHM:
+   • BPM: {tempo:.1f} — {'fast-paced, danceable' if tempo > 128 else 'mid-paced' if tempo > 100 else 'downtempo/slow'}
+   • Time Signature: {rhythm.get('time_signature', '4/4')}
+   • Complexity: {rhythm.get('rhythm_complexity', 'medium')}
 
-ENERGY & DYNAMICS:
-- RMS Energy: {rms:.3f} (0-0.1=quiet, 0.1-0.2=moderate, >0.2=loud)
-- Dynamic Range: {dynamic_range:.2f} (>0.3=high dynamics, <0.15=compressed)
-- Peak Energy: {_safe_float(energy.get('peak_energy'), 0):.3f}
+🎵 HARMONY:
+   • Key & Mode: {key_sig} {mode} ({'major/bright emotional palette' if 'major' in str(mode).lower() else 'minor/dark emotional palette'})
+   • Harmonic/Percussive Ratio: {hp_ratio:.2f} ({'> 2.5 = melodic/harmonic-dominant' if hp_ratio > 2.5 else '< 1.5 = rhythm/percussion-dominant' if hp_ratio < 1.5 else 'balanced melodic-rhythmic'})
+   • Chord Complexity: {harmonic.get('chord_complexity', 'medium')}
 
-SPECTRAL CHARACTERISTICS:
-- Spectral Centroid: {centroid:.0f} Hz (brightness indicator)
-- Spectral Rolloff: {rolloff:.0f} Hz (frequency distribution)
-- Spectral Flatness: {flatness:.3f} (0=tonal, 1=noisy)
-- Spectral Contrast: {contrast:.2f}
+🔊 ENERGY & DYNAMICS:
+   • Perceived Energy: {energy_label}
+   • RMS Level: {rms:.4f} (raw value)
+   • Dynamic Range: {dynamic_range:.3f} ({'compressed/club-optimised' if dynamic_range < 0.15 else 'wide dynamics/cinematic' if dynamic_range > 0.3 else 'standard production dynamics'})
+   • Bass Presence: {'Heavy' if bass_energy > 500 else 'Prominent' if bass_energy > 200 else 'Moderate' if bass_energy > 50 else 'Light'}
 
-INITIAL HEURISTIC HINTS:
-- Genre hints: {ml_hints.get('genre', {}).get('hints', [])}
-- Mood hints: {ml_hints.get('mood', {}).get('hints', [])}
+🌊 SPECTRAL CHARACTER:
+   • Brightness: {brightness}
+   • Spectral Centroid: {centroid:.0f} Hz
+   • Spectral Rolloff: {rolloff:.0f} Hz
+   • Spectral Flatness: {flatness:.3f} ({'noisy/texture-heavy' if flatness > 0.7 else 'tonal/melodic' if flatness < 0.3 else 'mixed tonal/noise'})
+   • Spectral Contrast: {contrast:.2f}
 
-══════════════════════════════════════════════════════════════
-CLASSIFICATION RULES:
-══════════════════════════════════════════════════════════════
+🎤 VOCAL INDICATOR:
+   • ZCR/Vocal Presence: {vocal_presence:.4f} ({'likely has vocal content' if vocal_presence > 0.08 else 'likely instrumental or minimal vocal'})
 
-GENRE CLASSIFICATION:
-1. Use SPECIFIC subgenres, not broad categories
-   ❌ BAD: "electronic", "rock", "pop"
-   ✅ GOOD: "progressive house", "indie rock", "synth-pop"
+💡 HEURISTIC HINTS (from DSP pre-processing):
+   • Genre hints: {ml_hints.get('genre', {}).get('hints', ['none'])}
+   • Mood hints: {ml_hints.get('mood', {}).get('hints', ['none'])}
 
-2. Consider BPM ranges for genre:
-   - Downtempo/Ambient: 60-90 BPM
-   - Hip-Hop/Boom Bap: 85-95 BPM
-   - House: 120-130 BPM
-   - Techno: 125-135 BPM
-   - Drum & Bass: 160-180 BPM
-   - Dubstep: 140 BPM (half-time feel)
+╔══════════════════════════════════════════════════════════════╗
+║                    CLASSIFICATION RULES                      ║
+╚══════════════════════════════════════════════════════════════╝
 
-3. Use Harmonic/Percussive Ratio:
-   - HP > 3.0: Classical, Jazz, Folk, Singer-Songwriter
-   - HP 1.5-3.0: Rock, Indie, Alternative
-   - HP < 1.5: Electronic, Hip-Hop, Trap
+🎸 GENRE: Use the MOST SPECIFIC accurate subgenre.
+   ❌ "Electronic", "Rock", "Pop" (too broad)
+   ✅ "Melodic Techno", "Indie Folk", "Dark Trap", "Neo-Soul"
+   
+   BPM anchors:
+   60-80 = Ambient / Drone / Cinematic
+   80-95 = Hip-Hop / Lo-Fi / Trip-Hop / R&B
+   95-115 = Pop / Mid-Tempo / Afrobeats
+   118-126 = Deep House / Indie Dance
+   126-132 = House / Tech House / G-House
+   132-140 = Techno / Melodic Techno / EDM
+   140-145 = Dubstep / Bass Music / UK Bass
+   155-175 = Drum & Bass / Jungle / Hardcore
 
-4. Regional/Scene-specific terms when applicable:
-   - "UK Garage" not just "garage"
-   - "Detroit Techno" not just "techno"
-   - "Reggaeton" not just "latin"
+😊 MOODS (3-6): Reflect BOTH energy AND emotional character.
+   Major key + high energy = Euphoric, Uplifting, Triumphant
+   Minor key + high energy = Intense, Aggressive, Tense, Dark
+   Major key + low energy  = Serene, Peaceful, Warm, Hopeful
+   Minor key + low energy  = Melancholic, Haunting, Introspective
 
-MOOD CLASSIFICATION:
-Choose moods that reflect BOTH energy and emotional tone:
-- High Energy + Major Key = "Euphoric", "Uplifting", "Energetic"
-- High Energy + Minor Key = "Aggressive", "Intense", "Dark"
-- Low Energy + Major Key = "Peaceful", "Serene", "Hopeful"
-- Low Energy + Minor Key = "Melancholic", "Atmospheric", "Introspective"
+🥁 INSTRUMENTATION: Primary 3-6 instruments (specific, no vague terms).
+   Use "808 Bass", "Roland TR-808", "Moog Synthesizer", "Fender Rhodes" when clearly identifiable.
 
-INSTRUMENTATION:
-List MAIN instruments (3-5 max), prioritize by prominence:
-- If HP ratio > 2: Focus on melodic instruments
-- If HP ratio < 1: Focus on drums, bass, percussion
+🔑 KEYWORDS (12-15): Mix of genre tags, mood descriptors, use-case suggestions, production style terms, and cultural/era references.
 
-KEYWORDS (10-15 terms):
-Include:
-- Genre-related terms
-- Mood descriptors
-- Use cases (e.g., "workout", "meditation", "cinematic")
-- Production style (e.g., "polished", "lo-fi", "vintage")
-- Cultural references if clear
+🎬 USE CASES (4-7): Be SPECIFIC and commercially relevant:
+   Sync: "Crime Drama Soundtrack", "Action Movie Chase Sequence"
+   Playlist: "Late Night Study Session", "Gym Workout", "Morning Commute"
+   Advertising: "Luxury Automotive Ad", "Tech Product Launch"
+   Streaming: "Chillhop Radio", "Indie Discovery Playlist"
 
-USE CASES (3-7 scenarios):
-Be specific about where this track fits:
-- Sync licensing categories
-- Playlist types
-- Activities/situations
-- Media contexts
+📝 TRACK DESCRIPTION: Write a PROFESSIONAL, EVOCATIVE paragraph (4-6 sentences minimum).
+   ✅ Open with the emotional/sonic character of the track
+   ✅ Reference the key sonic elements (instruments, production style)
+   ✅ Name the mood and energy arc (does it build? climax? stay hypnotic?)
+   ✅ Mention ideal placement (sync, playlist, live context)
+   ✅ Close with who this resonates with
+   ❌ NO technical jargon (BPM, Hz, dB)
+   ❌ NO phrases like "This track features..." as opener
+   ❌ NO repetition of the same descriptors across sentences
 
-══════════════════════════════════════════════════════════════
-CONFIDENCE SCORING:
-══════════════════════════════════════════════════════════════
+💭 MOOD VIBE (1-2 sentences): Short, poetic, EVOCATIVE. Like album liner notes.
+   Example: "A slow-burning descent into nocturnal reverie, perfect for that moment between midnight and dawn."
 
-Rate your confidence (0.0-1.0) based on:
-- 0.90-1.00: Very clear genre with distinctive features
-- 0.75-0.89: Clear primary genre, some ambiguity in subgenre
-- 0.60-0.74: Multiple possible interpretations
-- Below 0.60: Highly experimental or genre-defying
+🧠 ANALYSIS REASONING (3 points): Evidence-backed, structured:
+   1. Genre decision: [specific audio feature] → [genre conclusion]
+   2. Mood decision: [key + energy data] → [mood verdict]
+   3. Production style: [spectral/dynamics data] → [era/quality assessment]
 
-══════════════════════════════════════════════════════════════
-OUTPUT FORMAT (STRICT JSON - ALL FIELDS REQUIRED):
-══════════════════════════════════════════════════════════════
+╔══════════════════════════════════════════════════════════════╗
+║              OUTPUT FORMAT (STRICT JSON)                     ║
+╚══════════════════════════════════════════════════════════════╝
 
 {{
-  "mainGenre": "string (specific subgenre e.g. 'Deep House' not 'Electronic')",
-  "additionalGenres": ["2-4 related subgenres"],
-  "moods": ["3-6 mood descriptors"],
-  "mainInstrument": "string (single most prominent instrument)",
-  "instrumentation": ["3-6 instruments"],
-  "keywords": ["10-15 descriptive/SEO terms"],
-  "useCases": ["4-7 sync use cases e.g. Film Score, TV Drama, Workout Playlist"],
-  "trackDescription": "2-3 sentence professional description for music library sync",
+  "mainGenre": "Specific subgenre (NOT a broad umbrella term)",
+  "additionalGenres": ["2-4 related/crossover subgenres"],
+  "moods": ["4-6 specific mood tags, ordered by intensity"],
+  "mainInstrument": "Single most prominent melodic or rhythmic instrument (NOT 'Vocals')",
+  "instrumentation": ["4-7 specific instruments with production detail"],
+  "keywords": ["12-15 genre+mood+usecase+production tags, all lowercase"],
+  "useCases": ["4-7 commercially specific use cases"],
+  "trackDescription": "4-6 sentence professional music library description. Evocative, commercial, zero technical jargon.",
   "vocalStyle": {{
-    "gender": "male|female|mixed|none (ONLY if strictly instrumental)",
-    "timbre": "e.g. Warm, Bright, Raspy, Breathier, or none",
-    "delivery": "e.g. Melodic, Rhythmic, Spoken, Aggressive, or none",
-    "emotionalTone": "e.g. Melancholic, Joyful, Intense, or none"
+    "gender": "male|female|mixed|none — use 'none' ONLY if strictly no human voice present",
+    "timbre": "Warm|Bright|Raspy|Breathy|Clear|Gritty|Silky|or none",
+    "delivery": "Melodic|Rap|Spoken Word|Chanted|Falsetto|Auto-tuned|Aggressive|Soft|or none",
+    "emotionalTone": "Melancholic|Joyful|Defiant|Seductive|Urgent|Detached|Tender|or none"
   }},
   "energy_level": "Very Low|Low|Medium|High|Very High",
   "energyLevel": "Very Low|Low|Medium|High|Very High",
-  "mood_vibe": "1-2 sentence poetic mood description for marketing",
-  "musicalEra": "e.g. 2020s Modern, 90s Retro, Classic 70s, Contemporary",
-  "productionQuality": "e.g. Studio Polished, Lo-Fi, Mastered for Streaming, Raw/Demo",
-  "dynamics": "e.g. High Dynamic Range, Heavily Compressed, Punchy, Balanced",
-  "targetAudience": "e.g. Electronic music fans 18-34, Rock fans 25-45",
-  "tempoCharacter": "e.g. Driving, Laid-back, Frenetic, Hypnotic, Floating",
-  "language": "Instrumental or ISO 639-1 code e.g. en, es, fr",
-  "analysisReasoning": "2-3 sentence explanation of genre/mood decisions based on audio features",
-  "confidence": 0.85,
-  "similar_artists": ["3-5 similar artists if confident"]
+  "mood_vibe": "1-2 poetic, evocative sentences. Like liner notes, not a product description.",
+  "musicalEra": "Era reference: e.g. '2020s Modern', 'Late 90s Inspired', 'Timeless Classic'",
+  "productionQuality": "Studio Polished|Mastered for Streaming|Lo-Fi|Raw Demo|Bedroom Producer|Vintage Analog",
+  "dynamics": "Heavily Compressed|Punchy|Wide Dynamic Range|Balanced|Cinematic|Club-Optimized",
+  "targetAudience": "Specific demographic + context (e.g. 'Electronic music fans 20-35 who enjoy late-night club culture')",
+  "tempoCharacter": "Driving|Hypnotic|Laid-back|Frenetic|Floating|Grinding|Bouncy|Stomping|Soaring",
+  "language": "Instrumental or ISO 639-1 language code (e.g. en, es, fr, pt)",
+  "analysisReasoning": "3-point structured reasoning: (1) Genre: [DSP evidence] (2) Mood: [key+energy logic] (3) Production: [spectral/dynamic profile]",
+  "confidence": 0.0,
+  "similar_artists": ["3-5 artist names if you are 80%+ confident"]
 }}
 
-IMPORTANT: Base classification PRIMARILY on audio features. Trust the data even for unexpected combinations."""
+⚠️ CRITICAL RULES:
+1. Base ALL classification on the audio feature data above. Do NOT guess from file names.
+2. The trackDescription MUST be 4+ sentences. Shorter responses are REJECTED.
+3. Prefer accurate niche tags over broad popular ones.
+4. If vocal presence data suggests instrumental, set vocalStyle.gender to 'none'.
+5. similar_artists: only include if you are genuinely confident — empty list is better than wrong names."""
 
         return prompt
 
@@ -773,9 +796,29 @@ Analyze this track and return STRICT JSON:
         dynamics = get_best_string('dynamics', 'Medium')
         audience = get_best_string('targetAudience', 'General')
 
-        # Description (take longest/most detailed)
-        descriptions = [r.get('trackDescription') for r in results if r.get('trackDescription') and isinstance(r.get('trackDescription'), str)]
-        track_desc = max(descriptions, key=len) if descriptions else "No description available."
+        # Description: score by quality (sentence count + length + no boilerplate)
+        def _description_score(text: str) -> float:
+            if not isinstance(text, str) or len(text) < 80:
+                return 0.0
+            sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 15]
+            sentence_score = min(len(sentences), 6) * 15.0   # reward up to 6 sentences
+            length_score = min(len(text), 800) / 800.0 * 30.0  # reward length up to 800 chars
+            # Penalise boilerplate openers
+            boilerplate = ["this track features", "this is a", "the track features", "featuring a", "introducing"]
+            penalty = 20.0 if any(text.lower().startswith(bp) for bp in boilerplate) else 0.0
+            # Reward emotional/evocative wording
+            evocative = ["journey", "atmosphere", "cinematic", "evoking", "pulsating", "shimmering",
+                         "anchors", "drives", "weaves", "soars", "haunting", "euphoric", "groove",
+                         "texture", "tension", "release", "narrative", "immersive", "sonic", "sonic landscape"]
+            evocative_bonus = sum(4.0 for w in evocative if w in text.lower())
+            return sentence_score + length_score - penalty + min(evocative_bonus, 20.0)
+
+        descriptions = [
+            r.get('trackDescription')
+            for r in results
+            if r.get('trackDescription') and isinstance(r.get('trackDescription'), str) and len(r.get('trackDescription', '')) > 80
+        ]
+        track_desc = max(descriptions, key=_description_score) if descriptions else "Professional analysis pending."
 
         # Confidence Calculation
         agreement = len([r for r in results if str(r.get('mainGenre', '')).lower() == main_genre.lower()]) / len(results) if results else 0
@@ -974,8 +1017,17 @@ Analyze this track and return STRICT JSON:
         keywords.append(main_instrument.lower().replace(' ', ''))
         keywords.append(energy_level.lower())
         
-        # Ensure description is set
-        track_desc = f"A {energy_level.lower()} energy {genre} track featuring {main_instrument} and {moods[0].lower()} atmosphere. {mood_vibe}"
+        # Ensure description is rich and professional
+        mood_str = ', '.join(moods[:2]).lower() if moods else 'atmospheric'
+        second_instrument = instrumentation[1] if len(instrumentation) > 1 else 'percussion'
+        track_desc = (
+            f"{mood_vibe} "
+            f"Built around prominent {main_instrument} and {second_instrument}, "
+            f"it carries a distinctly {mood_str} energy that positions it perfectly within the {genre} landscape. "
+            f"The production strikes a {energy_level.lower()} energy balance, "
+            f"making it an ideal fit for {'high-intensity playlists, workout tracks, and action-oriented sync placements' if energy_level in ('High', 'Very High') else 'background settings, cinematic scenes, and mood-driven editorial playlists'}. "
+            f"Fans of contemporary {genre} and its adjacent sounds will find an immediately engaging listen."
+        )
 
         return {
             "mainGenre": genre,
