@@ -1,8 +1,8 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Metadata } from '../../types';
 import Card from './Card';
-import { Activity, Sparkles, Hash, Key, Calendar, User, Zap } from '../icons';
+import { Activity, Sparkles, Hash, Key, Calendar, User, Zap, Brain, ChevronDown } from '../icons';
 import Tooltip from '../Tooltip';
 
 interface SonicAnalysisDisplayProps {
@@ -103,6 +103,53 @@ const SonicField: React.FC<{
     </motion.div>
 );
 
+// ── Refined Vibe Card Component ──────────────────────────────────────────────
+const VibeCard: React.FC<{
+    moodVibe: string;
+    energyLevel: string;
+    isEditing: boolean;
+    onUpdate: (v: string) => void;
+}> = ({ moodVibe, energyLevel, isEditing, onUpdate }) => {
+    const level = (energyLevel || '').toLowerCase();
+
+    // Smooth gradients per energy level
+    const gradient =
+        level.includes('very high') ? 'from-rose-600/30 via-orange-500/15 to-amber-500/10'
+            : level.includes('high') ? 'from-indigo-600/30 via-violet-500/15 to-purple-500/10'
+                : level.includes('low') && level.includes('very') ? 'from-emerald-600/30 via-green-500/15 to-teal-500/10'
+                    : level.includes('low') ? 'from-sky-600/30 via-cyan-500/15 to-blue-500/10'
+                        : 'from-blue-600/30 via-indigo-500/15 to-violet-500/10';
+
+    return (
+        <motion.div
+            whileHover={{ y: -2 }}
+            className={`col-span-full p-6 rounded-2xl border border-white/5 bg-gradient-to-br ${gradient} backdrop-blur-xl shadow-xl relative overflow-hidden`}
+        >
+            {/* Soft Shimmer Effect */}
+            <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent_20%,rgba(255,255,255,0.05)_50%,transparent_80%)] bg-[length:200%_100%] animate-[shimmer_4s_linear_infinite]" />
+
+            <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-white/40" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Vibe / Ambient Mood</span>
+                </div>
+                {isEditing ? (
+                    <textarea
+                        value={moodVibe}
+                        onChange={e => onUpdate(e.target.value)}
+                        rows={2}
+                        className="w-full bg-black/20 text-white/80 text-sm italic rounded-xl p-3 border border-white/10 focus:ring-2 focus:ring-white/20 outline-none resize-none"
+                    />
+                ) : (
+                    <p className="text-white/90 text-[15px] italic leading-relaxed font-semibold">
+                        {moodVibe ? `"${moodVibe}"` : <span className="opacity-30">No mood description identified.</span>}
+                    </p>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
 const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
     metadata, isEditing, onFieldUpdate, refiningField, onRefine, audioFeatures
 }) => {
@@ -154,10 +201,11 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
                         </div>
                     </div>
                 </motion.div>
-                <SonicField
-                    label="Vibe / Mood" value={(metadata as any).mood_vibe} field={"mood_vibe" as any}
-                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Sparkles className="w-6 h-6" />}
+                <VibeCard
+                    moodVibe={(metadata as any).mood_vibe || ''}
+                    energyLevel={metadata.energy_level || metadata.energyLevel || ''}
+                    isEditing={isEditing}
+                    onUpdate={(v) => onFieldUpdate('mood_vibe' as keyof Metadata, v)}
                 />
                 <SonicField
                     label="Musical Era" value={metadata.musicalEra} field="musicalEra"
@@ -239,7 +287,86 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
                     </div>
                 </motion.div>
             )}
+
+            {/* AI Analysis Reasoning — Subtle Collapsible Section */}
+            {metadata.analysisReasoning && (
+                <AnalysisReasoningBlock
+                    reasoning={metadata.analysisReasoning}
+                    isEditing={isEditing}
+                    onUpdate={(v) => onFieldUpdate('analysisReasoning' as keyof Metadata, v)}
+                />
+            )}
         </Card>
+    );
+};
+
+// ── Refined Reasoning Block Component ──────────────────────────────────────
+const AnalysisReasoningBlock: React.FC<{
+    reasoning: string;
+    isEditing: boolean;
+    onUpdate: (v: string) => void;
+}> = ({ reasoning, isEditing, onUpdate }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    // Parse structured reasoning (1) ... (2) ... (3) ...
+    const points = reasoning
+        .split(/(?=\(\d\))/)
+        .map(p => p.trim())
+        .filter(Boolean);
+
+    return (
+        <div className="mt-10 pt-8 border-t border-white/5">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center justify-between group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <Brain className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                        <h4 className="text-sm font-bold text-white tracking-tight">AI Reasoning</h4>
+                        <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">Classification Evidence</p>
+                    </div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="mt-4 space-y-3">
+                            {isEditing ? (
+                                <textarea
+                                    value={reasoning}
+                                    onChange={e => onUpdate(e.target.value)}
+                                    rows={4}
+                                    className="w-full p-3 bg-white/5 rounded-xl text-sm text-slate-300 border border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                                />
+                            ) : (
+                                <div className="grid gap-2">
+                                    {points.map((point, i) => (
+                                        <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5 flex gap-3 items-start">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                                                {i + 1}
+                                            </div>
+                                            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                                                {point.replace(/^\(\d+\)\s*/, '')}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

@@ -149,6 +149,7 @@ def sanitize_metadata(metadata: dict) -> dict:
     cleaned.setdefault("structure", [])
     cleaned.setdefault("validation_report", {})
     cleaned.setdefault("analysisReasoning", "")
+    cleaned.setdefault("similar_artists", [])
 
     # Keep energyLevel and energy_level in sync
     if cleaned.get("energyLevel") and not cleaned.get("energy_level"):
