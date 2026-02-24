@@ -82,9 +82,11 @@ class RedeemCode(Base):
 class AnalysisHistory(Base):
     __tablename__ = "analysis_history"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
+    user_id = Column(String, index=True, nullable=True)
     file_name = Column(String)
-    result = Column(JSON)
+    file_hash = Column(String, index=True, nullable=True)  # SHA-256 for cache lookup
+    metadata = Column(JSON, nullable=True)                  # Renamed from result
+    result = Column(JSON, nullable=True)                    # Keep for backward compatibility
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Certificate(Base):
@@ -113,8 +115,19 @@ class VerificationEvent(Base):
 def run_migrations():
     try:
         with engine.connect() as conn:
-            # We could add column checks here if needed
-            pass
+            # Safely add file_hash column if missing
+            try:
+                conn.execute(text("ALTER TABLE analysis_history ADD COLUMN file_hash TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+            
+            # Safely add metadata column if missing
+            try:
+                conn.execute(text("ALTER TABLE analysis_history ADD COLUMN metadata TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
     except Exception as e:
         logger.error(f"Migration error: {e}")
 

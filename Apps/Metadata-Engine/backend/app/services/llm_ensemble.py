@@ -376,13 +376,18 @@ class LLMEnsemble:
     
     async def _groq_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
         """
-        Groq: Llama 3.3 70B with Retry Logic
+        Groq: Llama 3.1 8B Instant (flash) / Llama 3.3 70B Versatile (pro)
         """
         if not self.groq_key:
             return {'error': 'no_api_key'}
         
         from groq import Groq
         client = Groq(api_key=self.groq_key)
+        
+        # Select model based on mode preference
+        is_flash = getattr(self, 'model_preference', 'flash') == 'flash'
+        groq_model = "llama-3.1-8b-instant" if is_flash else "llama-3.3-70b-versatile"
+        groq_max_tokens = 800 if is_flash else 1000
         
         if system_prompt:
             messages = [
@@ -425,10 +430,10 @@ class LLMEnsemble:
         for attempt in range(retries):
             try:
                 response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model=groq_model,
                     messages=messages,
                     temperature=0.2,
-                    max_tokens=1000,
+                    max_tokens=groq_max_tokens,
                     response_format={"type": "json_object"}
                 )
                 
@@ -438,6 +443,7 @@ class LLMEnsemble:
                     
                 result = json.loads(content)
                 result['llm_source'] = 'groq'
+                result['_groq_model'] = groq_model
                 return result
             except Exception as e:
                 logger.warning(f"Groq attempt {attempt+1} failed: {e}")
