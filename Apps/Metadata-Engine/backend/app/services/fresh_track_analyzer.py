@@ -145,9 +145,8 @@ class FreshTrackAnalyzer:
     
     def _quick_heuristics(self, audio_features: Dict) -> Dict:
         """
-        Szybkie heurystyki jako hint dla LLM
-        0 MB Docker footprint
-        ~60% accuracy (ale pomaga LLM)
+        Richer DSP-based heuristics as pre-classification hints for the LLM.
+        These guide the LLM without constraining it, improving accuracy.
         """
         
         rhythm = audio_features.get('rhythm', {})
@@ -155,52 +154,105 @@ class FreshTrackAnalyzer:
         harmonic = audio_features.get('harmonic', {})
         spectral = audio_features.get('spectral', {})
         
-        tempo = rhythm.get('tempo', 120)
-        rms = energy.get('rms_mean', 0.1)
-        hp_ratio = harmonic.get('harmonic_percussive_ratio', 1.0)
-        centroid = spectral.get('centroid_mean', 2000)
-        flatness = spectral.get('flatness_mean', 0.5)
+        tempo = float(rhythm.get('tempo', 120))
+        rms = float(energy.get('rms_mean', 0.1))
+        hp_ratio = float(harmonic.get('harmonic_percussive_ratio', 1.0))
+        centroid = float(spectral.get('centroid_mean', 2000))
+        flatness = float(spectral.get('flatness_mean', 0.5))
+        dynamic_range = float(energy.get('dynamic_range', 0.2))
+        zcr = float(energy.get('zcr_mean', 0.05))
         
-        # Genre hints
+        # ── Genre Hints ────────────────────────────────────────────────────────
         genre_hints = []
         
+        # Electronic broad signal
         if tempo > 140 and rms > 0.18:
-            genre_hints.append('electronic')
-        if tempo > 160 and flatness > 0.6:
-            genre_hints.append('edm')
-        if tempo < 80 and hp_ratio > 2:
-            genre_hints.append('jazz')
-        if hp_ratio > 3 and centroid < 1500:
-            genre_hints.append('classical')
-        if 120 < tempo < 140 and rms > 0.15 and hp_ratio < 1.5:
-            genre_hints.append('rock')
-        if centroid > 3000 and tempo > 120:
-            genre_hints.append('pop')
+            genre_hints.append('electronic/bass music')
+        # Drum & Bass
+        if 155 <= tempo <= 185 and flatness > 0.4:
+            genre_hints.append('drum and bass')
+        # Trance / Progressive
+        if 128 <= tempo <= 145 and flatness > 0.5 and hp_ratio > 1.5:
+            genre_hints.append('trance/progressive')
+        # Techno / Industrial
+        if 128 <= tempo <= 145 and flatness < 0.4 and hp_ratio < 1.5:
+            genre_hints.append('techno')
+        # Deep House / Tech House
+        if 118 <= tempo <= 130 and rms < 0.15 and centroid < 3000:
+            genre_hints.append('deep house')
+        elif 118 <= tempo <= 132 and rms >= 0.15:
+            genre_hints.append('tech house/electro house')
+        # Dubstep / Bass
+        if 130 <= tempo <= 150 and rms > 0.18 and hp_ratio < 1.3:
+            genre_hints.append('dubstep/bass music')
+        # Trap / Dark Hip-Hop
+        if 120 <= tempo <= 145 and hp_ratio < 1.2 and rms > 0.12 and centroid < 2500:
+            genre_hints.append('trap')
+        # Hip-Hop / Boom Bap
+        if 80 <= tempo <= 100 and hp_ratio < 2 and rms > 0.10:
+            genre_hints.append('hip-hop')
+        # Lo-Fi / Chillhop
+        if 70 <= tempo <= 100 and flatness < 0.3 and rms < 0.12:
+            genre_hints.append('lo-fi/chillhop')
+        # R&B / Neo-Soul
+        if 70 <= tempo <= 110 and hp_ratio > 1.5 and centroid < 2500 and rms > 0.08:
+            genre_hints.append('r&b/soul')
+        # Jazz
+        if tempo < 180 and hp_ratio > 2.5 and flatness < 0.35:
+            genre_hints.append('jazz/neo-soul')
+        # Classical / Orchestral
+        if hp_ratio > 3.5 and centroid < 2000 and flatness < 0.25:
+            genre_hints.append('classical/orchestral')
+        # Ambient / Drone
+        if tempo < 80 and rms < 0.08 and flatness < 0.3:
+            genre_hints.append('ambient/atmospheric')
+        # Afrobeats / World (mid-tempo, complex rhythm)
+        if 95 <= tempo <= 115 and rhythm.get('rhythm_complexity', 'medium') == 'complex' and centroid > 2000:
+            genre_hints.append('afrobeats/world')
+        # Pop / Commercial
+        if centroid > 3200 and 100 <= tempo <= 135 and rms > 0.12:
+            genre_hints.append('pop/commercial')
+        # Rock / Alternative
+        if 110 <= tempo <= 145 and zcr > 0.12 and hp_ratio > 1.0:
+            genre_hints.append('rock/alternative')
         
-        # Mood hints
+        # ── Mood Hints ─────────────────────────────────────────────────────────
         mood_hints = []
         
         if rms > 0.18 and tempo > 130:
-            mood_hints.append('energetic')
-        if rms < 0.08:
-            mood_hints.append('calm')
-        if tempo > 140 and energy.get('dynamic_range', 0) > 0.3:
-            mood_hints.append('aggressive')
-        if centroid > 3500 and rms > 0.12:
-            mood_hints.append('happy')
+            mood_hints.append('energetic/powerful')
+        if rms > 0.20 and dynamic_range < 0.12:
+            mood_hints.append('aggressive/intense')
+        if rms < 0.07 and tempo < 90:
+            mood_hints.append('calm/meditative')
+        if rms < 0.10 and flatness < 0.25:
+            mood_hints.append('melancholic/introspective')
+        if centroid > 3500 and rms > 0.12 and 'major' in str(harmonic.get('mode', '')).lower():
+            mood_hints.append('happy/euphoric')
+        if 'minor' in str(harmonic.get('mode', '')).lower() and rms > 0.15:
+            mood_hints.append('dark/intense')
+        if 'minor' in str(harmonic.get('mode', '')).lower() and rms < 0.12:
+            mood_hints.append('melancholic/atmospheric')
+        if 105 <= tempo <= 128 and rms > 0.10 and flatness < 0.45:
+            mood_hints.append('groovy/danceable')
+        if tempo > 128 and dynamic_range > 0.25:
+            mood_hints.append('hypnotic/driving')
+        if dynamic_range > 0.35 and hp_ratio > 2.0:
+            mood_hints.append('cinematic/dramatic')
         
         return {
             'genre': {
                 'primary_genre': genre_hints[0] if genre_hints else 'unknown',
-                'hints': genre_hints[:3],
-                'confidence': 0.60
+                'hints': genre_hints[:5],
+                'confidence': 0.65
             },
             'mood': {
-                'primary_mood': mood_hints[0] if mood_hints else 'unknown',
-                'hints': mood_hints[:3]
+                'primary_mood': mood_hints[0] if mood_hints else 'neutral',
+                'hints': mood_hints[:5]
             },
-            'method': 'heuristic_hints'
+            'method': 'enhanced_heuristic_hints'
         }
+
     
     async def _extract_lyrics(self, file_path: str, audio_features: Dict) -> Dict:
         """
