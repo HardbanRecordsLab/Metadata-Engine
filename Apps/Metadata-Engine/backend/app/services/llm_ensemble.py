@@ -281,10 +281,10 @@ OUTPUT FORMAT (STRICT JSON - ALL FIELDS REQUIRED):
   "useCases": ["4-7 sync use cases e.g. Film Score, TV Drama, Workout Playlist"],
   "trackDescription": "2-3 sentence professional description for music library sync",
   "vocalStyle": {{
-    "gender": "male|female|mixed|none",
-    "timbre": "description or none",
-    "delivery": "style or none",
-    "emotionalTone": "tone or none"
+    "gender": "male|female|mixed|none (ONLY if strictly instrumental)",
+    "timbre": "e.g. Warm, Bright, Raspy, Breathier, or none",
+    "delivery": "e.g. Melodic, Rhythmic, Spoken, Aggressive, or none",
+    "emotionalTone": "e.g. Melancholic, Joyful, Intense, or none"
   }},
   "energy_level": "Very Low|Low|Medium|High|Very High",
   "energyLevel": "Very Low|Low|Medium|High|Very High",
@@ -390,8 +390,8 @@ IMPORTANT: Base classification PRIMARILY on audio features. Trust the data even 
        - energy_level: REQUIRED.
     
     3. VOCAL STYLE RULES:
-       - If instrumental: "gender": "Instrumental", others "none".
-       - If vocals exist: NEVER use "none". Guess "Male", "Female", "Duet" or "Processed". Populate timbre/delivery/emotionalTone.
+       - If instrumental: "gender": "none", "timbre": "none", "delivery": "none", "emotionalTone": "none".
+       - If vocals exist: NEVER use "none". Classify gender as "Male", "Female", or "Mixed". Provide descriptive tags for timbre (e.g., Warm, Raspy), delivery (e.g., Rap, Soulful), and emotionalTone (e.g., Aggressive, Sad).
     
     4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
     
