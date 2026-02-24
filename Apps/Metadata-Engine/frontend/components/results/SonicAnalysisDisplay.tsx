@@ -17,7 +17,7 @@ interface SonicAnalysisDisplayProps {
 const EnergyMeter: React.FC<{ value: number | string }> = ({ value }) => {
     const numValue = typeof value === 'number' ? value : parseInt(String(value)) || 0;
     const percentage = Math.min(Math.max(numValue, 0), 100);
-    
+
     return (
         <div className="mt-2 space-y-1">
             <div className="flex justify-between items-end">
@@ -25,7 +25,7 @@ const EnergyMeter: React.FC<{ value: number | string }> = ({ value }) => {
                 <span className="text-sm font-black text-accent-violet">{percentage}%</span>
             </div>
             <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                <motion.div 
+                <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
@@ -73,7 +73,7 @@ const SonicField: React.FC<{
     className?: string;
     type?: 'text' | 'number';
 }> = ({ label, value, field, isEditing, onFieldUpdate, refiningField, onRefine, icon, unit, className, type }) => (
-    <motion.div 
+    <motion.div
         whileHover={{ y: -2 }}
         className={`p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 flex items-center gap-4 transition-all group shadow-sm hover:shadow-premium hover:border-accent-violet/30 ${className}`}
     >
@@ -140,7 +140,7 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
                     icon={<Activity className="w-6 h-6" />}
                 />
-                <motion.div 
+                <motion.div
                     whileHover={{ y: -2 }}
                     className="p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 flex flex-col justify-between transition-all group shadow-sm hover:shadow-premium hover:border-accent-violet/30"
                 >
@@ -180,6 +180,65 @@ const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
                     icon={<User className="w-6 h-6" />}
                 />
             </div>
+
+            {/* Vocal Characteristics Section */}
+            {metadata.vocalStyle && (metadata.vocalStyle.gender !== 'none' || isEditing) && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mt-12 pt-8 border-t border-white/5"
+                >
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-pink-500 to-rose-600 text-white shadow-lg shadow-rose-500/20">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="text-lg font-black text-white tracking-tight">Vocal Characteristics</h4>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">AI-Powered Timbre & Delivery Analysis</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                        <SonicField
+                            label="Gender"
+                            value={metadata.vocalStyle.gender}
+                            field="vocalStyle"
+                            isEditing={isEditing}
+                            onFieldUpdate={(f, v) => onFieldUpdate('vocalStyle', { ...metadata.vocalStyle, gender: v })}
+                            refiningField={refiningField} onRefine={onRefine}
+                            icon={<User className="w-5 h-5" />}
+                        />
+                        <SonicField
+                            label="Timbre"
+                            value={metadata.vocalStyle.timbre}
+                            field="vocalStyle"
+                            isEditing={isEditing}
+                            onFieldUpdate={(f, v) => onFieldUpdate('vocalStyle', { ...metadata.vocalStyle, timbre: v })}
+                            refiningField={refiningField} onRefine={onRefine}
+                            icon={<Activity className="w-5 h-5" />}
+                        />
+                        <SonicField
+                            label="Delivery"
+                            value={metadata.vocalStyle.delivery}
+                            field="vocalStyle"
+                            isEditing={isEditing}
+                            onFieldUpdate={(f, v) => onFieldUpdate('vocalStyle', { ...metadata.vocalStyle, delivery: v })}
+                            refiningField={refiningField} onRefine={onRefine}
+                            icon={<Zap className="w-5 h-5" />}
+                        />
+                        <SonicField
+                            label="Emotional Tone"
+                            value={metadata.vocalStyle.emotionalTone}
+                            field="vocalStyle"
+                            isEditing={isEditing}
+                            onFieldUpdate={(f, v) => onFieldUpdate('vocalStyle', { ...metadata.vocalStyle, emotionalTone: v })}
+                            refiningField={refiningField} onRefine={onRefine}
+                            icon={<Sparkles className="w-5 h-5" />}
+                        />
+                    </div>
+                </motion.div>
+            )}
         </Card>
     );
 };
