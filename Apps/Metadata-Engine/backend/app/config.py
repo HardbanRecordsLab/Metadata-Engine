@@ -26,9 +26,7 @@ class Settings:
 
     # Database / Security
     DATABASE_URL = os.getenv("DATABASE_URL")
-    SUPABASE_URL = os.getenv("SUPABASE_URL")
-    SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("SUPABASE_KEY") # Fallback to existing key during migration
     
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")

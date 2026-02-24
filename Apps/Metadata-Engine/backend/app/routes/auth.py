@@ -8,12 +8,14 @@ from jose import jwt
 import uuid
 from app.db import User, get_db
 
+from app.config import settings
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
 # Config
 ALGORITHM = "HS256"
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = settings.SECRET_KEY
 
 
 # Schemas
