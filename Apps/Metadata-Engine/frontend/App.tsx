@@ -412,109 +412,119 @@ const AppContent: React.FC = () => {
 
                 <main className="flex-grow p-4 lg:p-8 relative">
                     <ErrorBoundary>
-                        {view === 'dashboard' && (
-                            <DashboardHome
-                                onNavigate={(v) => setView(v as View)}
-                                onCreateNew={handleNewAnalysis}
-                                userProfile={displayProfile}
-                                onOpenPricing={() => setIsPricingOpen(true)}
-                                onOpenRedeemCode={() => setIsRedeemCodeModalOpen(true)}
-                            />
-                        )}
-
-                        {view === 'analyze' && (
-                            <div className="max-w-5xl mx-auto">
-                                <div className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 md:p-8 border border-slate-200 dark:border-slate-800">
-                                    <InputSection
-                                        batch={batch}
-                                        setBatch={setBatch}
-                                        onAnalyze={handleStartBatchProcessing}
-                                        isProMode={isProMode}
-                                        setIsProMode={setIsProMode}
-                                        isProcessingBatch={isProcessingBatch}
-                                        onViewResults={handleViewResults}
-                                        onRetry={handleRetry}
-                                        onExportBatch={handleExportBatch}
-                                        showToast={showToast}
-                                        userTier={userTier}
-                                        userCredits={userCredits}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={view}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                            >
+                                {view === 'dashboard' && (
+                                    <DashboardHome
+                                        onNavigate={(v) => setView(v as View)}
+                                        onCreateNew={handleNewAnalysis}
+                                        userProfile={displayProfile}
                                         onOpenPricing={() => setIsPricingOpen(true)}
-                                        onOpenCloudImport={() => {
-                                            if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Cloud Import.", 'info'); }
-                                            else { setIsCloudImportOpen(true); }
-                                        }}
-                                        onOpenBulkEdit={() => {
-                                            if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Bulk Editing.", 'info'); }
-                                            else { setView('bulk-edit'); }
-                                        }}
-                                        isFresh={isFresh}
-                                        setIsFresh={setIsFresh}
+                                        onOpenRedeemCode={() => setIsRedeemCodeModalOpen(true)}
                                     />
-                                </div>
-                            </div>
-                        )}
+                                )}
 
-                        {view === 'results' && activeAnalysis && (
-                            <div className="max-w-7xl mx-auto">
-                                <ResultsSection
-                                    isLoading={false}
-                                    error={null}
-                                    results={activeAnalysis.metadata!}
-                                    showToast={showToast}
-                                    onUpdateResults={handleUpdateResults}
-                                    currentAnalysis={{
-                                        id: activeAnalysis.id,
-                                        metadata: activeAnalysis.metadata!,
-                                        inputType: 'file',
-                                        input: { fileName: activeAnalysis.file.name },
-                                        jobId: activeAnalysis.jobId
-                                    }}
-                                    uploadedFile={activeAnalysis.file}
-                                    onUpdateFile={handleUpdateActiveFile}
-                                    onBackToBatch={handleBackToBatch}
-                                    userTier={userTier}
-                                    onOpenPricing={() => setIsPricingOpen(true)}
-                                />
-                            </div>
-                        )}
+                                {view === 'analyze' && (
+                                    <div className="max-w-5xl mx-auto">
+                                        <div className="bg-light-card dark:bg-dark-card rounded-2xl shadow-premium p-6 md:p-8 border border-slate-200 dark:border-slate-800 backdrop-blur-xl">
+                                            <InputSection
+                                                batch={batch}
+                                                setBatch={setBatch}
+                                                onAnalyze={handleStartBatchProcessing}
+                                                isProMode={isProMode}
+                                                setIsProMode={setIsProMode}
+                                                isProcessingBatch={isProcessingBatch}
+                                                onViewResults={handleViewResults}
+                                                onRetry={handleRetry}
+                                                onExportBatch={handleExportBatch}
+                                                showToast={showToast}
+                                                userTier={userTier}
+                                                userCredits={userCredits}
+                                                onOpenPricing={() => setIsPricingOpen(true)}
+                                                onOpenCloudImport={() => {
+                                                    if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Cloud Import.", 'info'); }
+                                                    else { setIsCloudImportOpen(true); }
+                                                }}
+                                                onOpenBulkEdit={() => {
+                                                    if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Bulk Editing.", 'info'); }
+                                                    else { setView('bulk-edit'); }
+                                                }}
+                                                isFresh={isFresh}
+                                                setIsFresh={setIsFresh}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
-                        {view === 'history' && (
-                            <div className="max-w-4xl mx-auto">
-                                <Suspense fallback={<LoadingFallback />}>
-                                    <HistoryPanel history={analysisHistory} onSelectItem={handleViewHistoryItem} />
-                                </Suspense>
-                            </div>
-                        )}
+                                {view === 'results' && activeAnalysis && (
+                                    <div className="max-w-7xl mx-auto">
+                                        <ResultsSection
+                                            isLoading={false}
+                                            error={null}
+                                            results={activeAnalysis.metadata!}
+                                            showToast={showToast}
+                                            onUpdateResults={handleUpdateResults}
+                                            currentAnalysis={{
+                                                id: activeAnalysis.id,
+                                                metadata: activeAnalysis.metadata!,
+                                                inputType: 'file',
+                                                input: { fileName: activeAnalysis.file.name },
+                                                jobId: activeAnalysis.jobId
+                                            }}
+                                            uploadedFile={activeAnalysis.file}
+                                            onUpdateFile={handleUpdateActiveFile}
+                                            onBackToBatch={handleBackToBatch}
+                                            userTier={userTier}
+                                            onOpenPricing={() => setIsPricingOpen(true)}
+                                        />
+                                    </div>
+                                )}
 
-                        {view === 'tools' && (
-                            <div className="max-w-6xl mx-auto">
-                                <ToolsPanel
-                                    onOpenPricing={() => setIsPricingOpen(true)}
-                                    showToast={showToast}
-                                    userTier={userTier}
-                                />
-                            </div>
-                        )}
-                        {view === 'settings' && (
-                            <SettingsPanel
-                                user={user}
-                                onOpenPricing={() => setIsPricingOpen(true)}
-                            />
-                        )}
+                                {view === 'history' && (
+                                    <div className="max-w-4xl mx-auto">
+                                        <Suspense fallback={<LoadingFallback />}>
+                                            <HistoryPanel history={analysisHistory} onSelectItem={handleViewHistoryItem} />
+                                        </Suspense>
+                                    </div>
+                                )}
 
-                        {view === 'usage' && (
-                            <UsagePanel user={user} />
-                        )}
+                                {view === 'tools' && (
+                                    <div className="max-w-6xl mx-auto">
+                                        <ToolsPanel
+                                            onOpenPricing={() => setIsPricingOpen(true)}
+                                            showToast={showToast}
+                                            userTier={userTier}
+                                        />
+                                    </div>
+                                )}
+                                {view === 'settings' && (
+                                    <SettingsPanel
+                                        user={user}
+                                        onOpenPricing={() => setIsPricingOpen(true)}
+                                    />
+                                )}
 
-                        {view === 'bulk-edit' && (
-                            <Suspense fallback={<LoadingFallback />}>
-                                <BulkEditor
-                                    items={batch}
-                                    onUpdateBatch={handleBatchUpdate}
-                                    onClose={() => setView('analyze')}
-                                />
-                            </Suspense>
-                        )}
+                                {view === 'usage' && (
+                                    <UsagePanel user={user} />
+                                )}
+
+                                {view === 'bulk-edit' && (
+                                    <Suspense fallback={<LoadingFallback />}>
+                                        <BulkEditor
+                                            items={batch}
+                                            onUpdateBatch={handleBatchUpdate}
+                                            onClose={() => setView('analyze')}
+                                        />
+                                    </Suspense>
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
                     </ErrorBoundary>
                 </main>
 
