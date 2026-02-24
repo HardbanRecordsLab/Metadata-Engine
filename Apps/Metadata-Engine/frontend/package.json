@@ -15,9 +15,11 @@
     "@google/generative-ai": "^0.21.0",
     "@testing-library/react": "^16.3.0",
     "browser-id3-writer": "^4.0.0",
+    "framer-motion": "^12.34.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.1.0",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "wavesurfer.js": "^7.11.1"

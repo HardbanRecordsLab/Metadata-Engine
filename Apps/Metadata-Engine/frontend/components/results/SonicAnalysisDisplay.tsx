@@ -1,7 +1,8 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Metadata } from '../../types';
 import Card from './Card';
-import { Activity, Sparkles, Hash, Key, Calendar, User } from '../icons';
+import { Activity, Sparkles, Hash, Key, Calendar, User, Zap } from '../icons';
 import Tooltip from '../Tooltip';
 
 interface SonicAnalysisDisplayProps {
@@ -12,6 +13,30 @@ interface SonicAnalysisDisplayProps {
     onRefine: (field: keyof Metadata) => void;
     audioFeatures?: any;
 }
+
+const EnergyMeter: React.FC<{ value: number | string }> = ({ value }) => {
+    const numValue = typeof value === 'number' ? value : parseInt(String(value)) || 0;
+    const percentage = Math.min(Math.max(numValue, 0), 100);
+    
+    return (
+        <div className="mt-2 space-y-1">
+            <div className="flex justify-between items-end">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Energy Level</span>
+                <span className="text-sm font-black text-accent-violet">{percentage}%</span>
+            </div>
+            <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-accent-violet via-purple-500 to-pink-500 relative"
+                >
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[shimmer_2s_linear_infinite]" />
+                </motion.div>
+            </div>
+        </div>
+    );
+};
 
 const EditableInput: React.FC<{
     value: string | number | undefined;
@@ -48,93 +73,111 @@ const SonicField: React.FC<{
     className?: string;
     type?: 'text' | 'number';
 }> = ({ label, value, field, isEditing, onFieldUpdate, refiningField, onRefine, icon, unit, className, type }) => (
-    <div className={`p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3 transition-colors group ${className}`}>
-        <div className="flex-shrink-0 text-slate-400">
+    <motion.div 
+        whileHover={{ y: -2 }}
+        className={`p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 flex items-center gap-4 transition-all group shadow-sm hover:shadow-premium hover:border-accent-violet/30 ${className}`}
+    >
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 group-hover:text-accent-violet group-hover:bg-accent-violet/10 transition-colors">
             {icon}
         </div>
         <div className="flex-grow">
-            <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">{label}</label>
+            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-500 tracking-widest mb-0.5">{label}</label>
             <div className="flex items-baseline gap-1">
                 <EditableInput
                     isEditing={isEditing}
                     value={value}
                     onChange={v => onFieldUpdate(field, type === 'number' ? Number.parseInt(v, 10) : v)}
-                    className="font-bold text-lg p-0 border-none shadow-none bg-transparent"
+                    className="font-black text-xl p-0 border-none shadow-none bg-transparent"
                     type={type}
                 />
-                {unit && <span className="text-sm text-slate-500">{unit}</span>}
+                {unit && <span className="text-xs font-bold text-slate-500">{unit}</span>}
             </div>
         </div>
         {isEditing && (
             <Tooltip text="Enhance with AI">
-                <button onClick={() => onRefine(field)} disabled={!!refiningField} className="text-slate-400 hover:text-accent-violet transition-colors disabled:opacity-50">
-                    {refiningField === field ? <div className="w-4 h-4 border-2 border-accent-violet border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-4 h-4 text-accent-violet" />}
+                <button onClick={() => onRefine(field)} disabled={!!refiningField} className="p-2 rounded-lg hover:bg-accent-violet/10 text-slate-400 hover:text-accent-violet transition-colors disabled:opacity-50">
+                    {refiningField === field ? <div className="w-4 h-4 border-2 border-accent-violet border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-5 h-5 text-accent-violet" />}
                 </button>
             </Tooltip>
         )}
-    </div>
+    </motion.div>
 );
 
 const SonicAnalysisDisplay: React.FC<SonicAnalysisDisplayProps> = ({
     metadata, isEditing, onFieldUpdate, refiningField, onRefine, audioFeatures
 }) => {
     return (
-        <Card>
-            <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-md shadow-blue-500/20">
-                    <Activity className="w-6 h-6" />
+        <Card className="overflow-hidden border-none shadow-premium bg-slate-900/40 backdrop-blur-2xl">
+            <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-8">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
+                        <Activity className="w-7 h-7" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-white tracking-tight">Sonic Analysis</h3>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Laboratory DSP Engine v3.0</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Sonic Analysis</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Key audio characteristics.</p>
+                <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Analysis Active</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 <SonicField
-                    label="BPM" value={audioFeatures?.bpm ?? metadata.bpm} field="bpm"
+                    label="Tempo / BPM" value={audioFeatures?.bpm ?? metadata.bpm} field="bpm"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Hash className="w-5 h-5" />} unit="BPM" type="number"
+                    icon={<Activity className="w-6 h-6" />} unit="BPM" type="number"
                 />
                 <SonicField
-                    label="KEY" value={audioFeatures?.key ?? metadata.key} field="key"
+                    label="Musical Key" value={audioFeatures?.key ?? metadata.key} field="key"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Key className="w-5 h-5" />}
+                    icon={<Key className="w-6 h-6" />}
                 />
                 <SonicField
-                    label="MODE" value={audioFeatures?.mode ?? metadata.mode} field="mode"
+                    label="Tonal Mode" value={audioFeatures?.mode ?? metadata.mode} field="mode"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Key className="w-5 h-5" />}
+                    icon={<Activity className="w-6 h-6" />}
+                />
+                <motion.div 
+                    whileHover={{ y: -2 }}
+                    className="p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 flex flex-col justify-between transition-all group shadow-sm hover:shadow-premium hover:border-accent-violet/30"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 group-hover:text-accent-violet group-hover:bg-accent-violet/10 transition-colors">
+                            <Zap className="w-6 h-6" />
+                        </div>
+                        <div className="flex-grow">
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-500 tracking-widest">Acoustic Energy</label>
+                            <EnergyMeter value={metadata.energy_level || metadata.energyLevel || 0} />
+                        </div>
+                    </div>
+                </motion.div>
+                <SonicField
+                    label="Vibe / Mood" value={(metadata as any).mood_vibe} field={"mood_vibe" as any}
+                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
+                    icon={<Sparkles className="w-6 h-6" />}
                 />
                 <SonicField
-                    label="VIBE" value={(metadata as any).mood_vibe} field={"mood_vibe" as any}
+                    label="Musical Era" value={metadata.musicalEra} field="musicalEra"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Activity className="w-5 h-5" />}
+                    icon={<Calendar className="w-6 h-6" />}
                 />
                 <SonicField
-                    label="ENERGY" value={metadata.energy_level || metadata.energyLevel} field="energy_level"
+                    label="Production" value={metadata.productionQuality} field="productionQuality"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Sparkles className="w-5 h-5" />}
+                    icon={<Activity className="w-6 h-6" />}
                 />
                 <SonicField
-                    label="ERA" value={metadata.musicalEra} field="musicalEra"
+                    label="Dynamics" value={metadata.dynamics} field="dynamics"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Calendar className="w-5 h-5" />}
+                    icon={<Activity className="w-6 h-6" />}
                 />
                 <SonicField
-                    label="QUALITY" value={metadata.productionQuality} field="productionQuality"
+                    label="Target Audience" value={metadata.targetAudience} field="targetAudience"
                     isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Activity className="w-5 h-5" />}
-                />
-                <SonicField
-                    label="DYNAMICS" value={metadata.dynamics} field="dynamics"
-                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<Activity className="w-5 h-5" />}
-                />
-                <SonicField
-                    label="AUDIENCE" value={metadata.targetAudience} field="targetAudience"
-                    isEditing={isEditing} onFieldUpdate={onFieldUpdate} refiningField={refiningField} onRefine={onRefine}
-                    icon={<User className="w-5 h-5" />}
+                    icon={<User className="w-6 h-6" />}
                 />
             </div>
         </Card>
