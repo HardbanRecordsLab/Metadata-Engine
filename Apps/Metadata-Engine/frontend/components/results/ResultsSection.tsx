@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Metadata, AnalysisRecord, UserTier } from '../../types';
 import { refineMetadataField } from '../../services/geminiService';
 import { embedMetadata } from '../../services/taggingService';
-import { Download, Pencil, ArrowLeft, RotateCcw, RotateCw } from '../icons';
+import { Download, Pencil, ArrowLeft, RotateCcw, RotateCw, FileText } from '../icons';
+import { exportMetadataToCSV } from '../../services/exportService';
 import { ExportModal } from '../imported/ExportModal';
 import TranscriptionViewer from '../TranscriptionViewer';
 import ResultsSkeleton from './ResultsSkeleton';
@@ -322,6 +323,17 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                                 <Download className="w-4 h-4" /> Export
                             </Button>
                         )}
+                        <Button
+                            onClick={() => {
+                                const name = (editedResults?.title || currentAnalysis?.input?.fileName || 'metadata').replace(/\.[^.]+$/, '');
+                                exportMetadataToCSV(editedResults || results, `${name}_metadata.csv`);
+                            }}
+                            variant="secondary"
+                            size="sm"
+                            title="Export to CSV"
+                        >
+                            <FileText className="w-4 h-4" /> CSV
+                        </Button>
                         <Button onClick={() => setIsEditing(true)} variant="secondary" size="sm">
                             <Pencil className="w-4 h-4" /> Edit
                         </Button>
