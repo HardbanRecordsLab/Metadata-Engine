@@ -53,23 +53,31 @@ async def generate_certificate(
         raise HTTPException(status_code=400, detail="Invalid metadata for this job")
 
     file_path = _build_upload_path(job)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Source audio file not available for verification")
+    file_exists = os.path.exists(file_path)
 
-    sha256_actual = generate_file_hash(file_path)
-    sha256_meta = job.result.get("sha256")
-    if not sha256_meta:
-        job.result["sha256"] = sha256_actual
-        db.commit()
-    elif sha256_meta.lower() != sha256_actual.lower():
-        raise HTTPException(status_code=409, detail="Hash mismatch between stored metadata and audio file")
+    sha256_meta = (job.result or {}).get("sha256")
+    if file_exists:
+        sha256_actual = generate_file_hash(file_path)
+        if not sha256_meta:
+            job.result["sha256"] = sha256_actual
+            db.commit()
+        elif sha256_meta.lower() != sha256_actual.lower():
+            raise HTTPException(status_code=409, detail="Hash mismatch between stored metadata and audio file")
+    else:
+        if not sha256_meta:
+            raise HTTPException(status_code=404, detail="Audio file missing and no stored SHA-256 found")
+        sha256_actual = sha256_meta
 
-    duration_actual = _calculate_duration_seconds(file_path)
-    duration_meta = float(job.result.get("duration") or 0)
-    duration_diff = abs(duration_actual - duration_meta)
-    if duration_diff > 1.0:
-        job.result["duration"] = round(duration_actual)
-        db.commit()
+    if file_exists:
+        try:
+            duration_actual = _calculate_duration_seconds(file_path)
+            duration_meta = float(job.result.get("duration") or 0)
+            duration_diff = abs(duration_actual - duration_meta)
+            if duration_diff > 1.0:
+                job.result["duration"] = round(duration_actual)
+                db.commit()
+        except Exception:
+            pass
 
     now = datetime.utcnow()
     year = now.year
