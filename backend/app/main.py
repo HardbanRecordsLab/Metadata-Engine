@@ -7,8 +7,6 @@ import starlette.formparsers
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
 from app.config import settings
 
 # === ULTIMATE INFRASTRUCTURE PATCH ===
@@ -181,93 +179,9 @@ def cleanup_old_files():
 
 app = setup_app()
 
-@app.get("/api/debug/files")
-def debug_files():
-    """List files in frontend dist to verify build"""
-    import os
-    frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-    assets_dir = os.path.join(frontend_dist, "assets")
-    
-    result = {
-        "dist_path": frontend_dist,
-        "exists": os.path.exists(frontend_dist),
-        "files_root": [],
-        "assets_path": assets_dir,
-        "assets_exists": os.path.exists(assets_dir),
-        "files_assets": []
-    }
-    
-    if os.path.exists(frontend_dist):
-        result["files_root"] = os.listdir(frontend_dist)
-        
-    if os.path.exists(assets_dir):
-        result["files_assets"] = os.listdir(assets_dir)
-        
-    return result
-
 @app.get("/api/worker_status")
 def get_worker_status():
-    return {"status": "online", "deployment": "Hugging Face"}
-
-# Serve static frontend with DYNAMIC INJECTION
-frontend_dist_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-
-# Mount assets (CSS, JS, Images)
-if os.path.exists(frontend_dist_path):
-    # Mount assets folder explicitly
-    assets_path = os.path.join(frontend_dist_path, "assets")
-    if os.path.exists(assets_path):
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
-
-def get_injected_index():
-    path = os.path.join(frontend_dist_path, "index.html")
-    if not os.path.exists(path):
-        return "<h1>Frontend build not found.</h1>"
-        
-    with open(path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    import json
-    acr_host = settings.ACR_HOST or ""
-    acr_key = settings.ACR_ACCESS_KEY or ""
-    acr_secret = settings.ACR_ACCESS_SECRET or ""
-    gemini_key = settings.GEMINI_API_KEY or ""
-    
-    logger.debug(f"Injecting runtime config into index.html")
-    
-    env_script = f"""<script>
-        window.VITE_ACR_HOST = {json.dumps(acr_host)};
-        window.VITE_ACR_ACCESS_KEY = {json.dumps(acr_key)};
-        window.VITE_ACR_ACCESS_SECRET = {json.dumps(acr_secret)};
-        window.VITE_GEMINI_API_KEY = {json.dumps(gemini_key)};
-        console.log("MME: Runtime Config Injected");
-    </script>"""
-    return content.replace("<head>", f"<head>{env_script}")
-
-@app.get("/")
-async def serve_root():
-    return HTMLResponse(get_injected_index())
-
-# Support for SPA routing - capture everything else that's not a static file or API
-@app.get("/{path:path}")
-async def catch_all(path: str):
-    # 1. Security Check: Prevent Path Traversal
-    safe_base = os.path.abspath(frontend_dist_path)
-    full_path = os.path.abspath(os.path.join(frontend_dist_path, path))
-    
-    if not full_path.startswith(safe_base):
-        return HTMLResponse(content="Access Denied", status_code=403)
-
-    # 2. Check if file exists in frontend/dist (e.g. favicon.ico, robots.txt)
-    if os.path.exists(full_path) and os.path.isfile(full_path):
-        return FileResponse(full_path)
-
-    # 3. If it looks like a file (has extension) but doesn't exist locally -> 404
-    if "." in path.split("/")[-1]:
-        return HTMLResponse(content=f"Asset not found: {path}", status_code=404)
-        
-    # 4. Otherwise, it's a React route -> serve index.html
-    return HTMLResponse(get_injected_index())
+    return {"status": "online", "deployment": "VPS API"}
 
 if __name__ == "__main__":
     import uvicorn
