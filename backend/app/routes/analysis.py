@@ -362,7 +362,7 @@ async def generate_analysis(
         file_name=file.filename,
         status="pending",
         message="Job queued for analysis...",
-        created_at=datetime.utcnow(),
+        timestamp=datetime.utcnow(),
     )
     db.add(job)
     db.commit()
