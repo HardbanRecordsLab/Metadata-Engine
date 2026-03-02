@@ -80,11 +80,11 @@ def setup_app():
         allow_origins=[
             "http://localhost:8080",
             "http://localhost:3000",
+            "http://localhost:5173",
             "https://app-metadata.hardbanrecordslab.online",
             "https://metadata.hardbanrecordslab.online",
-            "*"  # Fallback for development
         ],
-        allow_origin_regex='https://.*\.hardbanrecordslab\.online', # Allow all subdomains
+        allow_origin_regex='^https://.*\\.hardbanrecordslab\\.online$',
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
         allow_headers=["*"],
