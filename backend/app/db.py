@@ -85,7 +85,7 @@ class AnalysisHistory(Base):
     user_id = Column(String, index=True, nullable=True)
     file_name = Column(String)
     file_hash = Column(String, index=True, nullable=True)  # SHA-256 for cache lookup
-    metadata = Column(JSON, nullable=True)                  # Renamed from result
+    metadata_json = Column("metadata", JSON, nullable=True)                  # Renamed from result
     result = Column(JSON, nullable=True)                    # Keep for backward compatibility
     created_at = Column(DateTime, default=datetime.utcnow)
 
