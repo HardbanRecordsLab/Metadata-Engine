@@ -54,7 +54,7 @@ async def get_history(
             "id": h.id,
             "user_id": h.user_id,
             "file_name": h.file_name,
-            "result": h.result,
+            "result": h.result or getattr(h, "metadata_json", None) or {},
             "created_at": h.created_at.isoformat() if getattr(h, "created_at", None) else None,
         }
         for h in history_records

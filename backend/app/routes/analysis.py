@@ -300,7 +300,8 @@ async def process_analysis(
             history = AnalysisHistory(
                 file_name=job.file_name,
                 file_hash=file_hash,
-                metadata_json=json.dumps(final_metadata),
+                metadata_json=final_metadata,
+                result=final_metadata,
                 created_at=datetime.utcnow(),
             )
             db.add(history)
