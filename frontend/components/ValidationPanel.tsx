@@ -1,6 +1,7 @@
 // components/ValidationPanel.tsx
 
 import React, { useState } from 'react';
+import { getFullUrl } from '../apiConfig';
 import { ValidationReport } from '../services/validationBot';
 
 const getEnv = (key: string): string => {
@@ -22,10 +23,7 @@ export const ValidationPanel: React.FC<{ onClose: () => void }> = ({ onClose }) 
         setLoading(true);
         setError(null);
         try {
-            // Updated to call local Python backend instead of missing /api/ endpoint
-            const res = await fetch('http://localhost:8888/system/validate', {
-                method: 'GET'
-            });
+            const res = await fetch(getFullUrl('/system/validate'), { method: 'GET' });
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text.substring(0, 100) || 'Validation request failed');
