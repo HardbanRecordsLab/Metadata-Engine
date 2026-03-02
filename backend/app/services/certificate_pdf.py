@@ -85,23 +85,130 @@ def generate_certificate_pdf(
     draw.text((80, y), "Metadata", font=header_font, fill=(0, 0, 0))
     y += 30
 
-    # Render all metadata as key: value
+    # Render metadata with UI-synced labels and priority ordering
+    LABELS = {
+        # Identity
+        "title": "Track Title",
+        "artist": "Artist",
+        "album": "Album",
+        "albumArtist": "Album Artist",
+        "year": "Year",
+        "track": "Track",
+        "duration": "Duration",
+        # Sonic & Technical
+        "bpm": "BPM",
+        "key": "Key",
+        "mode": "Mode",
+        "mainInstrument": "Main Instrument",
+        "mainGenre": "Main Genre",
+        "additionalGenres": "Additional Genres",
+        "language": "Language",
+        "trackDescription": "Description",
+        "keywords": "Keywords",
+        # Credits & Legal
+        "copyright": "Copyright",
+        "pLine": "(P) Line",
+        "publisher": "Publisher",
+        "composer": "Composer",
+        "lyricist": "Lyricist",
+        "producer": "Producer",
+        "catalogNumber": "Catalog Number",
+        "isrc": "ISRC",
+        "iswc": "ISWC",
+        "upc": "UPC",
+        "license": "License",
+        # Misc / Advanced
+        "similar_artists": "Similar Artists",
+        "moods": "Moods",
+        "mood_vibe": "Mood Vibe",
+        "energy_level": "Energy Level",
+        "energyLevel": "Energy Level",
+        "instrumentation": "Instrumentation",
+        "vocalStyle": "Vocal Style",
+        "useCases": "Use Cases",
+        "explicitContent": "Explicit Content",
+        "tempoCharacter": "Tempo Character",
+        "musicalEra": "Musical Era",
+        "productionQuality": "Production Quality",
+        "dynamics": "Dynamics",
+        "targetAudience": "Target Audience",
+        "fileOwner": "File Owner",
+        "analysisReasoning": "Analysis Reasoning",
+        "dynamicRange": "Dynamic Range (dB LRA)",
+        "spectralCentroid": "Spectral Centroid (Hz)",
+        "spectralRolloff": "Spectral Rolloff (Hz)",
+        "acousticScore": "Acoustic Score",
+        "hasVocals": "Has Vocals",
+        "percussionDetected": "Percussion Detected",
+        "confidence": "AI Confidence",
+        "validation_report": "Validation Report",
+        # Hash
+        "sha256": "SHA-256",
+    }
+    ORDER = [
+        # Identity
+        "title", "artist", "album", "albumArtist", "year", "track", "duration",
+        # Sonic & Technical
+        "bpm", "key", "mode", "mainInstrument", "mainGenre", "additionalGenres", "language",
+        "trackDescription", "keywords",
+        # Legal
+        "isrc", "iswc", "upc", "catalogNumber", "license",
+        "publisher", "composer", "lyricist", "producer",
+        "copyright", "pLine",
+        # Hash & trust
+        "sha256", "confidence", "validation_report",
+    ]
+
+    def format_value(k: str, v: Any) -> str:
+        if v is None:
+            return ""
+        if k == "duration":
+            try:
+                total = int(float(v))
+                m, s = divmod(total, 60)
+                return f"{m}:{str(s).zfill(2)}"
+            except Exception:
+                return str(v)
+        if k == "validation_report" and isinstance(v, dict):
+            score = v.get("score")
+            status = v.get("status")
+            issues = len(v.get("issues", []) or [])
+            warnings = len(v.get("warnings", []) or [])
+            parts = []
+            if status is not None:
+                parts.append(f"status:{status}")
+            if score is not None:
+                parts.append(f"score:{score}")
+            parts.append(f"issues:{issues}")
+            parts.append(f"warnings:{warnings}")
+            return ", ".join(parts)
+        if isinstance(v, (list, tuple)):
+            return ", ".join([str(x) for x in v])
+        if isinstance(v, dict):
+            # compact inline dict
+            return ", ".join([f"{kk}:{vv}" for kk, vv in v.items()])
+        if isinstance(v, bool):
+            return "Yes" if v else "No"
+        return str(v)
+
     left_x, right_x = 80, int(w / 2) + 20
     col_width = int(w / 2) - 100
     left_y, right_y = y, y
     toggle = True
 
-    for k in sorted(metadata.keys()):
+    # Build ordered list of fields present
+    present_keys = [k for k in ORDER if k in (metadata or {})]
+    # Append any remaining fields not in ORDER
+    remaining = [k for k in (metadata or {}).keys() if k not in present_keys]
+    render_keys = present_keys + sorted(remaining)
+
+    for k in render_keys:
         val = metadata.get(k)
-        value_str = ""
-        if isinstance(val, (list, tuple)):
-            value_str = ", ".join([str(x) for x in val])
-        elif isinstance(val, dict):
-            # inline dict as simple key=value segments
-            value_str = ", ".join([f"{kk}:{vv}" for kk, vv in val.items()])
-        else:
-            value_str = str(val)
-        text_block = f"{k}: {value_str}"
+        if val is None or val == "":
+            continue
+        label = LABELS.get(k, k.replace("_", " ").title())
+        value_str = format_value(k, val)
+        text_block = f"{label}: {value_str}"
 
         if toggle:
             left_y = _draw_multiline(draw, text_block, (left_x, left_y), body_font, col_width)
@@ -127,4 +234,3 @@ def generate_certificate_pdf(
     out_path = os.path.join(CERT_DIR, f"{certificate_id}.pdf")
     bg.save(out_path, "PDF", resolution=150.0)
     return out_path
-

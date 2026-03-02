@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Metadata } from '../../types';
 import Card from './Card';
 import Button from '../Button';
-import { Shield, Lock, FileSignature, Stamp, Upload, Eye } from '../icons';
+import { Shield, Lock, FileSignature, Stamp, Upload, Eye, Download, ExternalLink } from '../icons';
 import { calculateFileHash, pinCertificateToIPFS } from '../../services/copyrightService';
 import CertificateViewer from '../CertificateViewer';
+import { getFullUrl } from '../../apiConfig';
 
 interface CopyrightCardProps {
     metadata: Metadata;
@@ -21,6 +22,9 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
     const [fileError, setFileError] = useState<string | null>(null);
     const [ipfsLink, setIpfsLink] = useState<string | null>(null);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [savedPdfUrl, setSavedPdfUrl] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [previewing, setPreviewing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Reset state when file changes or use pre-calculated hash
@@ -72,6 +76,148 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
     const handleViewCertificate = () => {
         if (!hash) return;
         setIsViewerOpen(true);
+    };
+
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
+    const handlePreviewPdf = async () => {
+        if (!hash || !jobId) {
+            showToast("Brak hash lub jobId – najpierw zakończ analizę.", 'error');
+            return;
+        }
+        setPreviewing(true);
+        try {
+            const res = await fetch(getFullUrl(`/certificate/generate/${jobId}?save=false`), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/pdf',
+                    ...getAuthHeaders(),
+                },
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `Błąd ${res.status}`);
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (e: any) {
+            console.error('Preview PDF failed:', e);
+            showToast(`Podgląd PDF nie powiódł się: ${e.message}`, 'error');
+        } finally {
+            setPreviewing(false);
+        }
+    };
+
+    const handleSavePdf = async () => {
+        if (!hash || !jobId) {
+            showToast("Brak hash lub jobId – najpierw zakończ analizę.", 'error');
+            return;
+        }
+        setSaving(true);
+        try {
+            const res = await fetch(getFullUrl(`/certificate/generate/${jobId}?save=true`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `Błąd ${res.status}`);
+            }
+            const data = await res.json();
+            const url = data?.pdf_url;
+            if (url) setSavedPdfUrl(url);
+            showToast("Certyfikat zapisany (naliczono $0.50).", 'success');
+        } catch (e: any) {
+            console.error('Save PDF failed:', e);
+            showToast(`Zapis certyfikatu nie powiódł się: ${e.message}`, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        try {
+            if (savedPdfUrl) {
+                window.open(savedPdfUrl, '_blank');
+                return;
+            }
+            // Fallback to preview and force download
+            if (!jobId) {
+                showToast("Brak jobId – nie można pobrać.", 'error');
+                return;
+            }
+            const res = await fetch(getFullUrl(`/certificate/generate/${jobId}?save=false`), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/pdf',
+                    ...getAuthHeaders(),
+                },
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `Błąd ${res.status}`);
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'certificate.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            console.error('Download PDF failed:', e);
+            showToast(`Pobieranie PDF nie powiodło się: ${e.message}`, 'error');
+        }
+    };
+
+    const handlePrintPdf = async () => {
+        try {
+            if (savedPdfUrl) {
+                const win = window.open(savedPdfUrl, '_blank');
+                if (win) {
+                    setTimeout(() => win.print(), 800);
+                }
+                return;
+            }
+            // Fallback: preview blob then print
+            if (!jobId) {
+                showToast("Brak jobId – nie można drukować.", 'error');
+                return;
+            }
+            const res = await fetch(getFullUrl(`/certificate/generate/${jobId}?save=false`), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/pdf',
+                    ...getAuthHeaders(),
+                },
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `Błąd ${res.status}`);
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const win = window.open(url, '_blank');
+            if (win) {
+                setTimeout(() => win.print(), 800);
+            }
+        } catch (e: any) {
+            console.error('Print PDF failed:', e);
+            showToast(`Drukowanie nie powiodło się: ${e.message}`, 'error');
+        }
     };
 
     const handleUploadIPFS = async () => {
@@ -168,29 +314,53 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
                         {/* STEP 2: ACTIONS */}
                         <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                             <span className="text-xs font-bold text-slate-500 uppercase mb-1">Step 2: Certificate Actions</span>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <Button
-                                    onClick={handleViewCertificate}
-                                    disabled={!hash}
+                                    onClick={handlePreviewPdf}
+                                    disabled={!hash || previewing || !jobId}
                                     size="sm"
                                     variant="primary"
                                     className={`flex-1 justify-center ${hash ? 'bg-emerald-600 hover:bg-emerald-700' : 'opacity-50'} text-white border-none`}
                                 >
-                                    <Stamp className="w-4 h-4 mr-2" /> View / Download PDF
+                                    {previewing ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <><Eye className="w-4 h-4 mr-2" /> Podgląd certyfikatu (PDF)</>
+                                    )}
                                 </Button>
 
                                 <Button
-                                    onClick={handleUploadIPFS}
-                                    disabled={!hash || isUploading}
+                                    onClick={handleSavePdf}
+                                    disabled={!hash || saving || !jobId}
                                     size="sm"
                                     variant="secondary"
                                     className={`flex-1 justify-center border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 ${!hash ? 'opacity-50' : ''}`}
                                 >
-                                    {isUploading ? (
+                                    {saving ? (
                                         <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
                                     ) : (
-                                        <><Upload className="w-4 h-4 mr-2" /> Protect (IPFS)</>
+                                        <><Stamp className="w-4 h-4 mr-2" /> Zapisz certyfikat (PDF) – $0.50</>
                                     )}
+                                </Button>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={handleDownloadPdf}
+                                    disabled={!hash || (!savedPdfUrl && !jobId)}
+                                    size="sm"
+                                    variant="secondary"
+                                    className="flex-1 justify-center"
+                                >
+                                    <Download className="w-4 h-4 mr-2" /> Pobierz PDF
+                                </Button>
+                                <Button
+                                    onClick={handlePrintPdf}
+                                    disabled={!hash || (!savedPdfUrl && !jobId)}
+                                    size="sm"
+                                    variant="secondary"
+                                    className="flex-1 justify-center"
+                                >
+                                    <ExternalLink className="w-4 h-4 mr-2" /> Drukuj
                                 </Button>
                             </div>
                             {!hash && (
