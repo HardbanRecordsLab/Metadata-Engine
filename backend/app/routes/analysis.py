@@ -335,10 +335,10 @@ async def generate_analysis(
     transcribe: str = Form("true"),
     is_fresh: str = Form("false"),
     model_preference: str = Form("flash"),
-    user_and_quota: tuple = Depends(get_user_and_check_quota),
+    current_user: User | None = Depends(get_user_and_check_quota),
     db: Session = Depends(get_db),
 ):
-    user, _ = user_and_quota
+    user = current_user or {"role": "guest"}
 
     # Validate file type
     allowed_exts = {".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg"}
