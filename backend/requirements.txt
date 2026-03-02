@@ -40,6 +40,7 @@ pyloudnorm
 soundfile
 Pillow
 Jinja2
+qrcode[pil]
 
 # === Dev Tools ===
 pytest

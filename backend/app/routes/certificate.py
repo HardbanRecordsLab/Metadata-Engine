@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import os
@@ -8,6 +9,7 @@ import librosa
 from app.db import SessionLocal, Job, Certificate, VerificationEvent
 from app.dependencies import get_user_and_check_quota, increment_user_quota
 from app.utils.hash_generator import generate_file_hash
+from app.services.certificate_pdf import generate_certificate_pdf, CERT_DIR
 
 router = APIRouter(prefix="/certificate", tags=["certificate"])
 logger = logging.getLogger(__name__)
@@ -36,7 +38,12 @@ def _calculate_duration_seconds(file_path: str) -> float:
 
 
 @router.post("/generate/{job_id}")
-async def generate_certificate(job_id: str, db: Session = Depends(get_db), current_user=Depends(get_user_and_check_quota)):
+async def generate_certificate(
+    job_id: str,
+    save: bool = Query(True, description="If true, persist certificate to DB and disk; if false, preview only"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_user_and_check_quota),
+):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -71,9 +78,21 @@ async def generate_certificate(job_id: str, db: Session = Depends(get_db), curre
 
     verification_status = "verified"
 
+    verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate_human_id}"
+    pdf_path = generate_certificate_pdf(
+        certificate_id=certificate_human_id,
+        file_name=job.file_name,
+        sha256=sha256_actual,
+        metadata=job.result,
+        verify_url=verify_url,
+    )
+
+    if not save:
+        return FileResponse(pdf_path, filename=f"{certificate_human_id}.pdf", media_type="application/pdf")
+
     certificate = Certificate(
         certificate_id=certificate_human_id,
-        user_id=current_user.id if current_user else None,
+        user_id=getattr(current_user, "id", None) if current_user else None,
         job_id=job.id,
         file_name=job.file_name,
         sha256=sha256_actual,
@@ -102,6 +121,8 @@ async def generate_certificate(job_id: str, db: Session = Depends(get_db), curre
         "verification_status": certificate.verification_status,
         "price_usd": certificate.price_usd,
         "created_at": certificate.created_at.isoformat() if certificate.created_at else None,
+        "pdf_url": f"https://metadata.hardbanrecordslab.online/api/certificate/pdf/{certificate.certificate_id}",
+        "verify_url": verify_url,
     }
 
 
@@ -141,3 +162,72 @@ async def verify_certificate(identifier: str, request: Request, db: Session = De
 
     return data
 
+
+@router.get("/pdf/{identifier}")
+async def get_certificate_pdf(identifier: str, db: Session = Depends(get_db)):
+    certificate = (
+        db.query(Certificate)
+        .filter(
+            (Certificate.certificate_id == identifier)
+            | (Certificate.sha256 == identifier)
+            | (Certificate.id == identifier)
+        )
+        .first()
+    )
+    if not certificate:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate.certificate_id}"
+    pdf_path = os.path.join(CERT_DIR, f"{certificate.certificate_id}.pdf")
+    if not os.path.exists(pdf_path):
+        pdf_path = generate_certificate_pdf(
+            certificate_id=certificate.certificate_id,
+            file_name=certificate.file_name,
+            sha256=certificate.sha256,
+            metadata=certificate.certificate_metadata or {},
+            verify_url=verify_url,
+        )
+    return FileResponse(pdf_path, filename=f"{certificate.certificate_id}.pdf", media_type="application/pdf")
+
+
+@router.get("/list")
+async def list_certificates(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user=Depends(get_user_and_check_quota),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns a paginated list of certificates for the current user.
+    Admins receive all certificates.
+    """
+    query = db.query(Certificate)
+    # If user is not present, return empty
+    if not current_user:
+        return {"items": [], "count": 0}
+    try:
+        from app.admin_config import is_admin
+        if not is_admin(getattr(current_user, "email", None)):
+            query = query.filter(Certificate.user_id == current_user.id)
+    except Exception:
+        query = query.filter(Certificate.user_id == current_user.id)
+
+    count = query.count()
+    items = (
+        query.order_by(Certificate.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    def _serialize(c: Certificate):
+        return {
+            "id": c.id,
+            "certificate_id": c.certificate_id,
+            "file_name": c.file_name,
+            "sha256": c.sha256,
+            "verification_status": c.verification_status,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "verify_url": f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{c.certificate_id}",
+            "pdf_url": f"https://metadata.hardbanrecordslab.online/api/certificate/pdf/{c.certificate_id}",
+        }
+    return {"items": [_serialize(c) for c in items], "count": count}
