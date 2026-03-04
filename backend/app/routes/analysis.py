@@ -76,6 +76,10 @@ ALLOWED_METADATA_KEYS = {
     "validation_report",
     # Confidence score from LLM ensemble
     "confidence",
+    # Pipeline meta
+    "analysisVersion",
+    "analysisTimestamp",
+    "pipelineParams",
 }
 
 
@@ -152,6 +156,9 @@ def sanitize_metadata(metadata: dict) -> dict:
     cleaned.setdefault("validation_report", {})
     cleaned.setdefault("analysisReasoning", "")
     cleaned.setdefault("similar_artists", [])
+    cleaned.setdefault("analysisVersion", "")
+    cleaned.setdefault("analysisTimestamp", "")
+    cleaned.setdefault("pipelineParams", {})
 
     # Keep energyLevel and energy_level in sync
     if cleaned.get("energyLevel") and not cleaned.get("energy_level"):
