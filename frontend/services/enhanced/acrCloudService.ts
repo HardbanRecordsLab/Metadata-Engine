@@ -28,7 +28,7 @@ async function hmacSha1(key: string, message: string): Promise<string> {
     return btoa(binary);
 }
 
-export const identifyTrack = async (file: File, config?: ACRCloudConfig): Promise<Metadata | null> => {
+export const identifyTrack = async (file: File, config?: ACRCloudConfig): Promise<Partial<Metadata> | null> => {
     // 1. Resolve Config: Passed > Saved > Window (Runtime) > Env (Build)
     const acr_win = (window as any);
     const activeConfig = config || getSavedACRConfig() || {
