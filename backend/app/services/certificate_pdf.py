@@ -1,8 +1,9 @@
 from typing import Dict, Any, Tuple
 import os
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import qrcode
+import math
 
 
 CERT_DIR = "/data/certificates"
@@ -44,6 +45,64 @@ def _draw_multiline(draw: ImageDraw.ImageDraw, text: str, xy: Tuple[int, int], f
     return y
 
 
+def _try_font(paths: Tuple[str, ...], size: int) -> ImageFont.ImageFont:
+    for p in paths:
+        if os.path.exists(p):
+            try:
+                return ImageFont.truetype(p, size=size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def _load_fonts():
+    bold_paths = (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/local/share/fonts/DejaVuSans-Bold.ttf",
+        "/usr/local/share/fonts/DejaVuSans.ttf",
+    )
+    regular_paths = (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/local/share/fonts/DejaVuSans.ttf",
+    )
+    title = _try_font(bold_paths, 96)
+    h1 = _try_font(bold_paths, 56)
+    h2 = _try_font(bold_paths, 42)
+    body = _try_font(regular_paths, 32)
+    mono = _try_font(regular_paths, 30)
+    return title, h1, h2, body, mono
+
+
+def _draw_border(draw: ImageDraw.ImageDraw, w: int, h: int, inset: int, color_outer: Tuple[int, int, int], color_inner: Tuple[int, int, int]):
+    draw.rectangle((inset, inset, w - inset, h - inset), outline=color_outer, width=12)
+    draw.rectangle((inset + 24, inset + 24, w - inset - 24, h - inset - 24), outline=color_inner, width=4)
+
+
+def _watermark(bg: Image.Image, text: str):
+    wm = Image.new("RGBA", bg.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(wm)
+    f = ImageFont.load_default()
+    tw = d.textlength(text, font=f)
+    angle = -25
+    x = -int(tw)
+    y = int(bg.size[1] * 0.35)
+    d.text((x, y), text, font=f, fill=(180, 180, 180, 35))
+    wm = wm.rotate(angle, expand=1)
+    bg.alpha_composite(wm)
+
+
+def _draw_seal(draw: ImageDraw.ImageDraw, center: Tuple[int, int], radius: int, color: Tuple[int, int, int]):
+    cx, cy = center
+    draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline=color, width=10)
+    draw.ellipse((cx - int(radius * 0.8), cy - int(radius * 0.8), cx + int(radius * 0.8), cy + int(radius * 0.8)), outline=color, width=3)
+    d = ImageDraw.Draw(draw.im)
+    f = ImageFont.load_default()
+    txt = "HRL VERIFIED"
+    tw = d.textlength(txt, font=f)
+    d.text((cx - tw // 2, cy - 8), txt, font=f, fill=color)
+
+
 def generate_certificate_pdf(
     certificate_id: str,
     file_name: str,
@@ -51,43 +110,43 @@ def generate_certificate_pdf(
     metadata: Dict[str, Any],
     verify_url: str,
 ) -> str:
-    """
-    Generates a single-page PDF certificate with all metadata and a QR code to the verification URL.
-    Returns absolute file path to the PDF.
-    """
-    w, h = 1240, 1754  # A4-ish at ~150 DPI
-    bg = Image.new("RGB", (w, h), color=(255, 255, 255))
+    w, h = 2480, 3508
+    bg = Image.new("RGBA", (w, h), color=(255, 255, 255, 255))
     draw = ImageDraw.Draw(bg)
-
-    # Fonts: use default PIL fonts to avoid OS deps
-    title_font = ImageFont.load_default()
-    header_font = ImageFont.load_default()
-    body_font = ImageFont.load_default()
-
-    # Header
-    y = 60
-    draw.text((80, y), "Certificate of Originality", font=title_font, fill=(0, 0, 0))
+    gold = (196, 155, 84)
+    slate = (30, 41, 59)
+    _draw_border(draw, w, h, 80, gold, (210, 210, 210))
+    _watermark(bg, "HARD BAN RECORDS LAB")
+    title_font, header_font, subheader_font, body_font, mono_font = _load_fonts()
+    y = 220
+    brand_logo_path = "/data/branding/logo.png"
+    if os.path.exists(brand_logo_path):
+        try:
+            logo = Image.open(brand_logo_path).convert("RGBA")
+            maxh = 180
+            ratio = maxh / logo.height
+            logo = logo.resize((int(logo.width * ratio), maxh))
+            bg.paste(logo, (180, y - 40), logo)
+        except Exception:
+            pass
+    title_text = "Digital Certificate of Authenticity"
+    tw = draw.textlength(title_text, font=title_font)
+    draw.text(((w - tw) // 2, y), title_text, font=title_font, fill=slate)
+    y += 120
+    draw.line([(160, y), (w - 160, y)], fill=gold, width=6)
     y += 40
-    draw.text((80, y), f"Certificate ID: {certificate_id}", font=header_font, fill=(0, 0, 0))
-    y += 30
-    draw.text((80, y), f"File: {file_name}", font=header_font, fill=(0, 0, 0))
-    y += 30
-    draw.text((80, y), f"Audio SHA-256: {sha256}", font=header_font, fill=(0, 0, 0))
-    y += 30
-    draw.text((80, y), f"Issued: {datetime.utcnow().isoformat()}Z", font=header_font, fill=(0, 0, 0))
-    y += 40
+    draw.text((180, y), f"Certificate ID: {certificate_id}", font=header_font, fill=slate)
+    y += 60
+    draw.text((180, y), f"File: {file_name}", font=subheader_font, fill=slate)
+    y += 54
+    draw.text((180, y), f"Audio SHA-256: {sha256}", font=mono_font, fill=slate)
+    y += 50
+    draw.text((180, y), f"Issued: {datetime.utcnow().isoformat()}Z", font=subheader_font, fill=slate)
+    y += 60
+    draw.line([(160, y), (w - 160, y)], fill=(220, 220, 220), width=3)
+    y += 50
 
-    # Divider
-    draw.line([(80, y), (w - 80, y)], fill=(0, 0, 0), width=2)
-    y += 20
-
-    # Metadata heading
-    draw.text((80, y), "Metadata", font=header_font, fill=(0, 0, 0))
-    y += 30
-
-    # Render metadata with UI-synced labels and priority ordering
     LABELS = {
-        # Identity
         "title": "Track Title",
         "artist": "Artist",
         "album": "Album",
@@ -95,7 +154,6 @@ def generate_certificate_pdf(
         "year": "Year",
         "track": "Track",
         "duration": "Duration",
-        # Sonic & Technical
         "bpm": "BPM",
         "key": "Key",
         "mode": "Mode",
@@ -105,7 +163,6 @@ def generate_certificate_pdf(
         "language": "Language",
         "trackDescription": "Description",
         "keywords": "Keywords",
-        # Credits & Legal
         "copyright": "Copyright",
         "pLine": "(P) Line",
         "publisher": "Publisher",
@@ -117,7 +174,6 @@ def generate_certificate_pdf(
         "iswc": "ISWC",
         "upc": "UPC",
         "license": "License",
-        # Misc / Advanced
         "similar_artists": "Similar Artists",
         "moods": "Moods",
         "mood_vibe": "Mood Vibe",
@@ -142,20 +198,15 @@ def generate_certificate_pdf(
         "percussionDetected": "Percussion Detected",
         "confidence": "AI Confidence",
         "validation_report": "Validation Report",
-        # Hash
         "sha256": "SHA-256",
     }
     ORDER = [
-        # Identity
         "title", "artist", "album", "albumArtist", "year", "track", "duration",
-        # Sonic & Technical
         "bpm", "key", "mode", "mainInstrument", "mainGenre", "additionalGenres", "language",
         "trackDescription", "keywords",
-        # Legal
         "isrc", "iswc", "upc", "catalogNumber", "license",
         "publisher", "composer", "lyricist", "producer",
         "copyright", "pLine",
-        # Hash & trust
         "sha256", "confidence", "validation_report",
     ]
 
@@ -185,20 +236,20 @@ def generate_certificate_pdf(
         if isinstance(v, (list, tuple)):
             return ", ".join([str(x) for x in v])
         if isinstance(v, dict):
-            # compact inline dict
             return ", ".join([f"{kk}:{vv}" for kk, vv in v.items()])
         if isinstance(v, bool):
             return "Yes" if v else "No"
         return str(v)
 
-    left_x, right_x = 80, int(w / 2) + 20
-    col_width = int(w / 2) - 100
+    section_title = "Metadata"
+    draw.text((180, y), section_title, font=header_font, fill=slate)
+    y += 46
+    left_x, right_x = 180, int(w / 2) + 60
+    col_width = int(w / 2) - 300
     left_y, right_y = y, y
     toggle = True
 
-    # Build ordered list of fields present
     present_keys = [k for k in ORDER if k in (metadata or {})]
-    # Append any remaining fields not in ORDER
     remaining = [k for k in (metadata or {}).keys() if k not in present_keys]
     render_keys = present_keys + sorted(remaining)
 
@@ -216,21 +267,24 @@ def generate_certificate_pdf(
             right_y = _draw_multiline(draw, text_block, (right_x, right_y), body_font, col_width)
         toggle = not toggle
 
-    y = max(left_y, right_y) + 30
+    y = max(left_y, right_y) + 60
 
-    # Divider
-    draw.line([(80, y), (w - 80, y)], fill=(0, 0, 0), width=2)
-    y += 20
+    draw.line([(160, y), (w - 160, y)], fill=(220, 220, 220), width=3)
+    y += 40
 
-    # QR code and verify URL
-    qr_img = _build_qr(verify_url, box_size=6, border=2)
-    qr_size = 280
+    qr_img = _build_qr(verify_url, box_size=8, border=2)
+    qr_size = 420
     qr_img = qr_img.resize((qr_size, qr_size))
-    bg.paste(qr_img, (80, y))
-    draw.text((80 + qr_size + 20, y + 20), "Verify this certificate:", font=header_font, fill=(0, 0, 0))
-    _ = _draw_multiline(draw, verify_url, (80 + qr_size + 20, y + 40), body_font, max_width=w - (80 + qr_size + 40))
+    bg.paste(qr_img, (w - 160 - qr_size, y))
+    draw.text((w - 160 - qr_size - 10 - int(draw.textlength("Verify this certificate:", font=header_font)), y + 20), "Verify this certificate:", font=header_font, fill=slate)
+    _ = _draw_multiline(draw, verify_url, (w - 160 - qr_size - 10 - 800, y + 60), body_font, max_width=780)
+    _draw_seal(draw, (int(160 + 220), int(y + qr_size / 2)), 120, gold)
+    sig_y = y + qr_size + 80
+    draw.line([(180, sig_y), (780, sig_y)], fill=slate, width=3)
+    draw.text((180, sig_y + 10), "Authorized Signature", font=body_font, fill=slate)
+    draw.text((180, sig_y + 60), "Issuer: Hardban Records Lab", font=body_font, fill=slate)
+    draw.text((180, sig_y + 100), "Issued at: metadata.hardbanrecordslab.online", font=body_font, fill=slate)
 
-    # Save as PDF
     out_path = os.path.join(CERT_DIR, f"{certificate_id}.pdf")
     bg.save(out_path, "PDF", resolution=150.0)
     return out_path
