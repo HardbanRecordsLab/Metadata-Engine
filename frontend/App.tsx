@@ -28,6 +28,7 @@ import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import UsagePanel from './components/UsagePanel';
 // BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
+import VerifyCertificatePage from './components/VerifyCertificatePage';
 
 // Lazy Load Heavy Components
 const BulkEditor = lazy(() => import('./components/BulkEditor'));
@@ -51,6 +52,11 @@ const LoadingFallback = () => (
 
 const AppContent: React.FC = () => {
     const { user, upgradeTier, isAuthenticated, refetchUser } = useAuth();
+
+    // Public verification route: /verify/:id?token=...
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/verify/')) {
+        return <VerifyCertificatePage />;
+    }
 
     const [isPricingOpen, setIsPricingOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
