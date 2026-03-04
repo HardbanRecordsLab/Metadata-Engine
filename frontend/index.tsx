@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
+import VerifyCertificatePage from './components/VerifyCertificatePage';
 import './index.css';
 
 console.log("App initializing...");
@@ -14,10 +15,11 @@ if (!rootElement) {
 
 console.log("Root element found, rendering...");
 const root = ReactDOM.createRoot(rootElement);
+const isVerifyRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/verify/');
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      {isVerifyRoute ? <VerifyCertificatePage /> : <App />}
     </AuthProvider>
   </React.StrictMode>
 );
