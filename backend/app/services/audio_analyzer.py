@@ -73,7 +73,10 @@ class AdvancedAudioAnalyzer:
         Analyze audio using Essentia (User Preferred Method).
         """
         try:
-            import essentia.standard as es
+            try:
+                import essentia.standard as es
+            except ImportError:
+                return {"success": False, "error": "Essentia not available"}
             import numpy as np
             logger.info(f"Using Essentia Standard for analysis (Fast Mode: {fast})...")
             
@@ -128,7 +131,7 @@ class AdvancedAudioAnalyzer:
                 "success": True
             }
         except Exception as e:
-            logger.warning(f"Essentia analysis failed: {e}")
+            logger.info(f"Essentia analysis failed: {e}")
             return {"success": False, "error": str(e)}
 
     @staticmethod
