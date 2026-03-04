@@ -266,6 +266,25 @@ async def process_analysis(
             job_id=job_id,
         )
 
+        try:
+            if settings.GROQ_API_KEY and remaining() > 5:
+                from app.services.groq_whisper import GroqWhisperService
+                gr = await GroqWhisperService.full_pipeline(file_path, transcribe=transcribe)
+                gm = gr.get("metadata", {})
+                if isinstance(gm, dict) and gm:
+                    for k, v in gm.items():
+                        if v not in (None, "", [], {}):
+                            if k in ("bpm", "key", "mode", "duration", "structure"):
+                                metadata[k] = metadata.get(k) or v
+                            elif k == "trackDescription":
+                                md = str(metadata.get("trackDescription") or "")
+                                gd = str(v or "")
+                                metadata["trackDescription"] = gd if len(gd) > len(md) else md
+                            else:
+                                metadata[k] = metadata.get(k) or v
+        except Exception as e:
+            logger.warning(f"Groq merge failed: {e}")
+
         # Extract _tech_meta before sanitize (not a metadata field)
         tech_meta = metadata.pop("_tech_meta", {})
 
