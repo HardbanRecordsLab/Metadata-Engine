@@ -197,6 +197,20 @@ class FreshTrackAnalyzer:
             # Use _tech_meta instead of meta to avoid conflicts with Metadata schema
             final_result['_tech_meta']['analysis_time'] = round(total_time, 2)
             final_result['_tech_meta']['target_met'] = total_time <= time_budget
+            try:
+                from datetime import datetime
+                ts = datetime.utcnow().isoformat() + "Z"
+            except Exception:
+                ts = ""
+            final_result["analysisVersion"] = "2.1.0"
+            final_result["analysisTimestamp"] = ts
+            final_result["pipelineParams"] = {
+                "includeLyrics": bool(include_lyrics),
+                "modelPreference": str(model_preference),
+                "timeBudgetSec": int(time_budget),
+                "featureCount": int(audio_features.get("meta", {}).get("total_features", 0)),
+                "sampleRate": int(audio_features.get("meta", {}).get("sample_rate", 0)),
+            }
             
             logger.info(f"Analysis completed in {total_time:.1f}s")
             
@@ -466,6 +480,45 @@ Return JSON:
             "structure": audio_features.get('structure', []),
             "duration":  audio_features.get('meta', {}).get('duration', 0),
         }
+
+        if not metadata.get("analysisReasoning"):
+            r = audio_features.get("rhythm", {})
+            h = audio_features.get("harmonic", {})
+            s = audio_features.get("spectral", {})
+            e = audio_features.get("energy", {})
+            st = audio_features.get("structure", {})
+            tempo = r.get("tempo")
+            rhythm_complexity = st.get("rhythm_complexity") or r.get("rhythm_complexity")
+            segs = st.get("segment_count") or st.get("segments") or 0
+            centroid = s.get("centroid_mean") or s.get("centroid")
+            rolloff = s.get("rolloff_mean") or s.get("rolloff")
+            flatness = s.get("flatness_mean") or s.get("flatness")
+            hp = h.get("harmonic_percussive_ratio")
+            dr = e.get("dynamic_range")
+            rms = e.get("rms_mean") or e.get("rms")
+            parts = []
+            if tempo:
+                parts.append(f"Tempo {round(float(tempo),2)} BPM ({metadata.get('tempoCharacter','')}).")
+            if metadata.get("key") and metadata.get("mode"):
+                parts.append(f"Tonacja {metadata['key']} {metadata['mode']}.")
+            if centroid:
+                parts.append(f"Spektralnie centroid ~{int(centroid)} Hz.")
+            if rolloff:
+                parts.append(f"Rolloff ~{int(rolloff)} Hz.")
+            if flatness is not None:
+                parts.append(f"Spłaszczenie {round(float(flatness),3)}.")
+            if hp is not None:
+                parts.append(f"Stosunek harmoniczno-perkusyjny {round(float(hp),2)}.")
+            if dr is not None:
+                parts.append(f"Zakres dynamiczny {round(float(dr),3)}.")
+            if rms is not None:
+                parts.append(f"Średni RMS {round(float(rms),3)}.")
+            if segs:
+                parts.append(f"Segmentacja {int(segs)} części.")
+            if rhythm_complexity:
+                parts.append(f"Złożoność rytmiczna {str(rhythm_complexity)}.")
+            desc = " ".join([p for p in parts if p])
+            metadata["analysisReasoning"] = desc.strip()
 
         # Merge lyrics if present
         if lyrics_analysis.get('has_lyrics'):
