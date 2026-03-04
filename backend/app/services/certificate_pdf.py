@@ -96,11 +96,13 @@ def _draw_seal(draw: ImageDraw.ImageDraw, center: Tuple[int, int], radius: int, 
     cx, cy = center
     draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline=color, width=10)
     draw.ellipse((cx - int(radius * 0.8), cy - int(radius * 0.8), cx + int(radius * 0.8), cy + int(radius * 0.8)), outline=color, width=3)
-    d = ImageDraw.Draw(draw.im)
     f = ImageFont.load_default()
     txt = "HRL VERIFIED"
-    tw = d.textlength(txt, font=f)
-    d.text((cx - tw // 2, cy - 8), txt, font=f, fill=color)
+    try:
+        tw = draw.textlength(txt, font=f)
+    except Exception:
+        tw = len(txt) * f.size
+    draw.text((cx - int(tw // 2), cy - int(f.size // 2)), txt, font=f, fill=color)
 
 
 def generate_certificate_pdf(
