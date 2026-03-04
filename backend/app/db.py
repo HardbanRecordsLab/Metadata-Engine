@@ -101,6 +101,7 @@ class Certificate(Base):
     verification_status = Column(String, default="pending")
     price_usd = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
+    view_token = Column(String, nullable=True)
 
 class VerificationEvent(Base):
     __tablename__ = "verification_events"
@@ -125,6 +126,13 @@ def run_migrations():
             # Safely add metadata column if missing
             try:
                 conn.execute(text("ALTER TABLE analysis_history ADD COLUMN metadata TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
+            # Safely add view_token to certificates if missing
+            try:
+                conn.execute(text("ALTER TABLE certificates ADD COLUMN view_token TEXT"))
                 conn.commit()
             except Exception:
                 pass  # Column already exists
