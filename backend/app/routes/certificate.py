@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import logging
 import librosa
+import secrets
 
 from app.db import SessionLocal, Job, Certificate, VerificationEvent
 from app.dependencies import get_user_and_check_quota, increment_user_quota
@@ -86,7 +87,21 @@ async def generate_certificate(
 
     verification_status = "verified"
 
-    verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate_human_id}"
+    verify_url: str
+    if not save:
+        verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate_human_id}"
+        pdf_path = generate_certificate_pdf(
+            certificate_id=certificate_human_id,
+            file_name=job.file_name,
+            sha256=sha256_actual,
+            metadata=job.result,
+            verify_url=verify_url,
+        )
+        return FileResponse(pdf_path, filename=f"{certificate_human_id}.pdf", media_type="application/pdf")
+
+    # For saved certificates, generate a private view token and embed a frontend verify URL with token
+    view_token = secrets.token_urlsafe(24)
+    verify_url = f"https://app-metadata.hardbanrecordslab.online/verify/{certificate_human_id}?token={view_token}"
     pdf_path = generate_certificate_pdf(
         certificate_id=certificate_human_id,
         file_name=job.file_name,
@@ -94,9 +109,6 @@ async def generate_certificate(
         metadata=job.result,
         verify_url=verify_url,
     )
-
-    if not save:
-        return FileResponse(pdf_path, filename=f"{certificate_human_id}.pdf", media_type="application/pdf")
 
     certificate = Certificate(
         certificate_id=certificate_human_id,
@@ -108,6 +120,7 @@ async def generate_certificate(
         verification_status=verification_status,
         price_usd=1,
         created_at=now,
+        view_token=view_token,
     )
 
     db.add(certificate)
@@ -135,7 +148,7 @@ async def generate_certificate(
 
 
 @router.get("/verify/{identifier}")
-async def verify_certificate(identifier: str, request: Request, db: Session = Depends(get_db)):
+async def verify_certificate(identifier: str, request: Request, token: str | None = Query(None), db: Session = Depends(get_db)):
     certificate = (
         db.query(Certificate)
         .filter(
@@ -147,6 +160,11 @@ async def verify_certificate(identifier: str, request: Request, db: Session = De
     )
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found")
+
+    # If view_token is set, require a matching token
+    if getattr(certificate, "view_token", None):
+        if not token or token != certificate.view_token:
+            raise HTTPException(status_code=403, detail="Valid QR token required")
 
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
@@ -185,7 +203,12 @@ async def get_certificate_pdf(identifier: str, db: Session = Depends(get_db)):
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found")
 
-    verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate.certificate_id}"
+    # Embed frontend verify URL with token if available
+    vt = getattr(certificate, "view_token", None)
+    if vt:
+        verify_url = f"https://app-metadata.hardbanrecordslab.online/verify/{certificate.certificate_id}?token={vt}"
+    else:
+        verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate.certificate_id}"
     pdf_path = os.path.join(CERT_DIR, f"{certificate.certificate_id}.pdf")
     if not os.path.exists(pdf_path):
         pdf_path = generate_certificate_pdf(
