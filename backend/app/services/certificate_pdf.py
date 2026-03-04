@@ -6,7 +6,7 @@ import qrcode
 import math
 
 
-CERT_DIR = "/data/certificates"
+CERT_DIR = os.getenv("CERT_DIR", "/data/certificates")
 os.makedirs(CERT_DIR, exist_ok=True)
 
 
@@ -184,6 +184,7 @@ def generate_certificate_pdf(
         "instrumentation": "Instrumentation",
         "vocalStyle": "Vocal Style",
         "useCases": "Use Cases",
+        "structure": "Structure",
         "explicitContent": "Explicit Content",
         "tempoCharacter": "Tempo Character",
         "musicalEra": "Musical Era",
@@ -204,7 +205,7 @@ def generate_certificate_pdf(
     }
     ORDER = [
         "title", "artist", "album", "albumArtist", "year", "track", "duration",
-        "bpm", "key", "mode", "mainInstrument", "mainGenre", "additionalGenres", "language",
+        "bpm", "key", "mode", "mainInstrument", "mainGenre", "additionalGenres", "language", "structure",
         "trackDescription", "keywords",
         "isrc", "iswc", "upc", "catalogNumber", "license",
         "publisher", "composer", "lyricist", "producer",
@@ -213,8 +214,8 @@ def generate_certificate_pdf(
     ]
 
     def format_value(k: str, v: Any) -> str:
-        if v is None:
-            return ""
+        if v is None or v == "":
+            return "—"
         if k == "duration":
             try:
                 total = int(float(v))
@@ -251,14 +252,12 @@ def generate_certificate_pdf(
     left_y, right_y = y, y
     toggle = True
 
-    present_keys = [k for k in ORDER if k in (metadata or {})]
-    remaining = [k for k in (metadata or {}).keys() if k not in present_keys]
+    present_keys = [k for k in ORDER if True]
+    remaining = [k for k in (metadata or {}).keys() if k not in ORDER]
     render_keys = present_keys + sorted(remaining)
 
     for k in render_keys:
         val = metadata.get(k)
-        if val is None or val == "":
-            continue
         label = LABELS.get(k, k.replace("_", " ").title())
         value_str = format_value(k, val)
         text_block = f"{label}: {value_str}"
