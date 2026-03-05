@@ -40,7 +40,10 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     Admins bypass all quota checks.
     """
     if not current_user:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zaloguj się, aby skorzystać z 10 darmowych analiz."
+        )
         
     # Check if user is admin
     from app.admin_config import is_admin
@@ -51,8 +54,8 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
         return current_user
         
     # Check credits directly from User model
-    # If credits is None, assume default 5 (starter)
-    credits = current_user.credits if current_user.credits is not None else 5
+    # If credits is None, assume default 10 (starter free tier)
+    credits = current_user.credits if current_user.credits is not None else 10
     
     # Check if we should enforce quota based on credits
     # Simple logic: 1 analysis = 1 credit? 

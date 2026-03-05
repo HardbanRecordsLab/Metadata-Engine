@@ -13,10 +13,13 @@ interface ProAnalysisCardProps {
 const ProAnalysisCard: React.FC<ProAnalysisCardProps> = ({ metadata, audioFeatures }) => {
     const [detectedInstruments, setDetectedInstruments] = useState<string[]>([]);
     const [confidence, setConfidence] = useState(0);
+    const [hasVocals, setHasVocals] = useState<boolean | null>(null);
+    const [percussionDetected, setPercussionDetected] = useState<boolean | null>(null);
+    const [acousticScore, setAcousticScore] = useState<number | null>(null);
 
     useEffect(() => {
         if (audioFeatures?.balance) {
-            const { instruments, confidence: conf } = detectInstrumentsWithGenre(
+            const { instruments, confidence: conf, hasVocals: hv, percussionDetected: pd, acousticScore: ascore } = detectInstrumentsWithGenre(
                 {
                     balance: audioFeatures.balance,
                     bpm: audioFeatures.bpm || metadata.bpm || 120,
@@ -32,6 +35,9 @@ const ProAnalysisCard: React.FC<ProAnalysisCardProps> = ({ metadata, audioFeatur
             );
             setDetectedInstruments(instruments);
             setConfidence(conf);
+            setHasVocals(typeof hv === 'boolean' ? hv : null);
+            setPercussionDetected(typeof pd === 'boolean' ? pd : null);
+            setAcousticScore(typeof ascore === 'number' ? ascore : null);
         }
     }, [audioFeatures, metadata]);
 
@@ -123,6 +129,33 @@ const ProAnalysisCard: React.FC<ProAnalysisCardProps> = ({ metadata, audioFeatur
                         <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-slate-800">
                             <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Spectral Centroid</div>
                             <div className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">{audioFeatures.spectralCentroid} Hz</div>
+                        </div>
+                    )}
+                    {audioFeatures.spectralRolloff != null && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Spectral Rolloff</div>
+                            <div className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">{audioFeatures.spectralRolloff} Hz</div>
+                        </div>
+                    )}
+                    {acousticScore != null && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Acoustic Score</div>
+                            <div className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">{acousticScore}</div>
+                        </div>
+                    )}
+                    {hasVocals !== null && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                            <Mic className="w-4 h-4 text-slate-500" />
+                            <div>
+                                <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Vocals Detected</div>
+                                <div className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">{hasVocals ? 'Yes' : 'No'}</div>
+                            </div>
+                        </div>
+                    )}
+                    {percussionDetected !== null && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Percussion</div>
+                            <div className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">{percussionDetected ? 'Yes' : 'No'}</div>
                         </div>
                     )}
                     {audioFeatures.energy && (

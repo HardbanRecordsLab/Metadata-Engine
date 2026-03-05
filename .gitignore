@@ -1,4 +1,4 @@
-﻿# Node
+# Node
 node_modules/
 dist/
 .vercel
@@ -28,6 +28,8 @@ backend/uploads/
 backend/temp_processing/
 backend/temp_uploads/
 frontend/public/uploads/
+backend/local_output/
+czat.txt
 
 # OS
 .DS_Store

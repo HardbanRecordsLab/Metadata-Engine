@@ -17,8 +17,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
     name: "Kamil Skomra",
     company: "HardbanRecords Lab",
     address: "Poland, EU",
-    email: "hardbanrecordslab.pl@gmail.com",
-    website: "musicmetadata.ai",
+    email: "contact@hardbanrecordslab.online",
+    website: "https://hardbanrecordslab.online",
+    app: "https://app-metadata.hardbanrecordslab.online/",
     jurisdiction: "Republic of Poland",
     court: "District Court appropriate for the Service Provider's seat"
   };
@@ -124,12 +125,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">6. Data Sharing and Third Parties</h3>
-                <p>We do not sell your personal data. We share data only with the following sub-processors required to operate the infrastructure:</p>
+                <p>We do not sell your personal data. We share data only with essential service providers required to operate the infrastructure:</p>
                 <ul className="list-disc pl-5 mt-2 space-y-2">
-                    <li><strong>Supabase (USA/Global):</strong> For database hosting, authentication, and backend logic. Protected by Standard Contractual Clauses (SCCs).</li>
-                    <li><strong>Google Cloud Platform / Vertex AI (USA):</strong> For generative AI processing.</li>
-                    <li><strong>Lemon Squeezy (USA):</strong> Merchant of Record. They handle tax compliance (VAT, Sales Tax), invoicing, and payment processing globally.</li>
-                    <li><strong>Vercel (USA):</strong> For frontend hosting and edge network delivery.</li>
+                    <li><strong>Hosting/Infrastructure:</strong> For application and database hosting and security.</li>
+                    <li><strong>AI Inference Provider:</strong> To process audio-derived features and generate descriptive metadata.</li>
+                    <li><strong>Payment Processor / Merchant of Record:</strong> When paid plans are enabled, payments may be handled by a third-party MoR for global tax compliance and invoicing.</li>
+                    <li><strong>CDN/Edge Network:</strong> For frontend delivery and performance.</li>
                 </ul>
             </section>
 
@@ -210,13 +211,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">4. Subscriptions, Payments, and Billing (Lemon Squeezy)</h3>
-                <p className="mb-2"><strong>4.1. Merchant of Record:</strong> Our order process is conducted by our online reseller <strong>Lemon Squeezy</strong>. Lemon Squeezy is the Merchant of Record for all our orders. Lemon Squeezy provides all customer service inquiries and handles returns.</p>
-                <p className="mb-2"><strong>4.2. Billing Cycle:</strong> The Service is billed on a subscription basis (monthly or annually). You will be billed in advance on a recurring and periodic basis directly by Lemon Squeezy.</p>
-                <p className="mb-2"><strong>4.3. Taxes:</strong> Prices displayed on our website may or may not include taxes depending on your location. Lemon Squeezy automatically calculates and collects the appropriate Value Added Tax (VAT), GST, or Sales Tax based on your billing address in accordance with local laws.</p>
-                <p className="mb-2"><strong>4.4. Cancellation:</strong> You may cancel your subscription at any time via the user dashboard or the link provided in your email invoice from Lemon Squeezy. Your access will continue until the end of the current billing period.</p>
-                <p className="mb-2"><strong>4.5. Refunds:</strong> We offer a 14-day refund policy for the initial purchase if you are not satisfied, provided you have not used more than 20% of the allocated credits for that month. Refunds for renewals are granted at our sole discretion. All refund requests must be directed through Lemon Squeezy or our support.</p>
-                <p className="mb-2"><strong>4.6. Fee Changes:</strong> We reserve the right to modify the pricing of our Service at any time. Any price change will become effective at the end of the then-current billing cycle.</p>
+                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">4. Subscriptions, Payments, and Billing</h3>
+                <p className="mb-2"><strong>4.1. Merchant of Record:</strong> When paid plans are enabled, orders may be conducted by an online reseller acting as Merchant of Record. They provide invoicing, tax compliance, customer service inquiries, and handle returns.</p>
+                <p className="mb-2"><strong>4.2. Billing Cycle:</strong> If applicable, the Service may be billed on a subscription basis (monthly or annually) in advance on a recurring and periodic basis.</p>
+                <p className="mb-2"><strong>4.3. Taxes:</strong> Prices may include or exclude taxes depending on your location. Any applicable taxes will be calculated and collected according to local laws.</p>
+                <p className="mb-2"><strong>4.4. Cancellation:</strong> You may cancel a subscription at any time via the available billing portal or the link provided in your invoice email. Access will continue until the end of the current billing period.</p>
+                <p className="mb-2"><strong>4.5. Refunds:</strong> Initial purchases may be eligible for a limited refund window in accordance with our then-current refund policy and local consumer laws.</p>
+                <p className="mb-2"><strong>4.6. Fee Changes:</strong> We may modify pricing at any time. Any change will become effective at the end of the then-current billing cycle.</p>
             </section>
 
             <section>
@@ -354,10 +355,10 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">3. Third-Party Cookies (Lemon Squeezy)</h3>
+                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">3. Third-Party Cookies (Payments)</h3>
                 <p>In addition to our own cookies, we may also use various third-parties cookies to report usage statistics of the Service and handle payments.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li><strong>Lemon Squeezy:</strong> When you initiate a checkout process, Lemon Squeezy may place cookies to process payments securely, remember your cart contents, and detect fraud. By proceeding to checkout, you agree to Lemon Squeezy's Cookie Policy.</li>
+                    <li><strong>Payment Processor / MoR:</strong> When you initiate a checkout process (if enabled), a payment provider may place cookies to process payments securely, remember your cart contents, and detect fraud. By proceeding to checkout, you agree to the provider's Cookie Policy.</li>
                     <li><strong>Google Identity:</strong> If you use "Sign in with Google", Google may place cookies for authentication purposes.</li>
                 </ul>
             </section>
@@ -489,6 +490,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                     <div className="text-right">
                         Support: {ownerData.email}<br/>
                         Web: {ownerData.website}<br/>
+                        App: {ownerData.app}<br/>
                         &copy; {new Date().getFullYear()} All Rights Reserved.
                     </div>
                 </div>

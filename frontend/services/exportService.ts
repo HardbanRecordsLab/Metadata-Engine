@@ -22,10 +22,10 @@ function flattenMetadata(metadata: Metadata): Record<string, string> {
         'trackDescription', 'analysisReasoning',
         'targetAudience', 'useCases', 'similar_artists',
         'musicalEra', 'productionQuality', 'dynamics', 'tempoCharacter',
-        'language', 'explicitContent',
+        'language', 'explicitContent', 'fileOwner',
         'copyright', 'pLine', 'publisher', 'composer', 'lyricist', 'producer',
         'catalogNumber', 'isrc', 'iswc', 'upc', 'sha256', 'license',
-        'acousticScore', 'hasVocals',
+        'acousticScore', 'hasVocals', 'spectralCentroid', 'spectralRolloff',
     ];
 
     for (const field of fields) {

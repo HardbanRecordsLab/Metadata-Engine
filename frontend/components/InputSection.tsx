@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, Music, Download, Globe, Zap, BrainCircuit, Shield, LayoutGrid, X, ArrowRight, Sparkles } from './icons';
+import { Upload, Music, Download, Zap, BrainCircuit, Shield, LayoutGrid, X, ArrowRight, Sparkles } from './icons';
 import Button from './Button';
 import { BatchItem, UserTier } from '../types';
 import BatchQueueItem from './BatchQueueItem';
@@ -18,15 +18,13 @@ interface InputSectionProps {
     userTier: UserTier;
     userCredits: number;
     onOpenPricing: () => void;
-    onOpenCloudImport: () => void;
-    onOpenBulkEdit: () => void;
     isFresh: boolean;
     setIsFresh: (isFresh: boolean) => void;
     onRetry: (id: string) => void;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
-    batch, setBatch, onAnalyze, isProMode, setIsProMode, isProcessingBatch, onViewResults, onRetry, onExportBatch, userTier, userCredits, onOpenPricing, onOpenCloudImport, showToast, onOpenBulkEdit, isFresh, setIsFresh
+    batch, setBatch, onAnalyze, isProMode, setIsProMode, isProcessingBatch, onViewResults, onRetry, onExportBatch, userTier, userCredits, onOpenPricing, showToast, isFresh, setIsFresh
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragCounter = useRef(0);
@@ -98,13 +96,18 @@ const InputSection: React.FC<InputSectionProps> = ({
                     </h2>
                     <p className="text-slate-500 font-medium">Inject professional metadata into your master stems.</p>
                 </div>
-
-                <div className="hidden md:flex items-center gap-3 bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-white/10">
-                    <button onClick={onOpenCloudImport} className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-400">
-                        <Globe className="w-4 h-4" /> Import Cloud
-                    </button>
-                    <div className="w-px h-4 bg-white/10"></div>
-                </div>
+                {isStarter && (
+                    <div className="flex items-center gap-2">
+                        <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${userCredits > 0 ? 'text-yellow-500 border-yellow-500/30' : 'text-red-500 border-red-500/30'}`}>
+                            {userCredits > 0 ? `Free analyses: ${userCredits}/10` : 'Free quota exhausted'}
+                        </span>
+                        {userCredits === 0 && (
+                            <button onClick={onOpenPricing} className="text-xs font-black px-3 py-1.5 rounded-full grad-violet text-white shadow">
+                                Upgrade Plan
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Premium Dropzone */}
@@ -225,10 +228,10 @@ const InputSection: React.FC<InputSectionProps> = ({
                             onClick={() => onAnalyze(isProMode ? 'pro' : 'flash')}
                             variant="primary"
                             size="lg"
-                            disabled={isProcessingBatch || pendingItemsCount === 0}
+                            disabled={isProcessingBatch || pendingItemsCount === 0 || (isStarter && userCredits === 0)}
                             className="rounded-3xl grad-violet font-black"
                         >
-                            {isProcessingBatch ? 'Mastering Tracks...' : `Execute Analysis ${pendingItemsCount > 0 ? `(${pendingItemsCount})` : ''}`}
+                            {isProcessingBatch ? 'Mastering Tracks...' : (isStarter && userCredits === 0 ? 'Upgrade to Continue' : `Execute Analysis ${pendingItemsCount > 0 ? `(${pendingItemsCount})` : ''}`)}
                         </Button>
                     </div>
                 </div>

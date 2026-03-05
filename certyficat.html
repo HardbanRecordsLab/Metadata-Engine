@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Audio Authenticity - HardbanRecords Lab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            background: linear-gradient(135deg, #e8f4f8 0%, #f5f9fb 100%);
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1A1A1A;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .toolbar {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            margin: 0 8px;
+            background: #364558;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #B8956A;
+        }
+
+        .btn-save {
+            background: #FF8C42;
+        }
+
+        .btn-save:hover {
+            background: #e67e30;
+        }
+
+        .certificate {
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #364558 0%, #4a5f7a 100%);
+            color: white;
+            padding: 40px;
+            text-align: left;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #B8956A;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            width: 60px;
+            height: 3px;
+            background: #B8956A;
+            margin-top: 15px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #364558;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #d0d8e0;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table tr {
+            border-bottom: 1px solid #e8eef5;
+        }
+
+        .info-table tr:hover {
+            background-color: #f8fafb;
+        }
+
+        .info-table td {
+            padding: 12px 10px;
+            font-size: 9.5px;
+            line-height: 1.5;
+        }
+
+        .info-table td:first-child {
+            font-weight: bold;
+            color: #364558;
+            width: 35%;
+            text-transform: uppercase;
+            font-size: 9px;
+        }
+
+        .info-table td:last-child {
+            color: #1A1A1A;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #FF8C42;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .highlight-box {
+            background: #f0e5d8;
+            padding: 15px;
+            border-left: 4px solid #B8956A;
+            margin: 15px 0;
+            font-size: 9.5px;
+            line-height: 1.6;
+        }
+
+        .highlight-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #364558;
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+
+        .footer {
+            padding: 20px 40px;
+            font-size: 8px;
+            color: #99a8b5;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #e8eef5;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .toolbar {
+                display: none;
+            }
+            .certificate {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            .header {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .info-table td {
+                padding: 8px 5px;
+                font-size: 8px;
+            }
+            .footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="btn" onclick="window.print()">🖨️ PRINT</button>
+        <button class="btn btn-save" onclick="downloadHTML()">⬇️ SAVE HTML</button>
+    </div>
+
+    <!-- PAGE 1 -->
+    <div class="certificate">
+        <div class="header">
+            <h1>Certificate of Audio Authenticity</h1>
+            <p>HardbanRecords Lab DSP Analysis</p>
+            <div class="divider"></div>
+        </div>
+
+        <div class="content">
+
+            <!-- 1. IDENTITY -->
+            <div class="section">
+                <div class="section-title">1. Identity</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Serial ID</td>
+                        <td>{{SERIAL_ID}}</td>
+                    </tr>
+                    <tr>
+                        <td>Certificate Date</td>
+                        <td>{{CERT_DATE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Certificate ID</td>
+                        <td>{{CERT_ID}}</td>
+                    </tr>
+                    <tr>
+                        <td>File Owner</td>
+                        <td>{{FILE_OWNER}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 2. TRACK IDENTIFICATION -->
+            <div class="section">
+                <div class="section-title">2. Track Identification</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Title</td>
+                        <td><strong>{{TITLE}}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Artist</td>
+                        <td><strong>{{ARTIST}}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Album</td>
+                        <td>{{ALBUM}}</td>
+                    </tr>
+                    <tr>
+                        <td>Album Artist</td>
+                        <td>{{ALBUM_ARTIST}}</td>
+                    </tr>
+                    <tr>
+                        <td>Genre (Primary)</td>
+                        <td>{{MAIN_GENRE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Additional Genres</td>
+                        <td>{{ADDITIONAL_GENRES}}</td>
+                    </tr>
+                    <tr>
+                        <td>Track Number</td>
+                        <td>Track {{TRACK}}</td>
+                    </tr>
+                    <tr>
+                        <td>Year</td>
+                        <td>{{YEAR}}</td>
+                    </tr>
+                    <tr>
+                        <td>Duration</td>
+                        <td>{{DURATION}}</td>
+                    </tr>
+                    <tr>
+                        <td>Cover Art</td>
+                        <td>High-resolution artwork on file</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 3. SONIC DATA -->
+            <div class="section">
+                <div class="section-title">3. Sonic & Technical Data</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Tempo (BPM)</td>
+                        <td><strong>{{BPM}}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Key</td>
+                        <td><strong>{{KEY}}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Mode</td>
+                        <td>{{MODE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Energy Level</td>
+                        <td>{{ENERGY_LEVEL}}</td>
+                    </tr>
+                    <tr>
+                        <td>Main Instrument</td>
+                        <td>{{MAIN_INSTRUMENT}}</td>
+                    </tr>
+                    <tr>
+                        <td>Additional Instruments</td>
+                        <td>{{INSTRUMENTS}}</td>
+                    </tr>
+                    <tr>
+                        <td>Dynamics</td>
+                        <td>{{DYNAMICS}}</td>
+                    </tr>
+                    <tr>
+                        <td>Production Quality</td>
+                        <td>{{PRODUCTION_QUALITY}}</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <span><strong>PAGE 1 / 2 | HardbanRecords Lab v3.0</strong></span>
+            <span>DOCUMENT GENERATED DIGITALLY</span>
+        </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="certificate page-break">
+        <div class="header">
+            <h1>Certificate Continued</h1>
+            <p>Serial ID: {{SERIAL_ID}} | {{TITLE}} by {{ARTIST}}</p>
+            <div class="divider"></div>
+        </div>
+
+        <div class="content">
+
+            <!-- 4. CLASSIFICATION -->
+            <div class="section">
+                <div class="section-title">4. Classification & Description</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Main Genre</td>
+                        <td>{{MAIN_GENRE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Moods</td>
+                        <td>{{MOODS_BADGES}}</td>
+                    </tr>
+                    <tr>
+                        <td>Mood Vibe</td>
+                        <td>{{MOOD_VIBE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Tempo Character</td>
+                        <td>{{TEMPO_CHARACTER}}</td>
+                    </tr>
+                    <tr>
+                        <td>Musical Era</td>
+                        <td>{{MUSICAL_ERA}}</td>
+                    </tr>
+                    <tr>
+                        <td>Vocal Style</td>
+                        <td>{{VOCAL_STYLE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Explicit Content</td>
+                        <td>{{EXPLICIT_CONTENT}}</td>
+                    </tr>
+                    <tr>
+                        <td>Language</td>
+                        <td>{{LANGUAGE}}</td>
+                    </tr>
+                </table>
+
+                <div class="highlight-box">
+                    <strong>Track Description:</strong>
+                    {{TRACK_DESCRIPTION}}
+                </div>
+            </div>
+
+            <!-- 5. USE CASES & KEYWORDS -->
+            <div class="section">
+                <div class="section-title">5. Use Cases & Keywords</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Keywords</td>
+                        <td>{{KEYWORDS_CSV}}</td>
+                    </tr>
+                    <tr>
+                        <td>Use Cases</td>
+                        <td>{{USE_CASES_CSV}}</td>
+                    </tr>
+                    <tr>
+                        <td>Target Audience</td>
+                        <td>{{TARGET_AUDIENCE}}</td>
+                    </tr>
+                    <tr>
+                        <td>Structure</td>
+                        <td>{{STRUCTURE}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 6. CREDITS & RIGHTS -->
+            <div class="section">
+                <div class="section-title">6. Credits & Rights</div>
+                <table class="info-table">
+                    <tr>
+                        <td>Copyright</td>
+                        <td>{{COPYRIGHT}}</td>
+                    </tr>
+                    <tr>
+                        <td>Composer</td>
+                        <td>{{COMPOSER}}</td>
+                    </tr>
+                    <tr>
+                        <td>Producer</td>
+                        <td>{{PRODUCER}}</td>
+                    </tr>
+                    <tr>
+                        <td>Publisher</td>
+                        <td>{{PUBLISHER}}</td>
+                    </tr>
+                    <tr>
+                        <td>P-Line (℗)</td>
+                        <td>{{P_LINE}}</td>
+                    </tr>
+                    <tr>
+                        <td>ISRC Code</td>
+                        <td>{{ISRC}}</td>
+                    </tr>
+                    <tr>
+                        <td>ISWC Code</td>
+                        <td>{{ISWC}}</td>
+                    </tr>
+                    <tr>
+                        <td>Catalog Number</td>
+                        <td>{{CATALOG_NUMBER}}</td>
+                    </tr>
+                    <tr>
+                        <td>License</td>
+                        <td>{{LICENSE}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 7. VERIFICATION -->
+            <div class="section">
+                <div class="section-title">7. Verification & Digital Signature</div>
+                <table class="info-table">
+                    <tr>
+                        <td>SHA256 Hash</td>
+                        <td style="font-family: monospace; font-size: 8px; word-break: break-all;">{{SHA256}}</td>
+                    </tr>
+                    <tr>
+                        <td>Analysis Reasoning</td>
+                        <td>{{ANALYSIS_REASONING}}</td>
+                    </tr>
+                    <tr>
+                        <td>File Owner</td>
+                        <td>{{FILE_OWNER}}</td>
+                    </tr>
+                </table>
+
+                <div class="highlight-box">
+                    <strong>Authenticity Statement:</strong>
+                    This certificate serves as official certification of the technical parameters and authorship of the track. Analysis was conducted at HardbanRecords Lab, which has maintained continuous analytical operations since 2023. All metadata contained in this document is protected and synchronized with the laboratory's global database.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <span><strong>PAGE 2 / 2 | HardbanRecords Lab v3.0 | ESTABLISHED 2023</strong></span>
+            <span>DOCUMENT GENERATED DIGITALLY</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function downloadHTML() {
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'HardbanRecords_AudioCertificate_EN.html';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>

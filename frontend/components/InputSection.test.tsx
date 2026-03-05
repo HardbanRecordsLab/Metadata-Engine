@@ -25,8 +25,6 @@ describe('InputSection Component', () => {
         userTier: 'starter' as const,
         userCredits: 5,
         onOpenPricing: vi.fn(),
-        onOpenCloudImport: vi.fn(),
-        onOpenBulkEdit: vi.fn(),
         isFresh: false,
         setIsFresh: vi.fn(),
     };

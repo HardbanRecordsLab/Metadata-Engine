@@ -127,11 +127,8 @@ async def generate_certificate(
     db.commit()
     db.refresh(certificate)
 
-    if current_user and getattr(current_user, "id", None):
-        try:
-            await increment_user_quota(current_user.id)
-        except Exception as e:
-            logger.error(f"Failed to decrement credits for user {current_user.id}: {e}")
+    # Credits are decremented on successful analysis completion.
+    # Do not decrement again on certificate generation to avoid double-charging.
 
     return {
         "id": certificate.id,

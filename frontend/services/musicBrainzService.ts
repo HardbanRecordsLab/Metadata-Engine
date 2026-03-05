@@ -7,7 +7,7 @@ const COVER_ART_ARCHIVE = 'https://coverartarchive.org';
 // MusicBrainz requires a User-Agent header with contact info
 const HEADERS = {
   'Accept': 'application/json',
-  'User-Agent': 'MusicMetadataEngine/1.3 ( contact@musicmetadata.ai )' // Replace with your contact info in prod
+  'User-Agent': 'MusicMetadataEngine/1.3 ( contact@hardbanrecordslab.online )'
 };
 
 /**
