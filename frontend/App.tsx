@@ -15,8 +15,6 @@ import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import DashboardHome from './components/DashboardHome';
 import AuthModal from './components/AuthModal';
-import CloudImportModal from './components/CloudImportModal';
-import RedeemCodeModal from './components/RedeemCodeModal';
 import Button from './components/Button';
 import ErrorBoundary from './components/ErrorBoundary';
 import { exportBatchToCsv } from './utils/export';
@@ -24,18 +22,14 @@ import { Menu } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 import { db } from './services/databaseService';
 import ValidationPanel from './components/ValidationPanel';
-import ToolsPanel from './components/ToolsPanel';
-import SettingsPanel from './components/SettingsPanel';
-import UsagePanel from './components/UsagePanel';
 // BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
 
 // Lazy Load Heavy Components
-const BulkEditor = lazy(() => import('./components/BulkEditor'));
 const HistoryPanel = lazy(() => import('./components/HistoryPanel'));
 
 
 type Theme = 'light' | 'dark';
-type View = 'dashboard' | 'analyze' | 'results' | 'history' | 'tools' | 'batch' | 'stems' | 'bulk-edit' | 'settings' | 'usage';
+type View = 'dashboard' | 'analyze' | 'results' | 'history';
 
 interface ToastState {
     message: string;
@@ -54,8 +48,7 @@ const AppContent: React.FC = () => {
 
     const [isPricingOpen, setIsPricingOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const [isCloudImportOpen, setIsCloudImportOpen] = useState(false);
-    const [isRedeemCodeModalOpen, setIsRedeemCodeModalOpen] = useState(false);
+    // Removed features not connected to backend: Cloud Import, Redeem Codes, Tools, Settings, Usage, Bulk Edit
 
     const [batch, setBatch] = useState<BatchItem[]>([]);
     const [isProcessingBatch, setIsProcessingBatch] = useState(false);
@@ -290,15 +283,7 @@ const AppContent: React.FC = () => {
         showToast(`Exported ${completedItems.length} tracks.`, 'success');
     };
 
-    const handleCloudImport = (files: File[]) => {
-        const newItems: BatchItem[] = files.map(file => ({
-            id: `cloud-${file.name}-${Date.now()}`,
-            file,
-            status: 'pending'
-        }));
-        setBatch(prev => [...prev, ...newItems]);
-        showToast(`Imported ${files.length} files from Cloud.`, 'success');
-    };
+    // Cloud Import removed from UI
 
     const handleViewResults = (itemId: string) => {
         const item = batch.find(b => b.id === itemId);
@@ -393,20 +378,16 @@ const AppContent: React.FC = () => {
                             {view === 'dashboard' ? 'Dashboard' :
                                 view === 'analyze' ? 'Audio Analysis' :
                                     view === 'results' ? 'Analysis Results' :
-                                        view === 'history' ? 'History' : 'Tools'}
+                                        'History'}
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
-                        {userTier === 'starter' && userCredits > 0 && (
-                            <span className="text-xs font-bold text-yellow-500 px-3 py-1.5 rounded-full border border-yellow-500/30">
-                                Credits: {userCredits}
+                        {userTier === 'starter' && (
+                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${userCredits > 0 ? 'text-yellow-500 border-yellow-500/30' : 'text-red-500 border-red-500/30'}`}>
+                                {userCredits > 0 ? `Free analyses left: ${userCredits}/10` : 'No free analyses left'}
                             </span>
                         )}
-                        {userTier === 'starter' && userCredits === 0 && (
-                            <button onClick={() => setIsPricingOpen(true)} className="hidden sm:block text-xs font-bold text-accent-violet border border-accent-violet/30 px-3 py-1.5 rounded-full hover:bg-accent-violet hover:text-white transition-colors">
-                                Upgrade to Pro
-                            </button>
-                        )}
+                        {/* Pricing UI removed from header to keep only backend-connected features */}
                         <Header theme={theme} toggleTheme={toggleTheme} openValidationPanel={() => setShowValidation(true)} />
                     </div>
                 </div>
@@ -427,7 +408,7 @@ const AppContent: React.FC = () => {
                                         onCreateNew={handleNewAnalysis}
                                         userProfile={displayProfile}
                                         onOpenPricing={() => setIsPricingOpen(true)}
-                                        onOpenRedeemCode={() => setIsRedeemCodeModalOpen(true)}
+                                        onOpenRedeemCode={() => {}}
                                     />
                                 )}
 
@@ -448,20 +429,14 @@ const AppContent: React.FC = () => {
                                                 userTier={userTier}
                                                 userCredits={userCredits}
                                                 onOpenPricing={() => setIsPricingOpen(true)}
-                                                onOpenCloudImport={() => {
-                                                    if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Cloud Import.", 'info'); }
-                                                    else { setIsCloudImportOpen(true); }
-                                                }}
-                                                onOpenBulkEdit={() => {
-                                                    if (!isAdmin && userCredits === 0) { setIsPricingOpen(true); showToast("You need credits to use Bulk Editing.", 'info'); }
-                                                    else { setView('bulk-edit'); }
-                                                }}
+                                                // Removed Cloud Import and Bulk Edit UI actions (not backend-backed)
                                                 isFresh={isFresh}
                                                 setIsFresh={setIsFresh}
                                             />
                                         </div>
                                     </div>
                                 )}
+
 
                                 {view === 'results' && activeAnalysis && (
                                     <div className="max-w-7xl mx-auto">
@@ -495,35 +470,7 @@ const AppContent: React.FC = () => {
                                     </div>
                                 )}
 
-                                {view === 'tools' && (
-                                    <div className="max-w-6xl mx-auto">
-                                        <ToolsPanel
-                                            onOpenPricing={() => setIsPricingOpen(true)}
-                                            showToast={showToast}
-                                            userTier={userTier}
-                                        />
-                                    </div>
-                                )}
-                                {view === 'settings' && (
-                                    <SettingsPanel
-                                        user={user}
-                                        onOpenPricing={() => setIsPricingOpen(true)}
-                                    />
-                                )}
-
-                                {view === 'usage' && (
-                                    <UsagePanel user={user} />
-                                )}
-
-                                {view === 'bulk-edit' && (
-                                    <Suspense fallback={<LoadingFallback />}>
-                                        <BulkEditor
-                                            items={batch}
-                                            onUpdateBatch={handleBatchUpdate}
-                                            onClose={() => setView('analyze')}
-                                        />
-                                    </Suspense>
-                                )}
+                                {/* Views not connected to backend removed from UI: tools, settings, usage, bulk-edit */}
                             </motion.div>
                         </AnimatePresence>
                     </ErrorBoundary>
@@ -540,8 +487,6 @@ const AppContent: React.FC = () => {
             {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
             {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} onUpgrade={handleUpgrade} />}
             {isAuthOpen && <AuthModal onClose={() => setIsAuthOpen(false)} />}
-            {isCloudImportOpen && <CloudImportModal onClose={() => setIsCloudImportOpen(false)} onImport={handleCloudImport} />}
-            {isRedeemCodeModalOpen && <RedeemCodeModal onClose={() => setIsRedeemCodeModalOpen(false)} showToast={showToast} />}
 
             {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}
             {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}

@@ -424,6 +424,37 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                     onChange={v => onFieldUpdate('language', v)}
                     icon={<Globe className="w-5 h-5" />}
                 />
+                <CreditField
+                    label="File Owner"
+                    value={metadata.fileOwner}
+                    field="fileOwner"
+                    {...{ isEditing, onRefine, refiningField }}
+                    onChange={v => onFieldUpdate('fileOwner', v)}
+                    icon={<User className="w-5 h-5" />}
+                />
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                    <div className="flex-shrink-0 text-slate-400">
+                        <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-grow">
+                        <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Explicit Content</label>
+                        {isEditing ? (
+                            <select
+                                value={metadata.explicitContent || ''}
+                                onChange={(e) => onFieldUpdate('explicitContent', e.target.value)}
+                                className="w-full p-1.5 bg-white dark:bg-slate-900 rounded border border-slate-300 dark:border-slate-600 text-sm"
+                            >
+                                <option value="">None</option>
+                                <option value="Explicit">Explicit</option>
+                                <option value="Clean">Clean</option>
+                            </select>
+                        ) : (
+                            <div className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                                {metadata.explicitContent || <span className="opacity-40 italic text-sm">None</span>}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Distribution & Publishing Exports */}

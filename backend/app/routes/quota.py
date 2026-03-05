@@ -14,15 +14,14 @@ async def get_quota_status(current_user = Depends(get_current_user)):
     """
     Returns the credits and limit for the currently authenticated user.
     """
-    user_metadata = getattr(current_user, 'user_metadata', {})
-    credits = user_metadata.get("credits", 0)
-    tier = user_metadata.get("tier", "starter")
+    credits = getattr(current_user, "credits", 0) or 0
+    tier = getattr(current_user, "tier", "starter") or "starter"
     
     return {
         "credits": credits,
         "tier": tier,
-        "analysis_count": 0, # Legacy
-        "analysis_limit": 100 # Legacy
+        "analysis_count": None, # Legacy
+        "analysis_limit": None # Legacy
     }
 
 @router.post("/redeem")

@@ -138,7 +138,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
         
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-center">
-            <a href="mailto:contact@musicmetadata.ai" className="text-sm text-accent-violet hover:underline font-semibold">
+            <a href="mailto:contact@hardbanrecordslab.online" className="text-sm text-accent-violet hover:underline font-semibold">
                 Contact Developer / Investor
             </a>
         </div>

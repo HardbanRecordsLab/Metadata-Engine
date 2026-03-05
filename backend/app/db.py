@@ -50,7 +50,7 @@ class User(Base):
     is_premium = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     tier = Column(String, default="starter")
-    credits = Column(Integer, default=5)
+    credits = Column(Integer, default=10)
     api_key = Column(String, unique=True, nullable=True, default=lambda: str(uuid.uuid4()))
 
 class Job(Base):
