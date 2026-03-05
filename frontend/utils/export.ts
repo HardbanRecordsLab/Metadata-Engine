@@ -55,6 +55,8 @@ const CSV_HEADERS = [
     'P_LINE',
     'SHA256',
     'LICENSE',
+    'EXPLICIT_CONTENT',
+    'FILE_OWNER',
     // Extended AI fields
     'ENERGY_LEVEL',
     'MOOD_VIBE',
@@ -67,6 +69,7 @@ const CSV_HEADERS = [
     // DSP metrics
     'DYNAMIC_RANGE_DB',
     'SPECTRAL_CENTROID_HZ',
+    'SPECTRAL_ROLLOFF_HZ',
     'ACOUSTIC_SCORE',
     'HAS_VOCALS',
 ];
@@ -153,6 +156,8 @@ const metadataToCsvRow = (fileName: string, data: Metadata): string => {
         data.pLine,
         data.sha256,
         data.license,
+        data.explicitContent,
+        data.fileOwner,
         // Extended AI fields
         energyLevel,
         data.mood_vibe,
@@ -165,6 +170,7 @@ const metadataToCsvRow = (fileName: string, data: Metadata): string => {
         // DSP metrics
         data.dynamicRange,
         data.spectralCentroid,
+        data.spectralRolloff,
         data.acousticScore,
         data.hasVocals,
     ];

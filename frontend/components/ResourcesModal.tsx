@@ -23,15 +23,15 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                                 <div className="w-12 h-12 bg-accent-violet/10 rounded-lg flex items-center justify-center mb-4 text-accent-violet">
                                     <Zap className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Batch Processing</h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Analyze hundreds of tracks simultaneously. Drag a folder with your discography and let AI catalog everything in minutes.</p>
+                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Analysis Dashboard</h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Single-track professional analysis with DSP features, AI classification and export to industry formats.</p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                                 <div className="w-12 h-12 bg-pink-500/10 rounded-lg flex items-center justify-center mb-4 text-pink-500">
                                     <Database className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Hybrid Identification</h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">We combine MusicBrainz, AcoustID, ACRCloud, and AudD to flawlessly recognize tracks and fetch official metadata (ISRC).</p>
+                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Metadata Enrichment</h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Enrich with public sources (Spotify, Last.fm, MusicBrainz) where available to complement AI and DSP results.</p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                                 <div className="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4 text-emerald-500">
@@ -45,7 +45,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                                     <Shield className="w-6 h-6" />
                                 </div>
                                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Copyright & Protection</h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Generate Proof-of-Existence certificates (SHA-256) and create DEMO versions with audio watermarks.</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Generate Proof-of-Existence certificates (SHA-256) with premium PDF and QR verification.</p>
                             </div>
                         </div>
                     </div>
@@ -197,7 +197,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                                     <span className="group-open:rotate-180 transition-transform">▼</span>
                                 </summary>
                                 <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-3">
-                                    <p>We offer a 14-day money-back guarantee for first-time purchases of any plan, provided you have used less than 20% of your allocated analysis credits. Contact support@musicmetadata.ai or use the request refund button in the Lemon Squeezy portal.</p>
+                                    <p>For billing and subscription inquiries, contact us at contact@hardbanrecordslab.online. Refunds follow applicable consumer law in your jurisdiction.</p>
                                 </div>
                             </details>
                         </section>
@@ -236,11 +236,11 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
 
                             <details className="group mb-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                                 <summary className="font-bold text-light-text dark:text-dark-text cursor-pointer flex justify-between items-center">
-                                    Can I close the tab during Batch Processing?
+                                    Can I close the tab during analysis?
                                     <span className="group-open:rotate-180 transition-transform">▼</span>
                                 </summary>
                                 <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-3">
-                                    <p><strong>No.</strong> The core of our privacy-first architecture is that the "Controller" logic runs in your browser. If you close the tab, the queue stops immediately. However, you can switch tabs or minimize the window.</p>
+                                    <p><strong>No.</strong> The core of our privacy-first architecture is that the controller logic runs in your browser. If you close the tab, processing stops immediately. You can switch tabs or minimize the window.</p>
                                 </div>
                             </details>
                         </section>
@@ -276,7 +276,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                             <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-2">Still need help?</h3>
                             <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">Our support team operates Mon-Fri, 9:00 - 17:00 CET.</p>
                             <div className="flex justify-center gap-4">
-                                <a href="mailto:support@musicmetadata.ai" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg">
+                                <a href="mailto:contact@hardbanrecordslab.online" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg">
                                     Email Support
                                 </a>
                                 <a href="https://hardbanrecordslab.lemonsqueezy.com/billing" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-6 py-3 border border-slate-300 dark:border-slate-600 text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
@@ -306,7 +306,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                                 Public access to our REST API is currently in <strong>Closed Beta</strong> for enterprise partners.
                             </p>
                             <div className="mt-6">
-                                <Button variant="secondary" onClick={() => window.location.href = 'mailto:api@musicmetadata.ai'}>
+                                <Button variant="secondary" onClick={() => window.location.href = 'mailto:contact@hardbanrecordslab.online'}>
                                     Request Access
                                 </Button>
                             </div>

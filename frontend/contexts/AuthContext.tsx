@@ -51,10 +51,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser({
                 id: userData.id,
                 email: userData.email,
-                name: userData.email.split('@')[0], // Fallback name
-                tier: isAdm ? 'studio' : (userData.user_metadata?.tier || 'starter'),
+                name: (userData.username || userData.email.split('@')[0]),
+                tier: isAdm ? 'studio' : (userData.tier || userData.user_metadata?.tier || 'starter'),
                 createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
-                credits: isAdm ? 999999999 : (userData.user_metadata?.credits || 5),
+                credits: isAdm ? 999999999 : (typeof userData.credits === 'number' ? userData.credits : (userData.user_metadata?.credits ?? 10)),
                 isAdmin: isAdm
             });
 

@@ -32,6 +32,16 @@ const Footer: React.FC<FooterProps> = ({ onOpenLegal, onOpenResource, onOpenPric
               AI-Powered Metadata Automation for Music Professionals.
               <br />
               <span className="text-xs opacity-75">Engineered by HardbanRecords Lab.</span>
+              <br />
+              <span className="block mt-2">
+                Contact: <a href="mailto:contact@hardbanrecordslab.online" className="text-accent-violet hover:underline">contact@hardbanrecordslab.online</a>
+              </span>
+              <span className="block">
+                App: <a href="https://app-metadata.hardbanrecordslab.online/" target="_blank" rel="noreferrer" className="text-accent-violet hover:underline">app-metadata.hardbanrecordslab.online</a>
+              </span>
+              <span className="block">
+                Web: <a href="https://hardbanrecordslab.online" target="_blank" rel="noreferrer" className="text-accent-violet hover:underline">hardbanrecordslab.online</a>
+              </span>
             </p>
           </div>
 

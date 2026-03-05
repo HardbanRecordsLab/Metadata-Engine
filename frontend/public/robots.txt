@@ -4,4 +4,4 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
-Sitemap: https://musicmetadata.ai/sitemap.xml
+Sitemap: https://app-metadata.hardbanrecordslab.online/sitemap.xml

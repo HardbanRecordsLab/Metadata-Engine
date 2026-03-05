@@ -110,6 +110,13 @@ async function setupWriter(writer: any, metadata: any, coverArtUrl?: string | nu
     if (metadata.tempoCharacter)           writer.setFrame('TXXX', { description: 'TEMPO_CHARACTER', value: toStr(metadata.tempoCharacter) });
     if (metadata.dynamics)                 writer.setFrame('TXXX', { description: 'DYNAMICS', value: toStr(metadata.dynamics) });
     if (metadata.sha256)                   writer.setFrame('TXXX', { description: 'SHA256', value: toStr(metadata.sha256) });
+    if (metadata.explicitContent)          writer.setFrame('TXXX', { description: 'EXPLICIT_CONTENT', value: toStr(metadata.explicitContent) });
+    if (metadata.fileOwner)                writer.setFrame('TXXX', { description: 'FILE_OWNER', value: toStr(metadata.fileOwner) });
+    if (metadata.acousticScore != null)    writer.setFrame('TXXX', { description: 'ACOUSTIC_SCORE', value: toStr(metadata.acousticScore) });
+    if (metadata.dynamicRange != null)     writer.setFrame('TXXX', { description: 'DYNAMIC_RANGE', value: toStr(metadata.dynamicRange) });
+    if (metadata.spectralCentroid != null) writer.setFrame('TXXX', { description: 'SPECTRAL_CENTROID', value: toStr(metadata.spectralCentroid) });
+    if (metadata.spectralRolloff != null)  writer.setFrame('TXXX', { description: 'SPECTRAL_ROLLOFF', value: toStr(metadata.spectralRolloff) });
+    if (metadata.hasVocals != null)        writer.setFrame('TXXX', { description: 'HAS_VOCALS', value: toStr(metadata.hasVocals) });
 
     // ── 7. Description / Comment ─────────────────────────────
     if (metadata.trackDescription) {

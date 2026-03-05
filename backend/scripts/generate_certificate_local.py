@@ -5,6 +5,7 @@ import time
 import hashlib
 import shutil
 import numpy as np
+from datetime import datetime
 
 here = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.abspath(os.path.join(here, ".."))
@@ -24,6 +25,122 @@ def sha256_file(path: str) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
+
+def _fmt_duration(seconds: int | float | None) -> str:
+    try:
+        if seconds is None:
+            return "--:--"
+        s = int(seconds)
+        m = s // 60
+        r = s % 60
+        return f"{m}:{str(r).zfill(2)}"
+    except Exception:
+        return "--:--"
+
+def _safe(val, default="—"):
+    if val is None:
+        return default
+    if isinstance(val, (list, tuple)):
+        return ", ".join([str(v) for v in val if v is not None]) or default
+    return str(val)
+
+def render_html_certificate(template_path: str, output_path: str, cert_id: str, metadata: dict):
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+    today = datetime.utcnow().date().isoformat()
+    title = _safe(metadata.get("title"))
+    artist = _safe(metadata.get("artist"))
+    album = _safe(metadata.get("album"))
+    album_artist = _safe(metadata.get("albumArtist") or metadata.get("artist"))
+    main_genre = _safe(metadata.get("mainGenre"))
+    add_genres = _safe(metadata.get("additionalGenres"))
+    track_no = _safe(metadata.get("track"), default="1")
+    year = _safe(metadata.get("year"), default=str(datetime.utcnow().year))
+    duration_txt = _fmt_duration(metadata.get("duration"))
+    bpm_txt = _safe(metadata.get("bpm"), default="—")
+    key_txt = _safe(metadata.get("key"))
+    mode_txt = _safe(metadata.get("mode"))
+    energy_level = _safe(metadata.get("energy_level") or metadata.get("energyLevel"), default="—")
+    main_instr = _safe(metadata.get("mainInstrument"))
+    instrumentation = _safe(metadata.get("instrumentation"))
+    dynamics = _safe(metadata.get("dynamics"))
+    production = _safe(metadata.get("productionQuality"))
+    mood_vibe = _safe(metadata.get("mood_vibe"))
+    tempo_char = _safe(metadata.get("tempoCharacter"))
+    musical_era = _safe(metadata.get("musicalEra"))
+    language = _safe(metadata.get("language") or "Instrumental")
+    explicit = _safe(metadata.get("explicitContent") or "No")
+    track_desc = _safe(metadata.get("trackDescription"))
+    keywords_csv = _safe(metadata.get("keywords"))
+    use_cases_csv = _safe(metadata.get("useCases"))
+    target_audience = _safe(metadata.get("targetAudience"))
+    structure_txt = " → ".join([seg.get("section") for seg in (metadata.get("structure") or []) if isinstance(seg, dict) and seg.get("section")]) or "—"
+    analysis_reasoning = _safe(metadata.get("analysisReasoning"))
+    copyright_line = _safe(metadata.get("copyright"))
+    composer = _safe(metadata.get("composer"))
+    producer = _safe(metadata.get("producer"))
+    publisher = _safe(metadata.get("publisher"))
+    p_line = _safe(metadata.get("pLine"))
+    isrc = _safe(metadata.get("isrc"))
+    iswc = _safe(metadata.get("iswc"))
+    catalog = _safe(metadata.get("catalogNumber"))
+    license_txt = _safe(metadata.get("license"))
+    sha = _safe(metadata.get("sha256"))
+    owner = _safe(metadata.get("fileOwner") or artist or "—")
+    moods = metadata.get("moods") or []
+    mood_badges = " ".join([f'<span class="badge">{str(m)}</span>' for m in moods]) if moods else "—"
+    vocal_style_text = "Instrumental (No vocals)" if (str(language).lower() == "instrumental" or not metadata.get("vocalStyle")) else "With Vocals"
+    token_map = {
+        "{{SERIAL_ID}}": cert_id,
+        "{{CERT_DATE}}": today,
+        "{{CERT_ID}}": cert_id,
+        "{{FILE_OWNER}}": owner,
+        "{{TITLE}}": title,
+        "{{ARTIST}}": artist,
+        "{{ALBUM}}": album,
+        "{{ALBUM_ARTIST}}": album_artist,
+        "{{MAIN_GENRE}}": main_genre,
+        "{{ADDITIONAL_GENRES}}": add_genres,
+        "{{TRACK}}": track_no,
+        "{{YEAR}}": year,
+        "{{DURATION}}": duration_txt,
+        "{{BPM}}": bpm_txt,
+        "{{KEY}}": key_txt,
+        "{{MODE}}": mode_txt,
+        "{{ENERGY_LEVEL}}": energy_level,
+        "{{MAIN_INSTRUMENT}}": main_instr,
+        "{{INSTRUMENTS}}": instrumentation,
+        "{{DYNAMICS}}": dynamics,
+        "{{PRODUCTION_QUALITY}}": production,
+        "{{MOODS_BADGES}}": mood_badges,
+        "{{MOOD_VIBE}}": mood_vibe,
+        "{{TEMPO_CHARACTER}}": tempo_char,
+        "{{MUSICAL_ERA}}": musical_era,
+        "{{VOCAL_STYLE}}": vocal_style_text,
+        "{{EXPLICIT_CONTENT}}": explicit,
+        "{{LANGUAGE}}": language,
+        "{{TRACK_DESCRIPTION}}": track_desc,
+        "{{KEYWORDS_CSV}}": keywords_csv,
+        "{{USE_CASES_CSV}}": use_cases_csv,
+        "{{TARGET_AUDIENCE}}": target_audience,
+        "{{STRUCTURE}}": structure_txt,
+        "{{COPYRIGHT}}": copyright_line,
+        "{{COMPOSER}}": composer,
+        "{{PRODUCER}}": producer,
+        "{{PUBLISHER}}": publisher,
+        "{{P_LINE}}": p_line,
+        "{{ISRC}}": isrc,
+        "{{ISWC}}": iswc,
+        "{{CATALOG_NUMBER}}": catalog,
+        "{{LICENSE}}": license_txt,
+        "{{SHA256}}": sha,
+        "{{ANALYSIS_REASONING}}": analysis_reasoning,
+    }
+    for k, v in token_map.items():
+        html = html.replace(k, v)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return output_path
 
 def main():
     positional = [a for a in sys.argv[1:] if not a.startswith("-")]
@@ -212,11 +329,21 @@ def main():
             shutil.copyfile(pdf_path, ws_pdf_path)
         except Exception:
             ws_pdf_path = None
+        # Render HTML certificate from template
+        template_html = os.path.abspath(os.path.join(backend_dir, "..", "certyficat.html"))
+        ws_html_path = None
+        try:
+            if os.path.isfile(template_html):
+                ws_html_path = os.path.join(ws_dir, f"{cert_id}.html")
+                render_html_certificate(template_html, ws_html_path, cert_id, metadata)
+        except Exception:
+            ws_html_path = None
         print(json.dumps({
             "status": "ok",
             "certificate_id": cert_id,
             "pdf_path": pdf_path,
-            "workspace_pdf": ws_pdf_path
+            "workspace_pdf": ws_pdf_path,
+            "workspace_html": ws_html_path
         }, ensure_ascii=False))
     except Exception as e:
         print(json.dumps({"error": str(e)}))

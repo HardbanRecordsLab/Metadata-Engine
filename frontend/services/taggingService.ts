@@ -139,6 +139,12 @@ export const readMetadataFromFile = (file: File): Promise<{ metadata: Partial<Me
                     const licenseRaw = getTXXX(t, 'LICENSE');
                     if (licenseRaw) metadata.license = licenseRaw;
 
+                    const explicitRaw = getTXXX(t, 'EXPLICIT_CONTENT');
+                    if (explicitRaw) metadata.explicitContent = explicitRaw;
+
+                    const ownerRaw = getTXXX(t, 'FILE_OWNER');
+                    if (ownerRaw) metadata.fileOwner = ownerRaw;
+
                     const sha256Raw = getTXXX(t, 'SHA256');
                     if (sha256Raw) metadata.sha256 = sha256Raw;
 
@@ -151,6 +157,9 @@ export const readMetadataFromFile = (file: File): Promise<{ metadata: Partial<Me
 
                     const spectralCentroidRaw = getTXXX(t, 'SPECTRAL_CENTROID');
                     if (spectralCentroidRaw) { const n = parseFloat(spectralCentroidRaw); if (!isNaN(n)) metadata.spectralCentroid = n; }
+
+                    const spectralRolloffRaw = getTXXX(t, 'SPECTRAL_ROLLOFF');
+                    if (spectralRolloffRaw) { const n = parseFloat(spectralRolloffRaw); if (!isNaN(n)) metadata.spectralRolloff = n; }
 
                     const hasVocalsRaw = getTXXX(t, 'HAS_VOCALS');
                     if (hasVocalsRaw) metadata.hasVocals = hasVocalsRaw === 'true' || hasVocalsRaw === 'True';

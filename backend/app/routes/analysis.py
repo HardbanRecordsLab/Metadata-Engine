@@ -321,6 +321,14 @@ async def process_analysis(
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
 
+        # Decrement user credits for a successful analysis
+        try:
+            if job.user_id:
+                from app.dependencies import increment_user_quota
+                await increment_user_quota(job.user_id)
+        except Exception as e:
+            logger.error(f"Failed to decrement credits for user {job.user_id}: {e}")
+
         # Save to history
         try:
             history = AnalysisHistory(
@@ -385,6 +393,7 @@ async def generate_analysis(
 
     job = Job(
         id=job_id,
+        user_id=str(getattr(current_user, "id", "")) if current_user else None,
         file_name=file.filename,
         status="pending",
         message="Job queued for analysis...",
