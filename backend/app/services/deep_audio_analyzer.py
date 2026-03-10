@@ -35,7 +35,7 @@ class DeepAudioAnalyzer:
         try:
             # Optimization: Load audio at 22050Hz (sufficient for MIR) and limit to middle 2 minutes
             self.sr = 22050
-            duration = librosa.get_duration(filename=file_path)
+            duration = librosa.get_duration(path=file_path)
             offset = 30.0 if duration > 60 else 0.0
             duration_to_load = 120.0 if duration > 180 else None
             
@@ -92,7 +92,7 @@ class DeepAudioAnalyzer:
         tempogram = librosa.feature.tempogram(onset_envelope=oenv, sr=sr, hop_length=self.hop_length)
         
         return {
-            'tempo': float(tempo),
+            'tempo': float(tempo[0]) if isinstance(tempo, (np.ndarray, list)) else float(tempo),
             'beat_count': len(beats),
             'beat_regularity': float(np.std(np.diff(beat_times))) if len(beat_times) > 1 else 0.0,
             'tempogram_mean': tempogram.mean(axis=1).tolist()[:10],
@@ -206,6 +206,15 @@ class DeepAudioAnalyzer:
             band_energy = float(np.mean(mel_spec_db[low:high]))
             band_energies.append(band_energy)
         
+        # Vocal presence heuristic: energy in vocal range (300Hz - 3400Hz)
+        # Using mel bins (approximate)
+        vocal_bins = [int(300 / (sr/2) * 128), int(3400 / (sr/2) * 128)]
+        vocal_energy = float(np.mean(mel_spec_db[vocal_bins[0]:vocal_bins[1]]))
+        
+        # Normalize relative to total energy
+        total_energy = float(np.mean(mel_spec_db))
+        vocal_score = (vocal_energy - total_energy) / (abs(total_energy) + 1e-6)
+        
         return {
             'rms_mean': float(np.mean(rms)),
             'rms_std': float(np.std(rms)),
@@ -215,8 +224,10 @@ class DeepAudioAnalyzer:
             'zcr_mean': float(np.mean(zcr)),
             'zcr_std': float(np.std(zcr)),
             
+            'vocal_presence': vocal_score,
             'band_energies': band_energies,
         }
+
     
     def _extract_structure_features(self, y: np.ndarray, sr: int) -> Dict:
         """Structure features (8 - segmentation)"""

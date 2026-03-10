@@ -10,7 +10,6 @@ import Toast from './components/Toast';
 import AboutModal from './components/AboutModal';
 import LegalModal, { LegalDocType } from './components/LegalModal';
 import ResourcesModal, { ResourceDocType } from './components/ResourcesModal';
-import PricingModal from './components/PricingModal';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import DashboardHome from './components/DashboardHome';
@@ -44,9 +43,8 @@ const LoadingFallback = () => (
 );
 
 const AppContent: React.FC = () => {
-    const { user, upgradeTier, isAuthenticated, refetchUser } = useAuth();
+    const { user, isAuthenticated, refetchUser } = useAuth();
 
-    const [isPricingOpen, setIsPricingOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     // Removed features not connected to backend: Cloud Import, Redeem Codes, Tools, Settings, Usage, Bulk Edit
 
@@ -70,11 +68,8 @@ const AppContent: React.FC = () => {
     const [activeResourceDoc, setActiveResourceDoc] = useState<ResourceDocType | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // UserTier and Credits from AuthContext
-    const userTier = user?.tier || 'starter';
-    const userCredits = user?.credits || 0;
     const isAdmin = !!user?.isAdmin;
-    const displayProfile = user ? { name: user.name, tier: user.tier, credits: user.credits } : { name: 'Guest', tier: 'starter' as const, credits: 0 };
+    const displayProfile = user ? { name: user.name } : { name: 'Guest' };
 
 
     useEffect(() => {
@@ -145,44 +140,8 @@ const AppContent: React.FC = () => {
     // Derived active analysis data
     const activeAnalysis = activeAnalysisId ? batch.find(b => b.id === activeAnalysisId) : null;
 
-    const handleUpgrade = async () => {
-        if (!isAuthenticated) {
-            setIsPricingOpen(false);
-            setIsAuthOpen(true);
-            showToast("Please login first to upgrade.", 'info');
-            return;
-        }
-        await upgradeTier('pro');
-        setIsPricingOpen(false);
-        showToast("Congratulations! Account upgraded to PRO.", 'success');
-    };
 
     const handleStartBatchProcessing = async (modelPreference: 'flash' | 'pro' = 'flash') => {
-        // [BYPASS] Credit check disabled by request
-        /*
-        if (userTier === 'starter') {
-            const pendingItemsCount = batch.filter(item => item.status === 'pending').length;
-            if (pendingItemsCount > userCredits) {
-                setIsPricingOpen(true);
-                showToast("You need more credits for this batch size. Upgrade or redeem a code!", 'info');
-                return;
-            }
-            if (pendingItemsCount === 0) {
-                showToast("Add files to analyze.", 'info');
-                return;
-            }
-            if (userCredits === 0) {
-                setIsPricingOpen(true);
-                showToast("Your credits have run out. Please upgrade to continue.", 'info');
-                return;
-            }
-        } else if (userTier === 'hobby' && batch.filter(item => item.status === 'pending').length > 50) {
-            setIsPricingOpen(true);
-            showToast("Hobby plan limits batch size to 50. Please upgrade.", 'info');
-            return;
-        }
-        */
-
         const itemsToProcess = batch.filter(item => item.status === 'pending');
         if (itemsToProcess.length === 0) {
             showToast("Add files to analyze.", 'info');
@@ -199,18 +158,6 @@ const AppContent: React.FC = () => {
 
             setBatch(prev => prev.map(b => b.id === item.id ? { ...b, status: 'processing' } : b));
             try {
-                // [BYPASS] Credit decrement disabled by request
-                /*
-                if (userTier === 'starter' && user && user.credits > 0) {
-                    await db.decrementCredits(user.id);
-                    await refetchUser();
-                } else if (userTier === 'starter' && user && user.credits === 0) {
-                    showToast("Not enough credits to process this item. Please upgrade.", 'error');
-                    setBatch(prev => prev.map(b => b.id === item.id ? { ...b, status: 'error', error: 'Insufficient credits' } : b));
-                    failedCount++;
-                    continue;
-                }
-                */
 
                 const responseData = await generateMetadata(
                     'file',
@@ -267,13 +214,6 @@ const AppContent: React.FC = () => {
     };
 
     const handleExportBatch = () => {
-        // [BYPASS] Export restriction disabled
-        /*
-        if (userTier === 'starter') {
-            setIsPricingOpen(true);
-            return;
-        }
-        */
         const completedItems = batch.filter(item => item.status === 'completed');
         if (completedItems.length === 0) {
             showToast("No completed analyses to export.", 'info');
@@ -359,10 +299,7 @@ const AppContent: React.FC = () => {
                 onOpenAbout={() => setActiveResourceDoc('docs')}
                 isOpenMobile={isMobileMenuOpen}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
-                onOpenPricing={() => setIsPricingOpen(true)}
                 onOpenLogin={() => setIsAuthOpen(true)}
-                userCredits={userCredits}
-                userTier={userTier}
                 showToast={showToast}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
@@ -382,11 +319,7 @@ const AppContent: React.FC = () => {
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
-                        {userTier === 'starter' && (
-                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${userCredits > 0 ? 'text-yellow-500 border-yellow-500/30' : 'text-red-500 border-red-500/30'}`}>
-                                {userCredits > 0 ? `Free analyses left: ${userCredits}/10` : 'No free analyses left'}
-                            </span>
-                        )}
+                        {/* Quota and Pricing UI removed */}
                         {/* Pricing UI removed from header to keep only backend-connected features */}
                         <Header theme={theme} toggleTheme={toggleTheme} openValidationPanel={() => setShowValidation(true)} />
                     </div>
@@ -406,9 +339,7 @@ const AppContent: React.FC = () => {
                                     <DashboardHome
                                         onNavigate={(v) => setView(v as View)}
                                         onCreateNew={handleNewAnalysis}
-                                        userProfile={displayProfile}
-                                        onOpenPricing={() => setIsPricingOpen(true)}
-                                        onOpenRedeemCode={() => {}}
+                                        userProfile={displayProfile as any}
                                     />
                                 )}
 
@@ -426,10 +357,6 @@ const AppContent: React.FC = () => {
                                                 onRetry={handleRetry}
                                                 onExportBatch={handleExportBatch}
                                                 showToast={showToast}
-                                                userTier={userTier}
-                                                userCredits={userCredits}
-                                                onOpenPricing={() => setIsPricingOpen(true)}
-                                                // Removed Cloud Import and Bulk Edit UI actions (not backend-backed)
                                                 isFresh={isFresh}
                                                 setIsFresh={setIsFresh}
                                             />
@@ -456,8 +383,6 @@ const AppContent: React.FC = () => {
                                             uploadedFile={activeAnalysis.file}
                                             onUpdateFile={handleUpdateActiveFile}
                                             onBackToBatch={handleBackToBatch}
-                                            userTier={userTier}
-                                            onOpenPricing={() => setIsPricingOpen(true)}
                                         />
                                     </div>
                                 )}
@@ -479,13 +404,11 @@ const AppContent: React.FC = () => {
                 <Footer
                     onOpenLegal={(type) => setActiveLegalDoc(type)}
                     onOpenResource={(type) => setActiveResourceDoc(type)}
-                    onOpenPricing={() => setIsPricingOpen(true)}
                 />
             </div>
 
             {toastMessage && <Toast message={toastMessage.message} type={toastMessage.type} />}
             {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
-            {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} onUpgrade={handleUpgrade} />}
             {isAuthOpen && <AuthModal onClose={() => setIsAuthOpen(false)} />}
 
             {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}

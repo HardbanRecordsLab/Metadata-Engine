@@ -18,31 +18,20 @@ from .standards import MAIN_GENRES, SUB_GENRES, MOODS, INSTRUMENTATION, VOCAL_ST
 
 logger = logging.getLogger(__name__)
 
-MUSIC_EXPERT_SYSTEM_PROMPT = """You are a world-class music metadata expert and A&R consultant with 25+ years of experience curating catalogs for Spotify, Apple Music, Beatport, Juno, and major sync licensing agencies.
+MUSIC_EXPERT_SYSTEM_PROMPT = """You are a visionary A&R Executive and High-End Music Supervisor with 30+ years of experience in London, Los Angeles, and Berlin. 
+Your specialty is identifying the "DNA" of a track — not just its genre, but its emotional soul, production era, and commercial fingerprint.
 
-## Your expertise covers:
-- 600+ distinct genres and subgenres across all global scenes
-- Scene-specific nuances: UK Bass, Detroit Techno, LA Beats, Afrobeats, Brazilian Baile Funk, French House
-- Production fingerprinting: identifying eras, techniques, gear from audio signatures
-- Music theory mastery: harmonic analysis, modal tonality, polyrhythms
-- Sync licensing: knowing exactly which cue a track fits (action scene, documentary, luxury ad, tearjerker)
-- Marketing copy: writing library descriptions that sell to music supervisors and playlist curators
+## Your Standards:
+1. **Evocative Copywriting**: Avoid lists. Write prose that feels like a premium blurb from a high-stakes sync catalog (e.g., Audio Network, Extreme Music). 
+2. **Deep Musical Insight**: Use your knowledge of music theory and production (e.g., "warm analog saturation", "syncopated polyrhythms", "ethereal modal progressions") to add depth to your descriptions.
+3. **Market Authority**: You know exactly where this track belongs — from a luxury automotive campaign to a gritty neo-noir crime drama.
+4. **Niche Precision**: Never say "Techno" if it's "Industrial Peak-Time Techno". Never say "Hip Hop" if it's "Boom Bap with Jazz Inflections".
 
-## DSP-to-Genre mapping examples (use as a guide, not a rigid rule):
-- BPM 120-128 + high spectral flatness + 4/4 kick = House / Tech House
-- BPM 140 + half-time + heavy bass + minor key = Dubstep / Bass Music  
-- BPM 80-95 + low spectral flatness + high harmonic ratio = Lo-Fi / Hip-Hop
-- BPM 160-180 + complex rhythmic patterns + mid-high spectral centroid = Drum & Bass
-- BPM 128-140 + rising spectral energy + supersaw pads = Trance / Progressive Trance
-- High harmonic ratio + complex chord changes + swing tempo = Jazz / Neo-Soul
-- Very low spectral flatness + slow tempo + reverb pads = Ambient / Neo-Classical
-
-## Quality standards:
-- ALWAYS use specific subgenres ("Melodic Techno" not "Techno", "Neo Soul" not "R&B")
-- ALWAYS provide evidence-based reasoning tied to specific DSP values
-- ALWAYS write descriptions as if pitching to a music supervisor — evocative, commercial, professional
-- NEVER fall back to generic terms unless truly cross-genre
-- NEVER use placeholder text or repeat the same phrase across fields
+## Quality Mandates:
+- **Tone**: Professional, authoritative, evocative, and commercially savvy.
+- **Accuracy**: Every claim must be supported by the provided DSP (Digital Signal Processing) audio data.
+- **Narrative**: The `trackDescription` must tell a story of the track's progression (the "arc").
+- **Polish Nuance**: If hints suggest a Polish artist or context, subtly lean into the European electronic/pop aesthetic excellence.
 """
 
 
@@ -262,155 +251,110 @@ Rules:
         vocal_presence = _safe_float(energy.get('vocal_presence', energy.get('zcr_mean')), 0)
         bass_energy = _safe_float(spectral.get('bass_energy', rolloff * 0.1), 0)
         
-        # Energy interpretation helper
-        if rms > 0.20: energy_label = "Very High (loud, club-ready)"
-        elif rms > 0.14: energy_label = "High (energetic, active)"
-        elif rms > 0.08: energy_label = "Medium (balanced)"
-        elif rms > 0.04: energy_label = "Low (calm, ambient)"
-        else:           energy_label = "Very Low (whisper, meditative)"
+        # Energy interpretation
+        if rms > 0.22: energy_label = "Extremely High (Aggressive, Maximalist, Wall of Sound)"
+        elif rms > 0.15: energy_label = "High (Dynamic, Energetic, Club-Optimized)"
+        elif rms > 0.09: energy_label = "Medium (Balanced, Contemporary Production)"
+        elif rms > 0.04: energy_label = "Low (Intimate, Minimalist, Chill)"
+        else:           energy_label = "Ambient (Meditative, Textural, Very Quiet)"
         
         # Brightness interpretation
-        if centroid > 4000:   brightness = "Bright/Harsh (cymbal-heavy, upper harmonics dominant)"
-        elif centroid > 2500: brightness = "Mid-Bright (clear, present, modern sound)"
-        elif centroid > 1500: brightness = "Warm/Mid (balanced, full-bodied)"
-        else:                 brightness = "Dark/Deep (bass-heavy, sub-dominant)"
+        if centroid > 4500:   brightness = "Hyper-Bright (Crisp, High-Frequency Dominant)"
+        elif centroid > 3000: brightness = "Bright (Clear, Modern, Present)"
+        elif centroid > 1800: brightness = "Warm (Analog-feel, Mid-focused, Velvety)"
+        else:                 brightness = "Dark (Sub-heavy, Muffled, Introspective)"
         
         if not ml_hints: ml_hints = {}
         
-        prompt = f"""Analyze this audio track and provide PRECISE, PROFESSIONAL music metadata for a world-class catalog.
+        prompt = f"""Identify the SONIC DNA of this track and provide ELITE metadata for a top-tier music licensing catalog.
 
 ╔══════════════════════════════════════════════════════════════╗
-║                    AUDIO FINGERPRINT DATA                    ║
+║                    TECHNICAL AUDIO SIGNATURE                 ║
 ╚══════════════════════════════════════════════════════════════╝
 
 🕐 DURATION: {f"{int(duration//60)}:{int(duration%60):02d}" if duration > 0 else "Unknown"}
 
-⚡ RHYTHM:
-   • BPM: {tempo:.1f} — {'fast-paced, danceable' if tempo > 128 else 'mid-paced' if tempo > 100 else 'downtempo/slow'}
-   • Time Signature: {rhythm.get('time_signature', '4/4')}
-   • Complexity: {rhythm.get('rhythm_complexity', 'medium')}
+⚡ RHYTHMIC FINGERPRINT:
+   • TEMPO: {tempo:.1f} BPM
+   • CHARACTER: {'Frenetic/Fast' if tempo > 145 else 'Driving/Club' if tempo > 120 else 'Walking-pace' if tempo > 90 else 'Downtempo/Languid'}
+   • COMPLEXITY: {rhythm.get('rhythm_complexity', 'Analysis pending')}
+   • SYNC_POTENTIAL: {'High-intensity action' if tempo > 130 and rms > 0.15 else 'Emotional narrative' if rms < 0.08 else 'Modern commercial'}
 
-🎵 HARMONY:
-   • Key & Mode: {key_sig} {mode} ({'major/bright emotional palette' if 'major' in str(mode).lower() else 'minor/dark emotional palette'})
-   • Harmonic/Percussive Ratio: {hp_ratio:.2f} ({'> 2.5 = melodic/harmonic-dominant' if hp_ratio > 2.5 else '< 1.5 = rhythm/percussion-dominant' if hp_ratio < 1.5 else 'balanced melodic-rhythmic'})
-   • Chord Complexity: {harmonic.get('chord_complexity', 'medium')}
+🎵 HARMONIC SOUL:
+   • KEY/MODE: {key_sig} {mode}
+   • EMOTIONAL BIAS: {'Triumphant/Bright/Open' if 'major' in str(mode).lower() else 'Melancholic/Tense/Cinematic'}
+   • MELODIC DOMINANCE: {hp_ratio:.2f} HP Ratio ({'Synthesizer/Melody heavy' if hp_ratio > 2.5 else 'Hard-hitting rhythm section' if hp_ratio < 1.2 else 'Symphonic balance'})
 
-🔊 ENERGY & DYNAMICS:
-   • Perceived Energy: {energy_label}
-   • RMS Level: {rms:.4f} (raw value)
-   • Dynamic Range: {dynamic_range:.3f} ({'compressed/club-optimised' if dynamic_range < 0.15 else 'wide dynamics/cinematic' if dynamic_range > 0.3 else 'standard production dynamics'})
-   • Bass Presence: {'Heavy' if bass_energy > 500 else 'Prominent' if bass_energy > 200 else 'Moderate' if bass_energy > 50 else 'Light'}
+🔊 DYNAMICS & PRESENCE:
+   • PERCEIVED ENERGY: {energy_label}
+   • RMS INTENSITY: {rms:.4f}
+   • PRODUCTION STYLE: {'Compressed/Aggressive' if dynamic_range < 0.12 else 'Cinematic/Dynamic' if dynamic_range > 0.35 else 'Standard Studio'}
+   • BASS FOUNDATION: {'Sub-heavy' if bass_energy > 400 else 'Punchy Mid-Bass' if bass_energy > 150 else 'Natural/Light'}
 
-🌊 SPECTRAL CHARACTER:
-   • Brightness: {brightness}
-   • Spectral Centroid: {centroid:.0f} Hz
-   • Spectral Rolloff: {rolloff:.0f} Hz
-   • Spectral Flatness: {flatness:.3f} ({'noisy/texture-heavy' if flatness > 0.7 else 'tonal/melodic' if flatness < 0.3 else 'mixed tonal/noise'})
-   • Spectral Contrast: {contrast:.2f}
+🌊 SPECTRAL PROFILE:
+   • TIMBRE: {brightness}
+   • TEXTURE: {'Grainy/Complex' if flatness > 0.6 else 'Pure/Tonal' if flatness < 0.2 else 'Rich/Hybrid'}
+   • SPECTRAL CONTRAST: {contrast:.2f} (High values = High-definition production)
 
-🎤 VOCAL INDICATOR:
-   • ZCR/Vocal Presence: {vocal_presence:.4f} ({'likely has vocal content' if vocal_presence > 0.08 else 'likely instrumental or minimal vocal'})
+🎤 VOCAL STATUS:
+   • PROBABILITY: {vocal_presence:.4f} ({'Confirmed Vocal Content' if vocal_presence > 0.09 else 'Likely Instrumental / Atmospheric Vocals'})
 
-💡 HEURISTIC HINTS (from DSP pre-processing):
-   • Genre hints: {ml_hints.get('genre', {}).get('hints', ['none'])}
-   • Mood hints: {ml_hints.get('mood', {}).get('hints', ['none'])}
+💡 PRE-ANALYSIS HINTS:
+   • Est. Genre tags: {ml_hints.get('genre', {}).get('hints', ['None detected'])}
+   • Est. Mood tags: {ml_hints.get('mood', {}).get('hints', ['None detected'])}
 
 ╔══════════════════════════════════════════════════════════════╗
-║                    CLASSIFICATION RULES                      ║
+║                    CREATIVE MANDATE                          ║
 ╚══════════════════════════════════════════════════════════════╝
 
-🎸 GENRE: Use the MOST SPECIFIC accurate subgenre.
-   ❌ "Electronic", "Rock", "Pop" (too broad)
-   ✅ "Melodic Techno", "Indie Folk", "Dark Trap", "Neo-Soul"
-   
-   BPM anchors:
-   60-80 = Ambient / Drone / Cinematic
-   80-95 = Hip-Hop / Lo-Fi / Trip-Hop / R&B
-   95-115 = Pop / Mid-Tempo / Afrobeats
-   118-126 = Deep House / Indie Dance
-   126-132 = House / Tech House / G-House
-   132-140 = Techno / Melodic Techno / EDM
-   140-145 = Dubstep / Bass Music / UK Bass
-   155-175 = Drum & Bass / Jungle / Hardcore
+📝 TRACK DESCRIPTION (CRITICAL):
+   Write a STUNNING 5-7 sentence description. Start with the "Vibe First". 
+   Describe the evolution — does it start sparse and build? Is it a relentless wall of sound?
+   Use professional adjectives: "hauntingly beautiful", "pulse-pounding", "neon-soaked", "grit-infused", "shimmering".
+   Mention a specific "Ideal Sync Placement" (e.g., "The perfect backdrop for a high-fashion runway or a futuristic tech reveal").
 
-😊 MOODS (3-6): Reflect BOTH energy AND emotional character.
-   Major key + high energy = Euphoric, Uplifting, Triumphant
-   Minor key + high energy = Intense, Aggressive, Tense, Dark
-   Major key + low energy  = Serene, Peaceful, Warm, Hopeful
-   Minor key + low energy  = Melancholic, Haunting, Introspective
+💭 MOOD VIBE: 
+   One poetic sentence that captures the track's essence. Think "Late-night drive through a rainy metropolis" or "The first light of a mountain sunrise."
 
-🥁 INSTRUMENTATION: Primary 3-6 instruments (specific, no vague terms).
-   Use "808 Bass", "Roland TR-808", "Moog Synthesizer", "Fender Rhodes" when clearly identifiable.
-
-🔑 KEYWORDS (12-15): Mix of genre tags, mood descriptors, use-case suggestions, production style terms, and cultural/era references.
-
-🎬 USE CASES (4-7): Be SPECIFIC and commercially relevant:
-   Sync: "Crime Drama Soundtrack", "Action Movie Chase Sequence"
-   Playlist: "Late Night Study Session", "Gym Workout", "Morning Commute"
-   Advertising: "Luxury Automotive Ad", "Tech Product Launch"
-   Streaming: "Chillhop Radio", "Indie Discovery Playlist"
-
-📝 TRACK DESCRIPTION: Write a PROFESSIONAL, EVOCATIVE paragraph (4-6 sentences minimum).
-   ✅ Open with the emotional/sonic character of the track
-   ✅ Reference the key sonic elements (instruments, production style)
-   ✅ Name the mood and energy arc (does it build? climax? stay hypnotic?)
-   ✅ Mention ideal placement (sync, playlist, live context)
-   ✅ Close with who this resonates with
-   ❌ NO technical jargon (BPM, Hz, dB)
-   ❌ NO phrases like "This track features..." as opener
-   ❌ NO repetition of the same descriptors across sentences
-
-💭 MOOD VIBE (1-2 sentences): Short, poetic, EVOCATIVE. Like album liner notes.
-   Example: "A slow-burning descent into nocturnal reverie, perfect for that moment between midnight and dawn."
-
-🧠 ANALYSIS REASONING (3 points): Evidence-backed, structured:
-   1. Genre decision: [specific audio feature] → [genre conclusion]
-   2. Mood decision: [key + energy data] → [mood verdict]
-   3. Production style: [spectral/dynamics data] → [era/quality assessment]
+🎸 INSTRUMENTATION: 
+   Be specific. If the spectral data is "bright" and "melodic", look for "Shimmering Synths" or "Clean Electric Guitars".
 
 ╔══════════════════════════════════════════════════════════════╗
 ║              OUTPUT FORMAT (STRICT JSON)                     ║
 ╚══════════════════════════════════════════════════════════════╝
 
 {{
-  "mainGenre": "Specific subgenre (NOT a broad umbrella term)",
-  "additionalGenres": ["2-4 related/crossover subgenres"],
-  "moods": ["4-6 specific mood tags, ordered by intensity"],
-  "mainInstrument": "Single most prominent melodic or rhythmic instrument (NOT 'Vocals')",
-  "instrumentation": ["4-7 specific instruments with production detail"],
-  "keywords": ["12-15 genre+mood+usecase+production tags, all lowercase"],
-  "useCases": ["4-7 commercially specific use cases"],
-  "trackDescription": "4-6 sentence professional music library description. Evocative, commercial, zero technical jargon.",
+  "mainGenre": "Precise niche subgenre",
+  "additionalGenres": ["2-3 crossover genres"],
+  "moods": ["4-6 layered moods"],
+  "mainInstrument": "Dominant lead element",
+  "instrumentation": ["5-8 specific instruments with descriptors"],
+  "keywords": ["15 industry-standard tags"],
+  "useCases": ["5 commercially viable placements"],
+  "trackDescription": "The elite 5-7 sentence prose description.",
   "vocalStyle": {{
-    "gender": "male|female|mixed|none — use 'none' ONLY if strictly no human voice present",
-    "timbre": "Warm|Bright|Raspy|Breathy|Clear|Gritty|Silky|or none",
-    "delivery": "Melodic|Rap|Spoken Word|Chanted|Falsetto|Auto-tuned|Aggressive|Soft|or none",
-    "emotionalTone": "Melancholic|Joyful|Defiant|Seductive|Urgent|Detached|Tender|or none"
+    "gender": "male|female|mixed|none",
+    "timbre": "descriptor or none",
+    "delivery": "descriptor or none",
+    "emotionalTone": "descriptor or none"
   }},
-  "energy_level": "Very Low|Low|Medium|High|Very High",
+  "mood_vibe": "Poetic essence sentence.",
   "energyLevel": "Very Low|Low|Medium|High|Very High",
-  "mood_vibe": "1-2 poetic, evocative sentences. Like liner notes, not a product description.",
-  "musicalEra": "Era reference: e.g. '2020s Modern', 'Late 90s Inspired', 'Timeless Classic'",
-  "productionQuality": "Studio Polished|Mastered for Streaming|Lo-Fi|Raw Demo|Bedroom Producer|Vintage Analog",
-  "dynamics": "Heavily Compressed|Punchy|Wide Dynamic Range|Balanced|Cinematic|Club-Optimized",
-  "targetAudience": "Specific demographic + context (e.g. 'Electronic music fans 20-35 who enjoy late-night club culture')",
-  "tempoCharacter": "Driving|Hypnotic|Laid-back|Frenetic|Floating|Grinding|Bouncy|Stomping|Soaring",
-  "language": "Instrumental or ISO 639-1 language code (e.g. en, es, fr, pt)",
-  "analysisReasoning": "3-point structured reasoning: (1) Genre: [DSP evidence] (2) Mood: [key+energy logic] (3) Production: [spectral/dynamic profile]",
-  "confidence": 0.0,
-  "similar_artists": ["3-5 artist names if you are 80%+ confident"]
+  "musicalEra": "Specific era vibe",
+  "productionQuality": "Elite/Studio/Lo-Fi/etc",
+  "dynamics": "Punchy/Fluid/Wide/etc",
+  "targetAudience": "Who buys this music?",
+  "analysisReasoning": "How did the DSP lead to this?",
+  "similar_artists": ["3-5 A-list comparisons"],
+  "confidence": 0.98
 }}
 
-⚠️ CRITICAL RULES:
-1. Base ALL classification on the audio feature data above. Do NOT guess from file names.
-2. The trackDescription MUST be 4+ sentences. Shorter responses are REJECTED.
-3. Prefer accurate niche tags over broad popular ones.
-4. If vocal presence data suggests instrumental, set vocalStyle.gender to 'none'.
-5. similar_artists: only include if you are genuinely confident — empty list is better than wrong names."""
+⚠️ RULES: No generic terms. No technical jargon in 'trackDescription'. Quality is everything."""
 
         return prompt
 
     def _validate_and_refine_classification(self, raw_result: Dict, audio_features: Dict) -> Dict:
+
         """
         Post-process LLM output to ensure consistency and accuracy
         """

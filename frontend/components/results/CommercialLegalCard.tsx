@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Metadata } from '../../types';
 import Card from './Card';
-import { CopyrightIcon, Sparkles, Settings, RefreshCw, Zap, Save, Check, Globe, FileText, AlertCircle, Info, Briefcase, User, Hash, Code, Calendar, Music } from '../icons';
+import { CopyrightIcon, Sparkles, Settings, RefreshCw, Zap, Save, Check, Globe, FileText, AlertCircle, Info, Briefcase, User, Hash, Code, Calendar, Music, Shield, FileSignature } from '../icons';
 import Tooltip from '../Tooltip';
 import { generateNextCatalogNumber, generateNextISRC, getCodeConfig, saveCodeConfig, CodeConfig, resetSequences } from '../../services/codeGeneratorService';
 import Button from '../Button';
@@ -14,6 +14,7 @@ interface CommercialLegalCardProps {
     refiningField: keyof Metadata | null;
     onRefine: (field: keyof Metadata) => void;
     showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+    onViewCertificate: () => void;
 }
 
 // --- CONSTANTS & TYPES ---
@@ -191,7 +192,7 @@ const EditableInput: React.FC<{
 };
 
 
-const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isEditing, onFieldUpdate, refiningField, onRefine, showToast }) => {
+const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isEditing, onFieldUpdate, refiningField, onRefine, showToast, onViewCertificate }) => {
     const [showSettings, setShowSettings] = useState(false);
     const [hasSavedTemplate, setHasSavedTemplate] = useState(false);
 
@@ -453,6 +454,27 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                                 {metadata.explicitContent || <span className="opacity-40 italic text-sm">None</span>}
                             </div>
                         )}
+                    </div>
+                </div>
+
+                <div className="md:col-span-2 mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/50 rounded-xl">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex-grow min-w-0 w-full">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Shield className="w-4 h-4 text-amber-600" />
+                                <label className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Digital Audio Fingerprint (SHA-256)</label>
+                            </div>
+                            <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded border border-amber-200/30 font-mono text-xs text-slate-700 dark:text-slate-300 break-all leading-tight">
+                                {metadata.sha256 || 'HASH_PENDING_REANALYSIS'}
+                            </div>
+                        </div>
+                        <Button
+                            onClick={onViewCertificate}
+                            variant="primary"
+                            className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 border-none shadow-lg shadow-amber-600/20 whitespace-nowrap px-6 py-2.5"
+                        >
+                            <FileSignature className="w-4 h-4 mr-2" /> View Official Certificate
+                        </Button>
                     </div>
                 </div>
             </div>

@@ -35,61 +35,22 @@ async def get_current_user_optional(authorization: Optional[str] = Header(None),
 
 def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_user_optional)):
     """
-    A dependency that gets the current user and checks if they have
-    sufficient analysis quota.
-    Admins bypass all quota checks.
+    A dependency that gets the current user.
+    QUOTA CHECKS DISABLED: User requested open app for everyone without limits.
     """
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Zaloguj się, aby skorzystać z 10 darmowych analiz."
+            detail="Zaloguj się, aby skorzystać z aplikacji."
         )
         
-    # Check if user is admin
-    from app.admin_config import is_admin
-    user_email = getattr(current_user, 'email', None)
-    
-    if user_email and is_admin(user_email):
-        # Admin users bypass all quota checks
-        return current_user
-        
-    # Check credits directly from User model
-    # If credits is None, assume default 10 (starter free tier)
-    credits = current_user.credits if current_user.credits is not None else 10
-    
-    # Check if we should enforce quota based on credits
-    # Simple logic: 1 analysis = 1 credit? 
-    # Or just check if they have credits > 0?
-    # Based on original code, it checked "analysis_count" vs "analysis_limit".
-    # We are moving to a credit system (User.credits).
-    
-    if credits <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Quota exceeded. You have {credits} credits left.",
-        )
-
+    # All authenticated users are now treated as unlimited
     return current_user
 
 
 async def increment_user_quota(user_id: str):
     """
-    Decrements the credit count for a given user.
+    QUOTA UPDATES DISABLED: User requested no limits.
     """
-    # Note: This function needs a DB session, but dependencies are usually injected.
-    # Since this is a helper function, we might need to pass db explicitly or create a new session.
-    # For now, let's create a new session to be safe.
-    from app.db import SessionLocal
-    
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            # Decrement credits
-            if user.credits is not None and user.credits > 0:
-                user.credits -= 1
-                db.commit()
-    except Exception as e:
-        print(f"CRITICAL: Failed to update quota for user {user_id}. Error: {e}")
-    finally:
-        db.close()
+    pass
+
