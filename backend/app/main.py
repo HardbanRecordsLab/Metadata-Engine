@@ -58,10 +58,10 @@ def setup_app():
     """Initialize FastAPI app"""
     from app.routes import (
         proxy_router, spotify_router, lastfm_router, discogs_router,
-        audd_router, auth_router, history_router, quota_router,
+        audd_router, auth_router, history_router,
         tagging_router, ddex_router, analysis_router, generative_router,
         health_router, mir_router, ai_proxy_router, cwr_router,
-        batch_router, system_router, webhook_router, certificate_router
+        batch_router, system_router, certificate_router
     )
     from app.routes.fresh_analysis import router as fresh_router
     from app.routes.export import router as export_router
@@ -106,13 +106,11 @@ def setup_app():
     app.include_router(audd_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")
     app.include_router(history_router, prefix="/api")
-    app.include_router(quota_router, prefix="/api")
     app.include_router(batch_router, prefix="/api")
     app.include_router(tagging_router, prefix="/api")
     app.include_router(analysis_router, prefix="/api")
     app.include_router(generative_router, prefix="/api")
     app.include_router(system_router, prefix="/api")
-    app.include_router(webhook_router, prefix="/api")
     app.include_router(certificate_router, prefix="/api")
 
     # AUTH Routes

@@ -11,8 +11,6 @@ interface TrackIdentityCardProps {
     onFieldUpdate: (field: keyof Metadata, value: any) => void;
     refiningField: keyof Metadata | null;
     onRefine: (field: keyof Metadata) => void;
-    userTier: UserTier;
-    onOpenPricing: () => void;
 }
 
 const EditableInput: React.FC<{
@@ -41,8 +39,7 @@ const EditableInput: React.FC<{
 // We are replacing the rendering logic.
 
 const TrackIdentityCard: React.FC<TrackIdentityCardProps> = ({
-    metadata, isEditing, onFieldUpdate, refiningField, onRefine,
-    userTier, onOpenPricing
+    metadata, isEditing, onFieldUpdate, refiningField, onRefine
 }) => {
     // Helper format duration
     const formatDuration = (seconds?: number) => {

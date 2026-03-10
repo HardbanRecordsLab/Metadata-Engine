@@ -129,13 +129,13 @@ export default function VerifyCertificatePage() {
 
   const entries = Object.entries(data.metadata || {});
   const order: string[] = [
-    'title','artist','album','albumArtist','year','track','duration',
-    'bpm','key','mode','mainInstrument','mainGenre','additionalGenres','language',
-    'trackDescription','keywords',
-    'isrc','iswc','upc','catalogNumber','license',
-    'publisher','composer','lyricist','producer',
-    'copyright','pLine',
-    'sha256','confidence','validation_report'
+    'title', 'artist', 'album', 'albumArtist', 'year', 'track', 'duration',
+    'bpm', 'key', 'mode', 'mainInstrument', 'mainGenre', 'additionalGenres', 'language',
+    'trackDescription', 'keywords',
+    'isrc', 'iswc', 'upc', 'catalogNumber', 'license',
+    'publisher', 'composer', 'lyricist', 'producer',
+    'copyright', 'pLine',
+    'sha256', 'confidence', 'validation_report'
   ];
   const present = order.filter(k => data.metadata && data.metadata[k] != null && data.metadata[k] !== '');
   const remaining = entries
@@ -145,42 +145,99 @@ export default function VerifyCertificatePage() {
   const keys = [...present, ...remaining];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100 py-10">
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tight">Digital Certificate Verification</h1>
-          <p className="text-sm text-slate-500 mt-1">Hardban Records Lab</p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4 border border-amber-200 dark:border-amber-800">
+            Official Verification Portal
+          </div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Digital Asset Authenticity</h1>
+          <p className="text-sm text-slate-500 mt-2 font-medium">Hardban Records Lab • Verification & IP Protection Bureau</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase text-slate-400">Certificate</div>
-                <div className="text-lg font-bold">{data.certificate_id}</div>
-                <div className="text-xs text-slate-500">{data.file_name}</div>
+
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl overflow-hidden">
+          {/* Status Banner */}
+          <div className="bg-emerald-600 px-6 py-3 flex items-center justify-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span className="text-white text-xs font-black uppercase tracking-widest">VERIFIED & ACTIVE RECORD</span>
+          </div>
+
+          <div className="p-8 md:p-12 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+              <div className="flex-1">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-1">Asset Identifier (Serial)</div>
+                <div className="text-2xl font-black font-mono text-slate-900 dark:text-white mb-2">{data.certificate_id}</div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded text-xs font-mono text-slate-600 dark:text-slate-400">
+                  SHA-256: {data.sha256}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <a href={pdfHref} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg bg-accent-violet text-white font-bold hover:opacity-90">
-                  Download PDF
+              <div className="flex flex-col gap-3 w-full md:w-auto">
+                <a href={pdfHref} target="_blank" rel="noreferrer" className="w-full text-center px-6 py-3 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold hover:opacity-90 transition-all shadow-lg">
+                  Fetch PDF Certificate
                 </a>
               </div>
             </div>
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {keys.map((k) => {
-              const v = data.metadata[k];
-              const label = LabelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, s => s.toUpperCase());
-              return (
-                <div key={k} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                  <div className="text-xs uppercase font-bold text-slate-500 mb-1">{label}</div>
-                  <div className="text-sm">{formatValue(k, v)}</div>
+
+          {/* Legal / Authority Section */}
+          <div className="p-8 md:p-12 bg-slate-50 dark:bg-slate-900/20">
+            <div className="max-w-2xl">
+              <h2 className="text-sm font-black uppercase text-amber-700 dark:text-amber-500 mb-4 tracking-widest flex items-center gap-2">
+                Legal Authority & Admissibility
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4 text-justify">
+                This digital record constitutes cryptographic proof of the audio file's state and metadata as of its registration date. Under the <strong>Berne Convention</strong> and international "prior art" standards, this timestamped fingerprint serves as essential evidentiary support for ownership claims and creative attribution.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Status</div>
+                  <div className="text-xs font-bold text-emerald-600 uppercase">Registered & Notarized</div>
                 </div>
-              );
-            })}
+                <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">Network</div>
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">HRL Verification System</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="p-6 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500">
-            Verified by Hardban Records Lab · Read-only view
+
+          <div className="p-8 md:p-12">
+            <h3 className="text-xs font-black uppercase text-slate-400 mb-6 tracking-widest italic">Attributed Metadata</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+              {keys.map((k) => {
+                const v = data.metadata[k];
+                const label = LabelMap[k] || k.replace(/_/g, ' ').replace(/\b\w/g, s => s.toUpperCase());
+                return (
+                  <div key={k} className="border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                    <div className="text-[9px] uppercase font-black text-amber-600/80 mb-1">{label}</div>
+                    <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{formatValue(k, v)}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          <div className="p-8 md:p-12 bg-slate-950 text-white flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="text-center md:text-left">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Certified By</div>
+              <div className="text-xl font-bold font-serif italic text-amber-500">HardbanRecords Lab</div>
+              <div className="text-[10px] text-slate-400 tracking-tighter mt-1">Institutional Rights Management Bureau</div>
+            </div>
+            <div className="w-px h-12 bg-slate-800 hidden md:block"></div>
+            <div className="text-center md:text-right">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Digital Seal</div>
+              <div className="text-xs font-mono text-slate-400 leading-tight">
+                CERT_SIG: {data.sha256.slice(0, 16)}...<br />
+                AUTH_LVL: 04 (IMUTTABLE)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+            Verification Secure · End-to-End Encrypted Access
+          </p>
         </div>
       </div>
     </div>

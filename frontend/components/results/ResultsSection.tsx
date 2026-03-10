@@ -5,6 +5,7 @@ import { embedMetadata } from '../../services/taggingService';
 import { Download, Pencil, ArrowLeft, RotateCcw, RotateCw, FileText } from '../icons';
 import { exportMetadataToCSV } from '../../services/exportService';
 import { ExportModal } from '../imported/ExportModal';
+import CertificateViewer from '../CertificateViewer';
 import TranscriptionViewer from '../TranscriptionViewer';
 import ResultsSkeleton from './ResultsSkeleton';
 import Button from '../Button';
@@ -28,8 +29,6 @@ interface ResultsSectionProps {
     uploadedFile: File | null;
     onUpdateFile: (file: File) => void;
     onBackToBatch: () => void;
-    userTier: UserTier;
-    onOpenPricing: () => void;
     audioFeatures?: any;
 }
 
@@ -43,7 +42,7 @@ const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
 );
 
 
-const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, results, showToast, onUpdateResults, currentAnalysis, uploadedFile, onUpdateFile, onBackToBatch, userTier, onOpenPricing, audioFeatures }) => {
+const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, results, showToast, onUpdateResults, currentAnalysis, uploadedFile, onUpdateFile, onBackToBatch, audioFeatures }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedResults, setEditedResults] = useState<Metadata | null>(results);
     const [undoStack, setUndoStack] = useState<Metadata[]>([]);
@@ -53,6 +52,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
     const [isFileReadable, setIsFileReadable] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showCertificate, setShowCertificate] = useState(false);
     const durationSyncedRef = useRef(false);
 
     // Verify file accessibility
@@ -374,8 +374,6 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             onFieldUpdate={handleFieldUpdate}
                             refiningField={refiningField}
                             onRefine={handleRefine}
-                            userTier={userTier}
-                            onOpenPricing={onOpenPricing}
                         />
                     </AnimatedSection>
                     <AnimatedSection delay="170ms">
@@ -424,6 +422,7 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             refiningField={refiningField}
                             onRefine={handleRefine}
                             showToast={showToast}
+                            onViewCertificate={() => setShowCertificate(true)}
                         />
                     </AnimatedSection>
                 </div>
@@ -435,6 +434,14 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                     jobId={currentAnalysis.jobId}
                     metadata={editedResults!}
                     onClose={() => setShowExportModal(false)}
+                />
+            )}
+            {showCertificate && (
+                <CertificateViewer
+                    metadata={editedResults!}
+                    sha256={editedResults!.sha256 || ''}
+                    timestamp={currentAnalysis?.id ? new Date(parseInt(currentAnalysis.id.split('-')[0]) || Date.now()).toISOString() : new Date().toISOString()}
+                    onClose={() => setShowCertificate(false)}
                 />
             )}
 

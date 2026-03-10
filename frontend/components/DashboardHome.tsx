@@ -7,13 +7,11 @@ import Button from './Button'; // Import Button component
 interface DashboardHomeProps {
   onNavigate: (view: string) => void;
   onCreateNew: () => void;
-  userProfile: UserProfile;
-  onOpenPricing: () => void;
-  onOpenRedeemCode: () => void; // New prop for opening redeem code modal
+  userProfile: { name: string };
 }
 
-const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, userProfile, onOpenPricing, onOpenRedeemCode }) => {
-  const isPaid = userProfile.tier !== 'starter';
+const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, userProfile }) => {
+  const isPaid = true;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-20 animate-fade-in">
@@ -55,27 +53,13 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
 
               <p className="text-slate-300 text-lg font-medium max-w-xl leading-relaxed">
                 Your creative studio is powered up and ready to transform your music.
-                <span className="block mt-2">
-                  Current plan: <button onClick={onOpenPricing} className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-sm hover:scale-105 transition-transform uppercase">
-                    {userProfile.tier} {isPaid && '✨'}
-                  </button>
-                  {userProfile.tier === 'starter' && userProfile.credits > 0 && (
-                    <span className="ml-2 text-xs text-yellow-300 font-bold">(Credits: {userProfile.credits})</span>
-                  )}
+                <span className="block mt-2 font-black text-indigo-400 uppercase tracking-widest text-sm">
+                  Full Studio Access • Unlimited Processing
                 </span>
               </p>
             </div>
 
             <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              {!isPaid && (
-                <button
-                  onClick={onOpenPricing}
-                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-black text-lg shadow-[0_10px_40px_-10px_rgba(234,179,8,0.5)] hover:shadow-[0_10px_50px_-10px_rgba(234,179,8,0.7)] hover:scale-105 transition-all flex items-center justify-center gap-3 group"
-                >
-                  <Star className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                  <span>Upgrade to Pro</span>
-                </button>
-              )}
               <Button
                 onClick={onCreateNew}
                 className="px-8 py-4 rounded-2xl bg-white text-slate-900 font-black text-lg shadow-[0_10px_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_10px_50px_-10px_rgba(255,255,255,0.5)] hover:scale-105 transition-all flex items-center justify-center gap-3 group"
@@ -83,14 +67,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
                 <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform" />
                 <span>New Analysis</span>
               </Button>
-              {userProfile.tier === 'starter' && (
-                <Button
-                  onClick={onOpenRedeemCode}
-                  className="px-8 py-4 rounded-2xl bg-slate-700 text-white font-black text-lg shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_50px_-10px_rgba(0,0,0,0.5)] hover:scale-105 transition-all flex items-center justify-center gap-3 group"
-                >
-                  <Gift className="w-6 h-6" /> Redeem Code
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -138,7 +114,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
 
         {/* Card 2: Batch Processor (Pink/Purple) */}
         <button
-          onClick={() => !isPaid ? onOpenPricing() : onCreateNew()}
+          onClick={onCreateNew}
           className="group relative overflow-hidden flex flex-col items-start text-left rounded-3xl bg-gradient-to-br from-pink-600 via-purple-600 to-violet-700 shadow-[0_20px_60px_-15px_rgba(236,72,153,0.4)] hover:shadow-[0_20px_80px_-15px_rgba(236,72,153,0.6)] transition-all duration-500 hover:scale-[1.02] h-full p-0 border-0"
         >
           {/* Background Pattern */}
@@ -150,15 +126,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
               backgroundPosition: '0 0, 30px 30px'
             }}></div>
           </div>
-
-          {/* Pro Badge */}
-          {!isPaid && (
-            <div className="absolute top-4 right-4 z-20">
-              <div className="px-4 py-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black uppercase shadow-lg animate-pulse flex items-center gap-2">
-                <Star className="w-4 h-4" /> PRO
-              </div>
-            </div>
-          )}
 
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
 
@@ -173,11 +140,11 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
               Batch Processor
             </h3>
             <p className="text-pink-100 text-sm leading-relaxed mb-8 font-medium">
-              Unlock Pro to analyze unlimited files at once. Process entire albums in seconds and save hours of manual work.
+              Analyze unlimited files at once. Process entire albums in seconds and save hours of manual work with parallel processing.
             </p>
 
             <div className="mt-auto flex items-center text-xs font-bold text-white uppercase tracking-widest group-hover:gap-3 transition-all">
-              {!isPaid ? 'UPGRADE TO UNLOCK' : 'LAUNCH NOW'} <ArrowLeft className="w-4 h-4 ml-2 rotate-180 transition-transform group-hover:translate-x-2" />
+              LAUNCH NOW <ArrowLeft className="w-4 h-4 ml-2 rotate-180 transition-transform group-hover:translate-x-2" />
             </div>
           </div>
         </button>

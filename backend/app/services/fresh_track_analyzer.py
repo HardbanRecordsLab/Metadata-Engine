@@ -40,7 +40,15 @@ class FreshTrackAnalyzer:
         
         logger.info("Fresh Track Analyzer initialized (lean Docker mode)")
     
-    async def analyze_fresh_track(self, file_path: str, include_lyrics: bool = False, model_preference: str = 'flash', time_budget: int = 45, job_id: str = None) -> Dict[str, Any]:
+    async def analyze_fresh_track(
+        self,
+        file_path: str,
+        include_lyrics: bool = False,
+        model_preference: str = "pro",
+        time_budget: int = 120,
+        job_id: str = None
+    ) -> Dict[str, Any]:
+
         """
         Główna funkcja analizy
         
@@ -58,11 +66,19 @@ class FreshTrackAnalyzer:
         logger.info(f"Analyzing fresh track: {file_path} (Budget: {time_budget}s)")
         
         try:
+            # === LAYER 0: Identity & Integrity ===
+            from ..utils.hash_generator import generate_file_hash
+            file_hash = generate_file_hash(file_path)
+            
             # === LAYER 1: Deep Audio Features (12-15s) ===
             logger.info("Layer 1: Extracting audio features...")
             audio_features = await self.audio_analyzer.extract_all_features(file_path)
             
+            # Add hash to features for downstream use
+            audio_features['meta']['sha256'] = file_hash
+            
             layer1_time = time.time() - start_time
+
             logger.info(f"Layer 1 completed in {layer1_time:.1f}s")
             
             # Check remaining budget
@@ -293,9 +309,24 @@ class FreshTrackAnalyzer:
         if 110 <= tempo <= 145 and zcr > 0.12 and hp_ratio > 1.0:
             genre_hints.append('rock/alternative')
         
+        # Phonk / Drift Phonk
+        if 85 <= tempo <= 105 and rms > 0.18 and centroid > 3500:
+            genre_hints.append('phonk')
+        # Drill / UK Drill
+        if 135 <= tempo <= 150 and 'complex' in str(rhythm.get('rhythm_complexity', '')).lower() and hp_ratio < 1.1:
+            genre_hints.append('drill')
+        # Melodic Techno / Afterlife style
+        if 122 <= tempo <= 126 and hp_ratio > 1.8 and dynamic_range > 0.22:
+            genre_hints.append('melodic techno')
+        # Hard Techno / Industrial
+        if tempo > 140 and rms > 0.22:
+            genre_hints.append('hard techno/industrial')
+
         # ── Mood Hints ─────────────────────────────────────────────────────────
         mood_hints = []
         
+        if rms > 0.22 and tempo > 135:
+            mood_hints.append('frenetic/overwhelming')
         if rms > 0.18 and tempo > 130:
             mood_hints.append('energetic/powerful')
         if rms > 0.20 and dynamic_range < 0.12:
@@ -316,6 +347,9 @@ class FreshTrackAnalyzer:
             mood_hints.append('hypnotic/driving')
         if dynamic_range > 0.35 and hp_ratio > 2.0:
             mood_hints.append('cinematic/dramatic')
+        if centroid > 4000 and flatness > 0.6:
+            mood_hints.append('shimmering/ethereal')
+
         
         return {
             'genre': {
@@ -470,6 +504,7 @@ Return JSON:
             "dynamics":          llm_consensus.get('dynamics', ''),
             "targetAudience":    llm_consensus.get('targetAudience', ''),
             "tempoCharacter":    tempo_char or llm_consensus.get('tempoCharacter', ''),
+            "hasVocals":         audio_features.get('energy', {}).get('vocal_presence', 0) > 0.1,
             "language":          llm_consensus.get('language') or lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
             "analysisReasoning": llm_consensus.get('analysisReasoning') or llm_consensus.get('reasoning', ''),
             "similar_artists":   llm_consensus.get('similar_artists', []),
@@ -477,9 +512,11 @@ Return JSON:
             "bpm":      bpm_val,
             "key":      key_val,
             "mode":     mode_val,
+            "sha256":   audio_features.get('meta', {}).get('sha256', ''),
             "structure": audio_features.get('structure', []),
             "duration":  audio_features.get('meta', {}).get('duration', 0),
         }
+
 
         if not metadata.get("analysisReasoning"):
             r = audio_features.get("rhythm", {})
