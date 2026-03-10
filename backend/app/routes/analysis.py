@@ -332,12 +332,14 @@ async def process_analysis(
         # Save to history
         try:
             history = AnalysisHistory(
+                user_id=job.user_id,
                 file_name=job.file_name,
                 file_hash=file_hash,
                 metadata_json=final_metadata,
                 result=final_metadata,
                 created_at=datetime.utcnow(),
             )
+
             db.add(history)
             db.commit()
         except Exception as e:
