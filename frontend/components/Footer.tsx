@@ -7,10 +7,9 @@ import { ResourceDocType } from './ResourcesModal';
 interface FooterProps {
   onOpenLegal: (type: LegalDocType) => void;
   onOpenResource?: (type: ResourceDocType) => void;
-  onOpenPricing: () => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onOpenLegal, onOpenResource, onOpenPricing }) => {
+const Footer: React.FC<FooterProps> = ({ onOpenLegal, onOpenResource }) => {
   const currentYear = new Date().getFullYear();
 
   const handleResourceClick = (type: ResourceDocType) => {
@@ -49,7 +48,6 @@ const Footer: React.FC<FooterProps> = ({ onOpenLegal, onOpenResource, onOpenPric
             <h4 className="font-bold text-light-text dark:text-dark-text mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
               <li><button onClick={() => handleResourceClick('features')} className="hover:text-accent-violet transition-colors text-left">Features</button></li>
-              <li><button onClick={onOpenPricing} className="hover:text-accent-violet transition-colors text-left">Pricing & Plans</button></li>
               <li><button onClick={() => handleResourceClick('roadmap')} className="hover:text-accent-violet transition-colors text-left">Development Roadmap</button></li>
             </ul>
           </div>

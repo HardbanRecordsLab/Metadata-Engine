@@ -9,10 +9,7 @@ interface SidebarProps {
     onOpenAbout: () => void;
     isOpenMobile: boolean;
     onCloseMobile: () => void;
-    onOpenPricing: () => void;
     onOpenLogin: () => void;
-    userCredits: number;
-    userTier: UserTier;
     showToast: (msg: string, type?: any) => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
@@ -24,14 +21,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenAbout,
     isOpenMobile,
     onCloseMobile,
-    onOpenPricing,
     onOpenLogin,
-    userCredits,
-    userTier,
     showToast,
     isCollapsed,
     onToggleCollapse
 }) => {
+
     const { user, isAuthenticated, logout } = useAuth();
 
     const menuSections = [
@@ -153,16 +148,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                             {/* Profile Header */}
                             <div className={`flex items-center ${isCollapsed ? 'justify-center flex-col gap-2' : 'gap-4'}`}>
                                 <div className={`rounded-2xl flex items-center justify-center text-white font-black shadow-2xl ${isCollapsed ? 'w-10 h-10' : 'w-14 h-14'
-                                    } ${userTier !== 'starter' ? 'bg-gradient-to-tr from-accent-violet via-purple-600 to-accent-blue' : 'bg-slate-800 border border-white/10'}`}>
-                                    {userTier !== 'starter' ? <Star className={isCollapsed ? "w-5 h-5" : "w-6 h-6"} /> : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+                                    } bg-gradient-to-tr from-accent-violet via-purple-600 to-accent-blue`}>
+                                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 {!isCollapsed && (
                                     <div className="flex-grow min-w-0">
                                         <p className="text-sm font-black text-white truncate tracking-tight">{user.name}</p>
                                         <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${userTier !== 'starter' ? 'bg-accent-violet animate-pulse' : 'bg-slate-500'}`}></div>
-                                            <p className={`text-[9px] uppercase tracking-widest font-black ${userTier !== 'starter' ? 'text-accent-violet' : 'text-slate-500'}`}>
-                                                {userTier} Level
+                                            <div className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse"></div>
+                                            <p className="text-[9px] uppercase tracking-widest font-black text-accent-violet">
+                                                Studio Access
                                             </p>
                                         </div>
                                     </div>
@@ -170,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
 
                             {/* Additional Actions */}
-                            <div className={`grid ${isCollapsed ? 'grid-cols-1 gap-1' : 'grid-cols-2 gap-2'}`}>
+                            <div className={`grid ${isCollapsed ? 'grid-cols-1 gap-1' : 'grid-cols-1 gap-2'}`}>
                                 <button
                                     onClick={() => handleNavigation('settings')}
                                     title="Setup"
@@ -178,14 +173,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 >
                                     <Settings className="w-4 h-4 text-slate-500 group-hover:text-accent-violet transition-colors mb-1" />
                                     {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Setup</span>}
-                                </button>
-                                <button
-                                    onClick={() => handleNavigation('usage')}
-                                    title="Analytics"
-                                    className={`flex flex-col items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group ${isCollapsed ? 'p-2' : 'p-3'}`}
-                                >
-                                    <TrendingUp className="w-4 h-4 text-slate-500 group-hover:text-accent-blue transition-colors mb-1" />
-                                    {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Analytics</span>}
                                 </button>
                             </div>
 

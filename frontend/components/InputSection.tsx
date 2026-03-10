@@ -15,21 +15,17 @@ interface InputSectionProps {
     onViewResults: (itemId: string) => void;
     onExportBatch: () => void;
     showToast: (message: string, type: 'success' | 'error' | 'info') => void;
-    userTier: UserTier;
-    userCredits: number;
-    onOpenPricing: () => void;
     isFresh: boolean;
     setIsFresh: (isFresh: boolean) => void;
     onRetry: (id: string) => void;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
-    batch, setBatch, onAnalyze, isProMode, setIsProMode, isProcessingBatch, onViewResults, onRetry, onExportBatch, userTier, userCredits, onOpenPricing, showToast, isFresh, setIsFresh
+    batch, setBatch, onAnalyze, isProMode, setIsProMode, isProcessingBatch, onViewResults, onRetry, onExportBatch, showToast, isFresh, setIsFresh
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragCounter = useRef(0);
 
-    const isStarter = userTier === 'starter';
     const completedCount = batch.filter(i => i.status === 'completed').length;
     const pendingItemsCount = batch.filter(item => item.status === 'pending').length;
 
@@ -96,18 +92,11 @@ const InputSection: React.FC<InputSectionProps> = ({
                     </h2>
                     <p className="text-slate-500 font-medium">Inject professional metadata into your master stems.</p>
                 </div>
-                {isStarter && (
-                    <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border ${userCredits > 0 ? 'text-yellow-500 border-yellow-500/30' : 'text-red-500 border-red-500/30'}`}>
-                            {userCredits > 0 ? `Free analyses: ${userCredits}/10` : 'Free quota exhausted'}
-                        </span>
-                        {userCredits === 0 && (
-                            <button onClick={onOpenPricing} className="text-xs font-black px-3 py-1.5 rounded-full grad-violet text-white shadow">
-                                Upgrade Plan
-                            </button>
-                        )}
-                    </div>
-                )}
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border text-indigo-400 border-indigo-400/30">
+                        Unlimited Studio Access
+                    </span>
+                </div>
             </div>
 
             {/* Premium Dropzone */}
@@ -121,7 +110,7 @@ const InputSection: React.FC<InputSectionProps> = ({
                     <img src="/assets/analysis_visual.png" className="w-full h-full object-cover grayscale mix-blend-overlay" />
                 </div>
 
-                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="audio/*" multiple={!isStarter} />
+                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="audio/*" multiple />
 
                 <label htmlFor="dropzone-file" className="relative z-10 flex flex-col items-center justify-center w-full h-full cursor-pointer p-10 text-center">
                     <div className="w-24 h-24 rounded-[2rem] grad-lab flex items-center justify-center mb-8 shadow-2xl shadow-accent-violet/40 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
@@ -221,17 +210,17 @@ const InputSection: React.FC<InputSectionProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                        <Button onClick={onExportBatch} variant="outline" size="lg" disabled={isProcessingBatch || completedCount === 0 || isStarter} className="rounded-3xl border-slate-200 dark:border-white/10 dark:text-white">
+                        <Button onClick={onExportBatch} variant="outline" size="lg" disabled={isProcessingBatch || completedCount === 0} className="rounded-3xl border-slate-200 dark:border-white/10 dark:text-white">
                             <Download className="w-5 h-5 text-accent-violet" /> Institutional CSV
                         </Button>
                         <Button
                             onClick={() => onAnalyze(isProMode ? 'pro' : 'flash')}
                             variant="primary"
                             size="lg"
-                            disabled={isProcessingBatch || pendingItemsCount === 0 || (isStarter && userCredits === 0)}
+                            disabled={isProcessingBatch || pendingItemsCount === 0}
                             className="rounded-3xl grad-violet font-black"
                         >
-                            {isProcessingBatch ? 'Mastering Tracks...' : (isStarter && userCredits === 0 ? 'Upgrade to Continue' : `Execute Analysis ${pendingItemsCount > 0 ? `(${pendingItemsCount})` : ''}`)}
+                            {isProcessingBatch ? 'Mastering Tracks...' : `Execute Analysis ${pendingItemsCount > 0 ? `(${pendingItemsCount})` : ''}`}
                         </Button>
                     </div>
                 </div>

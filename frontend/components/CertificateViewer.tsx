@@ -29,13 +29,17 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
+    // Public verification URL
+    const verifyUrl = `https://metadata.hardbanrecordslab.online/verify/${sha256}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`;
+
     // PDF Export Handler
     const handleDownloadPDF = async () => {
         if (!certificateRef.current) return;
 
         try {
             const canvas = await html2canvas(certificateRef.current, {
-                scale: 2,
+                scale: 3, // Higher scale for print quality
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff'
@@ -57,216 +61,201 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
             const imgY = 0;
 
             pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-            pdf.save(`Certificate_${metadata.title || 'Unknown'}_${new Date(timestamp).toISOString().split('T')[0]}.pdf`);
+            pdf.save(`Certificate_${metadata.title || 'Track'}_Fingerprint.pdf`);
         } catch (error) {
             console.error('PDF generation failed:', error);
             alert('Failed to generate PDF. Please try again.');
         }
     };
 
-    // PDF-style White Paper Design
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
-            {/* Certificate Container - A4-ish Aspect Ratio */}
-            <div ref={certificateRef} className="relative w-full max-w-[900px] bg-white text-slate-900 shadow-2xl my-10 min-h-[1100px] flex flex-col font-sans">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 md:p-10 animate-fade-in overflow-y-auto custom-scrollbar">
+            {/* Certificate A4 Canvas */}
+            <div
+                ref={certificateRef}
+                className="relative w-full max-w-[850px] bg-white text-slate-900 shadow-[0_0_100px_rgba(0,0,0,0.5)] my-auto min-h-[1100px] flex flex-col font-serif"
+                style={{ aspectRatio: '1/1.414' }}
+            >
+                {/* Institutional Borders */}
+                <div className="absolute inset-4 border-[6px] border-amber-600/20 pointer-events-none"></div>
+                <div className="absolute inset-6 border-[1px] border-amber-600/40 pointer-events-none"></div>
+                <div className="absolute inset-8 border-[2px] border-amber-600/10 pointer-events-none"></div>
 
-                {/* Decorative Border (Double Line) */}
-                <div className="absolute inset-2 border-[3px] border-amber-600 rounded-sm pointer-events-none"></div>
-                <div className="absolute inset-1 border border-amber-600/30 rounded-sm pointer-events-none"></div>
+                {/* Corners Decorations */}
+                <div className="absolute top-8 left-8 w-12 h-12 border-t-4 border-l-4 border-amber-700/60 z-10"></div>
+                <div className="absolute top-8 right-8 w-12 h-12 border-t-4 border-r-4 border-amber-700/60 z-10"></div>
+                <div className="absolute bottom-8 left-8 w-12 h-12 border-b-4 border-l-4 border-amber-700/60 z-10"></div>
+                <div className="absolute bottom-8 right-8 w-12 h-12 border-b-4 border-r-4 border-amber-700/60 z-10"></div>
 
                 {/* Main Content Area */}
-                <div className="p-12 md:p-16 flex-1 flex flex-col gap-10">
+                <div className="p-16 md:p-24 flex-1 flex flex-col gap-12 relative z-0">
+
+                    {/* Watermark */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none z-[-1] overflow-hidden">
+                        <div className="rotate-[-35deg] text-[120px] font-black text-slate-950 whitespace-nowrap">
+                            HARDBAN RECORDS LAB • HARDBAN RECORDS LAB • HARDBAN RECORDS LAB
+                        </div>
+                    </div>
 
                     {/* HEADER */}
-                    <div className="text-center space-y-4">
-                        <div className="flex justify-center">
-                            <ShieldCheck className="w-16 h-16 text-amber-600" strokeWidth={1.5} />
+                    <div className="text-center space-y-6">
+                        <div className="flex justify-center mb-4">
+                            <div className="relative">
+                                <ShieldCheck className="w-20 h-20 text-amber-600" strokeWidth={1} />
+                                <div className="absolute inset-0 animate-pulse-slow opacity-20">
+                                    <ShieldCheck className="w-20 h-20 text-amber-600" strokeWidth={1} />
+                                </div>
+                            </div>
                         </div>
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-serif font-bold text-amber-700 tracking-wider uppercase mb-1">Digital Footprint Certificate</h1>
-                            <p className="text-sm font-semibold tracking-[0.2em] text-slate-500 uppercase">Proof of Existence & Record of Authenticity</p>
-                            <p className="text-xs text-slate-400 mt-1">Certificate Version: v2.1</p>
+                            <h1 className="text-4xl md:text-5xl font-bold text-amber-800 tracking-tight uppercase mb-2">Certificate of Authenticity</h1>
+                            <p className="text-sm font-semibold tracking-[0.4em] text-slate-400 uppercase">Cryptographic Asset Verification & Metadata Record</p>
                         </div>
 
-                        {/* ID Badges */}
-                        <div className="flex flex-wrap justify-center gap-4 mt-4">
-                            <span className="px-4 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-800 text-xs font-mono font-medium flex items-center gap-2">
-                                <FileSignature className="w-3 h-3" /> ID: HRL-{new Date(timestamp).getFullYear()}-{metadata.catalogNumber || "GEN"}
-                            </span>
-                            <span className="px-4 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-800 text-xs font-mono font-medium flex items-center gap-2">
-                                <Clock className="w-3 h-3" /> Issued: {new Date(timestamp).toUTCString()}
-                            </span>
+                        <div className="flex flex-wrap justify-center gap-6 pt-6">
+                            <div className="text-center">
+                                <div className="text-[10px] uppercase font-bold text-amber-600/60 mb-1">Serial Number</div>
+                                <div className="font-mono text-xs font-bold text-slate-800 bg-amber-50 px-3 py-1 border border-amber-100 rounded">HRL-{new Date(timestamp).getFullYear()}-{metadata.catalogNumber || "UNTITLED"}</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-[10px] uppercase font-bold text-amber-600/60 mb-1">Issued On</div>
+                                <div className="font-mono text-xs font-bold text-slate-800 bg-amber-50 px-3 py-1 border border-amber-100 rounded">{new Date(timestamp).toUTCString()}</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="w-full h-px bg-amber-200/50"></div>
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent"></div>
 
-                    {/* SECTION 1: ASSET ID */}
-                    <section>
-                        <h2 className="flex items-center gap-2 text-lg font-bold text-amber-800 uppercase mb-4">
-                            <span className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center text-xs">1</span> Asset Identification (Technical Hash)
+                    {/* SECTION 1: TECHNICAL FINGERPRINT */}
+                    <section className="space-y-4">
+                        <h2 className="flex items-center gap-3 text-lg font-bold text-amber-900 uppercase">
+                            <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs text-amber-800 border border-amber-200">01</span>
+                            Digital Fingerprint (Identity)
                         </h2>
-                        <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
-                            <p>
-                                This document serves as formal confirmation that a unique digital fingerprint (SHA-256 Hash) was generated for the specified audio file. This hash acts as a deterministic cryptographic signature, ensuring the file's integrity and existence at the time of timestamping.
+                        <div className="bg-slate-50 p-6 rounded-lg border border-slate-100 shadow-inner">
+                            <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                                This immutable cryptographic hash (SHA-256) serves as a deterministic signature of the original audio master. Any alteration to the file will invalidate this certificate.
                             </p>
-
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="p-3 border border-slate-200 rounded bg-slate-50">
-                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Filename</div>
-                                    <div className="font-mono text-slate-900 font-medium">{metadata.title || "Unknown File"}.wav</div>
-                                </div>
-                                <div className="p-3 border-2 border-amber-400/30 rounded bg-amber-50/30">
-                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Digital Fingerprint (SHA-256)</div>
-                                    <div className="font-mono text-amber-900 font-medium break-all text-xs md:text-sm">{sha256}</div>
-                                </div>
+                            <div className="font-mono text-amber-900 font-bold break-all text-xs md:text-sm bg-white p-4 border border-amber-200/50 rounded shadow-sm">
+                                {sha256 || 'PROCESSED_DATA_LAYER_REQUIRED'}
                             </div>
                         </div>
                     </section>
 
-                    {/* SECTION 3 (Shifted up): METADATA */}
-                    <section>
-                        <h2 className="flex items-center gap-2 text-lg font-bold text-amber-800 uppercase mb-4">
-                            <span className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center text-xs">2</span> Metadata & Creative Attribution
+                    {/* SECTION 2: CREATIVE ATTRIBUTION */}
+                    <section className="space-y-4">
+                        <h2 className="flex items-center gap-3 text-lg font-bold text-amber-900 uppercase">
+                            <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs text-amber-800 border border-amber-200">02</span>
+                            Creative & Intellectual Attribution
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Title</div>
-                                <div className="font-semibold">{metadata.title}</div>
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-6 px-4">
+                            <div>
+                                <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest mb-1">Asset Title</div>
+                                <div className="text-lg font-bold text-slate-900">{metadata.title || "Unknown Asset"}</div>
                             </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Artist / Composer</div>
-                                <div className="font-semibold">{metadata.artist}</div>
+                            <div>
+                                <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest mb-1">Principal Artist</div>
+                                <div className="text-lg font-bold text-slate-900">{metadata.artist || "Anonymous"}</div>
                             </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Album</div>
-                                <div className="font-semibold">{metadata.album || "Single"}</div>
+                            <div>
+                                <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest mb-1">Publisher / Rights Holder</div>
+                                <div className="text-base font-medium text-slate-700">{metadata.publisher || "HardbanRecords Lab"}</div>
                             </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Label / Publisher</div>
-                                <div className="font-semibold">{metadata.publisher || "HardbanRecords Lab"}</div>
-                            </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Catalog Number</div>
-                                <div className="font-semibold">{metadata.catalogNumber || `HRL-CS-${new Date().getFullYear()}-00X`}</div>
-                            </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">ISWC / ISRC</div>
-                                <div className="font-semibold">{metadata.isrc || "Pending / Under Registration"}</div>
+                            <div>
+                                <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest mb-1">Registration ID (ISRC/ISWC)</div>
+                                <div className="text-base font-mono font-bold text-slate-700">{metadata.isrc || "PENDING"}</div>
                             </div>
                         </div>
                     </section>
 
-                    {/* SECTION 4: MUSICAL SPECIFICATIONS */}
-                    <section>
-                        <h2 className="flex items-center gap-2 text-lg font-bold text-amber-800 uppercase mb-4">
-                            <span className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center text-xs">3</span> Musical & Creative Specifications
+                    {/* SECTION 3: SONIC DNA */}
+                    <section className="space-y-4">
+                        <h2 className="flex items-center gap-3 text-lg font-bold text-amber-900 uppercase">
+                            <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs text-amber-800 border border-amber-200">03</span>
+                            Musical & Sonic Specifications
                         </h2>
-                        <div className="space-y-3">
-                            <div className="p-3 border border-slate-200 rounded flex justify-between items-center">
-                                <div>
-                                    <div className="text-[10px] text-amber-600 font-bold uppercase">Tempo / Key</div>
-                                    <div className="font-medium">{metadata.bpm ? metadata.bpm.toFixed(0) : '-'} BPM | {metadata.key} {metadata.mode}</div>
-                                </div>
+                        <div className="grid grid-cols-3 gap-4 bg-amber-50/30 p-4 rounded border border-amber-100">
+                            <div className="text-center">
+                                <div className="text-[9px] text-slate-400 font-bold uppercase mb-1">Tempo</div>
+                                <div className="text-sm font-bold">{metadata.bpm ? Math.round(metadata.bpm) : '--'} BPM</div>
                             </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Genre</div>
-                                <div className="font-medium">{metadata.mainGenre} {join(metadata.additionalGenres) !== 'None' ? `(${join(metadata.additionalGenres)})` : ''}</div>
+                            <div className="text-center border-l border-amber-100">
+                                <div className="text-[9px] text-slate-400 font-bold uppercase mb-1">Key / Mode</div>
+                                <div className="text-sm font-bold">{metadata.key} {metadata.mode}</div>
                             </div>
-                            <div className="p-3 border border-slate-200 rounded">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase">Mood</div>
-                                <div className="font-medium">{join(metadata.moods)}</div>
+                            <div className="text-center border-l border-amber-100">
+                                <div className="text-[9px] text-slate-400 font-bold uppercase mb-1">Duration</div>
+                                <div className="text-sm font-bold">{formatDuration(metadata.duration)}</div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-white border border-slate-100 rounded">
+                                <div className="text-[9px] text-amber-600 font-bold uppercase mb-1">Main Genre</div>
+                                <div className="text-xs font-medium">{metadata.mainGenre}</div>
+                            </div>
+                            <div className="p-3 bg-white border border-slate-100 rounded">
+                                <div className="text-[9px] text-amber-600 font-bold uppercase mb-1">Vocal Content</div>
+                                <div className="text-xs font-medium">{metadata.vocalStyle?.gender && metadata.vocalStyle.gender !== 'none' ? `Present (${metadata.vocalStyle.gender})` : 'Instrumental'}</div>
                             </div>
                         </div>
                     </section>
 
-                    {/* SECTION 6: LEGAL DISCLAIMER */}
-                    <section className="bg-amber-50/50 p-6 rounded border border-amber-100">
-                        <h2 className="flex items-center gap-2 text-sm font-bold text-amber-800 uppercase mb-2">
-                            6. Legal Disclaimer
-                        </h2>
-                        <p className="text-[11px] text-slate-600 text-justify leading-relaxed">
-                            This certificate provides proof that the digital file existed in the state described above on the date specified. It does not, by itself, constitute a government-issued copyright registration, but serves as essential evidentiary support for "prior art" and ownership claims in international jurisdictions under the Berne Convention.
-                        </p>
-                        <p className="text-[11px] text-amber-700 italic mt-2 font-medium">
-                            Verification Note: Any modification to the original file (including metadata changes or re-saving) will result in a different SHA-256 hash, rendering this specific certificate invalid for the altered version.
-                        </p>
+                    {/* LEGAL DISCLAIMER */}
+                    <section className="mt-auto border-t border-slate-100 pt-8">
+                        <div className="bg-slate-50 p-6 rounded border border-slate-200/50">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Shield className="w-4 h-4 text-amber-700" />
+                                <span className="text-xs font-bold text-amber-900 uppercase">Legal Declaration & Copyright Evidence</span>
+                            </div>
+                            <p className="text-[10px] text-slate-600 text-justify leading-relaxed italic">
+                                This document provides admissible evidence of track existence and state under the Berne Convention for the Protection of Literary and Artistic Works. It serves as essential technical documentation for copyright claims, sync licensing validation, and IP protection. HardbanRecords Lab maintains the timestamped record in its secure digital vault.
+                            </p>
+                        </div>
                     </section>
 
-                    {/* SECTION 7: AUTHENTICATION */}
-                    <section>
-                        <h2 className="flex items-center gap-2 text-lg font-bold text-amber-800 uppercase mb-4">
-                            <span className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center text-xs">7</span> Verification & Authentication
-                        </h2>
+                    {/* AUTHENTICATION FOOTER */}
+                    <section className="grid grid-cols-3 items-end gap-8">
+                        <div className="space-y-2">
+                            <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest">Authorized By</div>
+                            <div className="font-serif text-xl font-bold text-slate-800">HardbanRecords</div>
+                            <div className="text-[10px] text-slate-400 font-medium">Digital Authentication Bureau</div>
+                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-2 space-y-4">
-                                <div className="p-4 border-2 border-amber-100 rounded-lg bg-white">
-                                    <div className="text-[10px] font-bold text-amber-600 uppercase mb-1">Online Verification URL</div>
-                                    {ipfsUrl ? (
-                                        <a href={ipfsUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-mono text-blue-600 hover:underline break-all block">
-                                            {ipfsUrl}
-                                        </a>
-                                    ) : (
-                                        <span className="text-sm text-slate-400 italic">IPFS Link not available in preview</span>
-                                    )}
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded border border-slate-100">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Security Notice</div>
-                                    <p className="text-xs text-slate-600">
-                                        This certificate contains cryptographic proof of file existence. Always verify the hash matches before accepting authenticity claims.
-                                    </p>
-                                </div>
-                            </div>
+                        <div className="flex flex-col items-center justify-center p-4 border border-amber-100 bg-amber-50/20 rounded">
+                            <img
+                                src={qrCodeUrl}
+                                alt="Verification QR"
+                                className="w-24 h-24 mix-blend-multiply opacity-90"
+                            />
+                            <div className="text-[8px] font-bold text-slate-400 uppercase mt-2">Scan to Verify Publicly</div>
+                        </div>
 
-                            {/* QR & Seal Placeholder */}
-                            <div className="flex flex-col items-center justify-center border border-slate-200 rounded p-4 text-center">
-                                <div className="w-24 h-24 bg-slate-900 text-white flex items-center justify-center mb-2">
-                                    {/* Abstract Pattern for QR */}
-                                    <Hash className="w-12 h-12 opacity-50" />
-                                </div>
-                                <span className="text-[10px] uppercase font-bold text-slate-400">Scan to Verify</span>
-                                <div className="mt-4 pt-4 border-t border-slate-100 w-full">
-                                    <div className="text-[10px] font-bold text-amber-600 mb-1">HRL-{new Date(timestamp).getFullYear()}-001</div>
-                                </div>
+                        <div className="text-right space-y-4">
+                            <div className="inline-block border-b-2 border-slate-300 w-full pb-1">
+                                <span className="font-dancing text-2xl text-blue-900 font-bold italic" style={{ fontFamily: 'Times New Roman, serif' }}>Verification Seal</span>
                             </div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">Valid Only with Original SHA-256 Hash</div>
                         </div>
                     </section>
                 </div>
 
-                {/* FOOTER */}
-                <div className="p-8 md:px-16 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row justify-between items-end">
-                    <div className="text-left mb-4 md:mb-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Certified By:</p>
-                        <div className="font-serif text-lg font-bold text-slate-800">HardbanRecords Lab</div>
-                        <div className="text-[10px] text-slate-500">Verification Systems</div>
-                    </div>
-
-                    <div className="text-right">
-                        <div className="mb-2">
-                            <span className="font-dancing text-2xl text-blue-900 font-bold italic" style={{ fontFamily: 'Times New Roman, serif' }}>Authorized Signature</span>
-                        </div>
-                        <div className="w-48 h-px bg-slate-300 mb-1"></div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Digital Authentication Seal</p>
-                    </div>
-                </div>
-
-                {/* CLOSE BUTTON (Floating) */}
+                {/* CLOSE BUTTON (Floating, won't be in PDF) */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-full transition-colors text-slate-400 border border-slate-200"
-                    title="Close Certificate"
+                    className="absolute top-4 right-4 p-2 bg-slate-950 text-white rounded-full transition-transform hover:scale-110 z-[101]"
+                    title="Close"
+                    data-html2canvas-ignore="true"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
-                {/* DOWNLOAD PDF BUTTON (Floating) */}
+                {/* DOWNLOAD PDF BUTTON (Floating, won't be in PDF) */}
                 <button
                     onClick={handleDownloadPDF}
-                    className="absolute top-4 right-16 p-2 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-full transition-colors text-emerald-600 border border-emerald-200"
-                    title="Download as PDF"
+                    className="absolute top-4 right-16 px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-full transition-all hover:bg-emerald-700 shadow-lg z-[101] flex items-center gap-2"
+                    data-html2canvas-ignore="true"
                 >
-                    <Download className="w-5 h-5" />
+                    <Download className="w-4 h-4" /> Download Certificate (PDF)
                 </button>
             </div>
         </div>
