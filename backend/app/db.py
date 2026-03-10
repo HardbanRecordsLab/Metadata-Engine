@@ -20,7 +20,8 @@ if os.path.exists(PERSISTENT_DATA_PATH):
 else:
     DEFAULT_DB_URL = f"sqlite:///./{SQLITE_DB_NAME}"
 
-DATABASE_URL = "sqlite:////data/music_metadata.db"
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+
 
 engine = create_engine(
     DATABASE_URL,
