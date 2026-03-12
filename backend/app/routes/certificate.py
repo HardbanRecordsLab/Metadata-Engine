@@ -8,7 +8,7 @@ import librosa
 import secrets
 
 from app.db import SessionLocal, Job, Certificate, VerificationEvent
-from app.dependencies import get_user_and_check_quota, increment_user_quota
+from app.dependencies import get_user_and_check_quota
 from app.utils.hash_generator import generate_file_hash
 from app.services.certificate_pdf import generate_certificate_pdf, CERT_DIR
 
