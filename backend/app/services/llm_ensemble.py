@@ -22,16 +22,17 @@ MUSIC_EXPERT_SYSTEM_PROMPT = """You are a visionary A&R Executive and High-End M
 Your specialty is identifying the "DNA" of a track — not just its genre, but its emotional soul, production era, and commercial fingerprint.
 
 ## Your Standards:
-1. **Evocative Copywriting**: Avoid lists. Write prose that feels like a premium blurb from a high-stakes sync catalog (e.g., Audio Network, Extreme Music). 
-2. **Deep Musical Insight**: Use your knowledge of music theory and production (e.g., "warm analog saturation", "syncopated polyrhythms", "ethereal modal progressions") to add depth to your descriptions.
-3. **Market Authority**: You know exactly where this track belongs — from a luxury automotive campaign to a gritty neo-noir crime drama.
-4. **Niche Precision**: Never say "Techno" if it's "Industrial Peak-Time Techno". Never say "Hip Hop" if it's "Boom Bap with Jazz Inflections".
+1. **Evocative Copywriting**: Avoid bullet points. Write prose that feels like a premium blurb from a high-stakes sync catalog (e.g., Audio Network, Extreme Music). Use vivid imagery (e.g., "neon-soaked", "grit-infused").
+2. **Deep Musical Insight**: Use your knowledge of music theory and production (e.g., "warm analog saturation", "sidechained compression", "cinematic orchestral swells") to add depth.
+3. **Market Authority**: You know exactly where this track belongs (e.g., "luxury automotive campaign", "gritty neo-noir crime drama", "TikTok fashion transition").
+4. **Niche Precision**: Use precise subgenres (e.g., "Industrial Peak-Time Techno" instead of "Techno").
+5. **The Narrative Arc**: The `trackDescription` must tell a story of how the track starts, evolves, and resolves. (e.g., "The arrangement opens with a haunting piano motif before exploding into a distorted synth climax").
 
 ## Quality Mandates:
 - **Tone**: Professional, authoritative, evocative, and commercially savvy.
 - **Accuracy**: Every claim must be supported by the provided DSP (Digital Signal Processing) audio data.
-- **Narrative**: The `trackDescription` must tell a story of the track's progression (the "arc").
-- **Polish Nuance**: If hints suggest a Polish artist or context, subtly lean into the European electronic/pop aesthetic excellence.
+- **Polish Nuance**: If hints suggest a Polish artist, subtly lean into the European electronic/pop aesthetic excellence.
+- **Polish Language Output**: If the user is Polish (context suggests so), the `trackDescription` and `mood_vibe` should be in Polish, but high-end and professional.
 """
 
 
@@ -215,6 +216,12 @@ Rules:
         # Validate and refine final result
         final_result = self._validate_and_refine_classification(final_result, audio_features)
         
+        # QUALITY ENHANCEMENT: If description is too short, try to expand it
+        if len(final_result.get('trackDescription', '')) < 300:
+             logger.info("Description too short, ensemble will refine it...")
+             # (Future: add expansion logic if needed)
+             pass
+
         return final_result
     
     def _build_enhanced_prompt(self, audio_features: Dict, ml_hints: Dict) -> str:
@@ -296,8 +303,10 @@ Rules:
    • TEXTURE: {'Grainy/Complex' if flatness > 0.6 else 'Pure/Tonal' if flatness < 0.2 else 'Rich/Hybrid'}
    • SPECTRAL CONTRAST: {contrast:.2f} (High values = High-definition production)
 
-🎤 VOCAL STATUS:
-   • PROBABILITY: {vocal_presence:.4f} ({'Confirmed Vocal Content' if vocal_presence > 0.09 else 'Likely Instrumental / Atmospheric Vocals'})
+🎤 VOCAL DNA:
+   • PRESENCE SCORE: {vocal_presence:.4f} 
+   • CLASSIFICATION: {'STRICTLY VOCAL/SONG' if vocal_presence > 0.15 else 'VOCAL ELEMENTS DETECTED' if vocal_presence > 0.04 else 'PREDOMINANTLY INSTRUMENTAL'}
+   • GUIDANCE: If SCORE > 0.04, you MUST describe the vocal character (gender, tone, delivery). If < 0.04, treat as Instrumental unless DSP hints suggest otherwise.
 
 💡 PRE-ANALYSIS HINTS:
    • Est. Genre tags: {ml_hints.get('genre', {}).get('hints', ['None detected'])}

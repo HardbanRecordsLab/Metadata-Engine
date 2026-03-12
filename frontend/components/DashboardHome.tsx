@@ -54,7 +54,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
               <p className="text-slate-300 text-lg font-medium max-w-xl leading-relaxed">
                 Your creative studio is powered up and ready to transform your music.
                 <span className="block mt-2 font-black text-indigo-400 uppercase tracking-widest text-sm">
-                  Full Studio Access • Unlimited Processing
+                  Unified Studio Access • Basic Processing
                 </span>
               </p>
             </div>

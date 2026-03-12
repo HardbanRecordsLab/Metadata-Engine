@@ -206,14 +206,40 @@ class DeepAudioAnalyzer:
             band_energy = float(np.mean(mel_spec_db[low:high]))
             band_energies.append(band_energy)
         
-        # Vocal presence heuristic: energy in vocal range (300Hz - 3400Hz)
-        # Using mel bins (approximate)
-        vocal_bins = [int(300 / (sr/2) * 128), int(3400 / (sr/2) * 128)]
-        vocal_energy = float(np.mean(mel_spec_db[vocal_bins[0]:vocal_bins[1]]))
-        
-        # Normalize relative to total energy
-        total_energy = float(np.mean(mel_spec_db))
-        vocal_score = (vocal_energy - total_energy) / (abs(total_energy) + 1e-6)
+        # Improved Vocal Presence Detection using pYIN
+        # We analyze a 15s segment to keep processing within time limits
+        try:
+            # Segment center for analysis
+            center_idx = len(y) // 2
+            segment_len = int(15 * sr) # 15 seconds
+            start_idx = max(0, center_idx - segment_len // 2)
+            end_idx = min(len(y), start_idx + segment_len)
+            y_segment = y[start_idx:end_idx]
+            
+            # fmin=65 (C2), fmax=1046 (C6) covers most vocal ranges
+            f0, voiced_flag, voiced_probs = librosa.pyin(
+                y_segment, 
+                fmin=librosa.note_to_hz('C2'), 
+                fmax=librosa.note_to_hz('C6'), 
+                sr=sr,
+                frame_length=2048,
+                hop_length=512
+            )
+            
+            if f0 is not None:
+                voiced_frames = f0[~np.isnan(f0)]
+                vocal_score = float(len(voiced_frames) / len(f0)) if len(f0) > 0 else 0.0
+            else:
+                vocal_score = 0.0
+                
+        except Exception as ve:
+            logger.warning(f"pYIN vocal detection failed, falling back to spectral-ratio: {ve}")
+            # Fallback to spectral-ratio if pYIN fails
+            vocal_bins = [int(300 / (sr/2) * 128), int(3400 / (sr/2) * 128)]
+            vocal_energy = float(np.mean(mel_spec_db[vocal_bins[0]:vocal_bins[1]]))
+            total_energy = float(np.mean(mel_spec_db))
+            vocal_score = (vocal_energy - total_energy) / (abs(total_energy) + 1e-6)
+            vocal_score = max(0, min(1, vocal_score * 5)) # Scale up
         
         return {
             'rms_mean': float(np.mean(rms)),

@@ -52,6 +52,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     tier = Column(String, default="starter")
     credits = Column(Integer, default=10)
+    last_login = Column(DateTime, nullable=True)
     api_key = Column(String, unique=True, nullable=True, default=lambda: str(uuid.uuid4()))
 
 class Job(Base):
@@ -100,7 +101,7 @@ class Certificate(Base):
     sha256 = Column(String, index=True)
     certificate_metadata = Column(JSON)
     verification_status = Column(String, default="pending")
-    price_usd = Column(Integer, default=1)
+    price_usd = Column(Float, default=0.5)
     created_at = Column(DateTime, default=datetime.utcnow)
     view_token = Column(String, nullable=True)
 

@@ -118,7 +118,7 @@ async def generate_certificate(
         sha256=sha256_actual,
         certificate_metadata=job.result,
         verification_status=verification_status,
-        price_usd=1,
+        price_usd=0.5,
         created_at=now,
         view_token=view_token,
     )
@@ -135,10 +135,7 @@ async def generate_certificate(
         "certificate_id": certificate.certificate_id,
         "job_id": certificate.job_id,
         "file_name": certificate.file_name,
-        "sha256": certificate.sha256,
-        "verification_status": certificate.verification_status,
-        "price_usd": certificate.price_usd,
-        "created_at": certificate.created_at.isoformat() if certificate.created_at else None,
+        "HardBand Records Authenticity DNA": certificate.sha256,
         "pdf_url": f"https://metadata.hardbanrecordslab.online/api/certificate/pdf/{certificate.certificate_id}",
         "verify_url": verify_url,
     }

@@ -33,24 +33,40 @@ async def get_current_user_optional(authorization: Optional[str] = Header(None),
     except Exception:
         return None
 
-def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_user_optional)):
+def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
     """
-    A dependency that gets the current user.
-    QUOTA CHECKS DISABLED: User requested open app for everyone without limits.
+    A dependency that gets the current user and checks if they have enough credits.
+    Limit for free users: 10 analyses.
     """
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Zaloguj się, aby skorzystać z aplikacji."
+            detail="Zaloguj się, aby skorzystać z aplikacji (10 darmowych analiz dla każdego)."
+        )
+    
+    # Superusers have unlimited access
+    if current_user.is_superuser:
+        return current_user
+        
+    # Check credits
+    if current_user.credits <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Wykorzystałeś limit darmowych analiz (10). Zakup pakiet w WooCommerce."
         )
         
-    # All authenticated users are now treated as unlimited
     return current_user
 
 
-async def increment_user_quota(user_id: str):
+async def decrement_user_credits(user_id: str, db: Session):
     """
-    QUOTA UPDATES DISABLED: User requested no limits.
+    Subtract 1 credit from user account after successful analysis.
     """
-    pass
+    user = db.query(User).filter(User.id == user_id).first()
+    if user and not user.is_superuser:
+        if user.credits > 0:
+            user.credits -= 1
+            db.commit()
+            return True
+    return False
 
