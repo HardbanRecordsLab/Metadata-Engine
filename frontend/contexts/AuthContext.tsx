@@ -42,11 +42,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch user profile');
+            const text = await response.text();
+            let userData;
+            try {
+                userData = JSON.parse(text);
+            } catch (e) {
+                console.error("Serwer zwrócił nie-JSON dla /me:", text);
+                throw new Error("Failed to parse user profile response");
             }
 
-            const userData = await response.json();
+            if (!response.ok) {
+                throw new Error(userData.detail || 'Failed to fetch user profile');
+            }
+
             const isAdm = checkIsAdmin(userData.email, userData.user_metadata);
             setUser({
                 id: userData.id,
@@ -91,12 +99,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             body: JSON.stringify({ email, password })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Login failed');
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("Serwer zwrócił nie-JSON:", text);
+            throw new Error(`Błąd serwera (nie-JSON): ${text.substring(0, 100)}`);
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.detail || 'Login failed');
+        }
+
         const accessToken = data.access_token;
         
         localStorage.setItem('access_token', accessToken);
@@ -116,9 +131,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             body: JSON.stringify({ email, password })
         });
 
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("Serwer zwrócił nie-JSON przy rejestracji:", text);
+            throw new Error(`Błąd serwera (nie-JSON): ${text.substring(0, 100)}`);
+        }
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Registration failed');
+            throw new Error(data.detail || 'Registration failed');
         }
 
         // Auto login after register? Or ask to login?

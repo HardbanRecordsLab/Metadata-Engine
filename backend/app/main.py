@@ -5,7 +5,8 @@ import time
 from datetime import datetime, timedelta
 import starlette.formparsers
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
@@ -54,6 +55,14 @@ async def cleanup_temp_files():
             logger.error(f"Cleanup error: {e}")
 
 
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+    )
+
+
 def setup_app():
     """Initialize FastAPI app"""
     from app.routes import (
@@ -73,6 +82,9 @@ def setup_app():
         description="AI-Powered Audio Analysis",
         version="2.1.0"
     )
+    
+    # Global Exception Handler
+    app.add_exception_handler(Exception, global_exception_handler)
     
     # CORS
     app.add_middleware(

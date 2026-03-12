@@ -194,9 +194,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                                 className="w-full relative py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                             >
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2">
-                                    <Shield className="w-5 h-5 text-accent-blue" />
+                                    <Google className="w-5 h-5" />
                                 </span>
-                                Enterprise Identity Access
+                                Continue with Google
                             </Button>
                         </>
                     )}

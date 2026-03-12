@@ -462,7 +462,7 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                         <div className="flex-grow min-w-0 w-full">
                             <div className="flex items-center gap-2 mb-1">
                                 <Shield className="w-4 h-4 text-amber-600" />
-                                <label className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Digital Audio Fingerprint (SHA-256)</label>
+                                <label className="text-[10px] font-black uppercase text-amber-600 tracking-widest">HardBand Records Authenticity DNA</label>
                             </div>
                             <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded border border-amber-200/30 font-mono text-xs text-slate-700 dark:text-slate-300 break-all leading-tight">
                                 {metadata.sha256 || 'HASH_PENDING_REANALYSIS'}
@@ -473,7 +473,7 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                             variant="primary"
                             className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 border-none shadow-lg shadow-amber-600/20 whitespace-nowrap px-6 py-2.5"
                         >
-                            <FileSignature className="w-4 h-4 mr-2" /> View Official Certificate
+                            <FileSignature className="w-4 h-4 mr-2" /> Issue Official Authenticity Certificate
                         </Button>
                     </div>
                 </div>

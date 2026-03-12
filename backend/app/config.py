@@ -31,10 +31,6 @@ class Settings:
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 
-    # Payment (Disabled)
-    # LEMONSQUEEZY_WEBHOOK_SECRET = os.getenv("LEMONSQUEEZY_WEBHOOK_SECRET") or os.getenv("VITE_LEMONSQUEEZY_WEBHOOK_SECRET")
-
-
     # IPFS / Pinata
     PINATA_JWT = os.getenv("PINATA_JWT")
     PINATA_GATEWAY = os.getenv("PINATA_GATEWAY", "gateway.pinata.cloud")

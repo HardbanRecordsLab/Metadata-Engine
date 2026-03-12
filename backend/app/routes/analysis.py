@@ -322,13 +322,13 @@ async def process_analysis(
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
 
-        # Quota decrement disabled as per user request (unlimited access)
-        # try:
-        #     if job.user_id:
-        #         from app.dependencies import increment_user_quota
-        #         await increment_user_quota(job.user_id)
-        # except Exception as e:
-        #     logger.error(f"Failed to decrement credits for user {job.user_id}: {e}")
+        # Decrement user credits after successful analysis
+        try:
+            if job.user_id:
+                from app.dependencies import decrement_user_credits
+                await decrement_user_credits(job.user_id, db)
+        except Exception as e:
+            logger.error(f"Failed to decrement credits for user {job.user_id}: {e}")
 
 
         # Save to history

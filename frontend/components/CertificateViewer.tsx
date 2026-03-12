@@ -108,7 +108,7 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
                             </div>
                         </div>
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-bold text-amber-800 tracking-tight uppercase mb-2">Certificate of Authenticity</h1>
+                            <h1 className="text-4xl md:text-5xl font-bold text-amber-800 tracking-tight uppercase mb-2">Authenticity Certificate</h1>
                             <p className="text-sm font-semibold tracking-[0.4em] text-slate-400 uppercase">Cryptographic Asset Verification & Metadata Record</p>
                         </div>
 
@@ -130,7 +130,7 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
                     <section className="space-y-4">
                         <h2 className="flex items-center gap-3 text-lg font-bold text-amber-900 uppercase">
                             <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs text-amber-800 border border-amber-200">01</span>
-                            Digital Fingerprint (Identity)
+                            HardBand Records Authenticity DNA
                         </h2>
                         <div className="bg-slate-50 p-6 rounded-lg border border-slate-100 shadow-inner">
                             <p className="text-xs text-slate-500 mb-3 leading-relaxed">
@@ -218,7 +218,7 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({
                         <div className="space-y-2">
                             <div className="text-[10px] text-amber-600 font-black uppercase tracking-widest">Authorized By</div>
                             <div className="font-serif text-xl font-bold text-slate-800">HardbanRecords</div>
-                            <div className="text-[10px] text-slate-400 font-medium">Digital Authentication Bureau</div>
+                            <div className="text-[10px] text-slate-400 font-medium italic">Standard Issue: 0.50 USD</div>
                         </div>
 
                         <div className="flex flex-col items-center justify-center p-4 border border-amber-100 bg-amber-50/20 rounded">

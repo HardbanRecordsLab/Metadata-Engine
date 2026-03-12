@@ -127,6 +127,17 @@ const TrackIdentityCard: React.FC<TrackIdentityCardProps> = ({
                     </div>
                 </div>
 
+                {/* HardBand Records Authenticity DNA */}
+                {metadata.sha256 && (
+                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <label className="block text-[10px] font-black uppercase text-accent-violet tracking-widest mb-2 flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" /> HardBand Records Authenticity DNA
+                        </label>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-600 dark:text-slate-400 break-all leading-tight shadow-inner">
+                            {metadata.sha256}
+                        </div>
+                    </div>
+                )}
             </div>
         </Card>
     );

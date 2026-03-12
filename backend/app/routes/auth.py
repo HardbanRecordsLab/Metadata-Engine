@@ -6,12 +6,14 @@ from datetime import datetime, timedelta
 import bcrypt
 from jose import jwt
 import uuid
+import logging
 from app.db import User, get_db
 
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
+logger = logging.getLogger(__name__)
 
 # Config
 ALGORITHM = "HS256"
@@ -48,7 +50,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def create_access_token(user_id: str, expires_in: int = 604800) -> str:
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(seconds=expires_in)
     }
@@ -146,10 +148,20 @@ async def login(payload: UserLogin, db: Session = Depends(get_db)):
         current = user.credits if user.credits is not None else 0
         if current < 10:
             user.credits = 10
-    except Exception:
+    except Exception as e:
         # Fallback safe default
+        logger.error(f"Error checking user credits: {e}")
         user.credits = 10
-    db.commit()
+    
+    try:
+        db.commit()
+    except Exception as e:
+        logger.error(f"Database error during login: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database commit failed during login. Please try again."
+        )
     
     token = create_access_token(user.id)
     
@@ -164,7 +176,7 @@ async def login(payload: UserLogin, db: Session = Depends(get_db)):
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user info"""
     return {
-        "id": current_user.id,
+        "id": str(current_user.id),
         "email": current_user.email,
         "username": current_user.username,
         "is_premium": current_user.is_premium,

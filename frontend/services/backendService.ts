@@ -63,8 +63,16 @@ export const backendService = {
             method: 'POST',
             body: formData,
         });
-        if (!res.ok) throw new Error('Failed to generate hash');
-        const data = await res.json();
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Failed to parse hash response: ${text.substring(0, 50)}`);
+        }
+
+        if (!res.ok) throw new Error(data.detail || 'Failed to generate hash');
         return data.sha256;
     },
 
@@ -74,8 +82,17 @@ export const backendService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ metadata, sha256, filename, job_id: jobId }),
         });
-        if (!res.ok) throw new Error('Failed to generate certificate');
-        return await res.json();
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Failed to parse certificate response: ${text.substring(0, 50)}`);
+        }
+
+        if (!res.ok) throw new Error(data.detail || 'Failed to generate certificate');
+        return data;
     },
 
     getExportCsvUrl(jobId: string): string {
