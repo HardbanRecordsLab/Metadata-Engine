@@ -8,6 +8,7 @@ from jose import jwt
 import uuid
 import logging
 from app.db import User, get_db
+from app.security import verify_password, get_password_hash, create_access_token
 
 from app.config import settings
 
@@ -39,24 +40,6 @@ class TokenResponse(BaseModel):
 
 
 # Utilities
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt(rounds=12)
-    return bcrypt.hashpw(password.encode(), salt).decode()
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode(), password_hash.encode())
-
-
-def create_access_token(user_id: str, expires_in: int = 604800) -> str:
-    payload = {
-        "sub": str(user_id),
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(seconds=expires_in)
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-
 def verify_token(token: str) -> str:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -110,7 +93,7 @@ async def register(payload: UserRegister, db: Session = Depends(get_db)):
         id=str(uuid.uuid4()),
         email=payload.email,
         username=payload.username,
-        password_hash=hash_password(payload.password),
+        password_hash=get_password_hash(payload.password),
         api_key=str(uuid.uuid4()),
         credits=10,
     )
