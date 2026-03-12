@@ -376,12 +376,9 @@ class FreshTrackAnalyzer:
         
         try:
             # Check if vocal (z audio features)
-            # Dla uproszczenia załóżmy że sprawdzamy energy
             energy = audio_features.get('energy', {})
-            
-            # Simplified vocal detection
-            # Real: użyj bardziej zaawansowanego modelu
-            is_likely_vocal = energy.get('rms_mean', 0) > 0.1
+            vocal_presence = energy.get('vocal_presence', 0)
+            is_likely_vocal = vocal_presence > 0.04
             
             if not is_likely_vocal:
                 return {'has_lyrics': False, 'reason': 'instrumental_detected'}
@@ -504,7 +501,7 @@ Return JSON:
             "dynamics":          llm_consensus.get('dynamics', ''),
             "targetAudience":    llm_consensus.get('targetAudience', ''),
             "tempoCharacter":    tempo_char or llm_consensus.get('tempoCharacter', ''),
-            "hasVocals":         audio_features.get('energy', {}).get('vocal_presence', 0) > 0.1,
+            "hasVocals":         audio_features.get('energy', {}).get('vocal_presence', 0) > 0.04,
             "language":          llm_consensus.get('language') or lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
             "analysisReasoning": llm_consensus.get('analysisReasoning') or llm_consensus.get('reasoning', ''),
             "similar_artists":   llm_consensus.get('similar_artists', []),
@@ -513,6 +510,7 @@ Return JSON:
             "key":      key_val,
             "mode":     mode_val,
             "sha256":   audio_features.get('meta', {}).get('sha256', ''),
+            "HardBand Records Authenticity DNA": audio_features.get('meta', {}).get('sha256', ''),
             "structure": audio_features.get('structure', []),
             "duration":  audio_features.get('meta', {}).get('duration', 0),
         }

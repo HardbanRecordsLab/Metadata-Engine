@@ -141,7 +141,7 @@ def generate_certificate_pdf(
     y += 60
     draw.text((180, y), f"File: {file_name}", font=subheader_font, fill=slate)
     y += 54
-    draw.text((180, y), f"Audio SHA-256: {sha256}", font=mono_font, fill=slate)
+    draw.text((180, y), f"HardBand Records Authenticity DNA: {sha256}", font=mono_font, fill=slate)
     y += 50
     draw.text((180, y), f"Issued: {datetime.utcnow().isoformat()}Z", font=subheader_font, fill=slate)
     y += 60
@@ -201,7 +201,7 @@ def generate_certificate_pdf(
         "percussionDetected": "Percussion Detected",
         "confidence": "AI Confidence",
         "validation_report": "Validation Report",
-        "sha256": "SHA-256",
+        "sha256": "HardBand Records Authenticity DNA",
     }
     ORDER = [
         "title", "artist", "album", "albumArtist", "year", "track", "duration",
@@ -283,7 +283,7 @@ def generate_certificate_pdf(
     sig_y = y + qr_size + 80
     draw.line([(180, sig_y), (780, sig_y)], fill=slate, width=3)
     draw.text((180, sig_y + 10), "Authorized Signature", font=body_font, fill=slate)
-    draw.text((180, sig_y + 60), "Issuer: Hardban Records Lab", font=body_font, fill=slate)
+    draw.text((180, sig_y + 60), f"Issuer: Hardban Records Lab | Certificate Price: 0.50 USD", font=body_font, fill=slate)
     draw.text((180, sig_y + 100), "Issued at: metadata.hardbanrecordslab.online", font=body_font, fill=slate)
 
     out_path = os.path.join(CERT_DIR, f"{certificate_id}.pdf")

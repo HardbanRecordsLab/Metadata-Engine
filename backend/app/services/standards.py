@@ -8,7 +8,8 @@ MAIN_GENRES = [
     "Electronic", "Pop", "Rock", "Hip Hop", "R&B", "Jazz", "Classical", "Folk", "Country", "Blues",
     "Reggae", "Latin", "Metal", "Soul", "Funk", "Disco", "House", "Techno", "Trance", "Dubstep",
     "Drum & Bass", "Ambient", "Trap", "Indie", "Alternative", "Punk", "Gospel", "Soundtrack", "World", "Experimental",
-    "K-Pop", "J-Pop", "Afrobeats", "Reggaeton", "Ska", "Grime", "Garage", "Industrial", "New Age", "Lo-Fi"
+    "K-Pop", "J-Pop", "Afrobeats", "Reggaeton", "Ska", "Grime", "Garage", "Industrial", "New Age", "Lo-Fi",
+    "Phonk", "Drill", "Ethereal", "Synthpop"
 ]
 
 SUB_GENRES = [
@@ -17,7 +18,9 @@ SUB_GENRES = [
     "Bossa Nova", "Salsa", "Bachata", "Flamenco", "Swing", "Bebop", "Fusion", "Smooth Jazz", "Chamber Pop",
     "Electropop", "Hyperpop", "Vaporwave", "Chillhop", "Lofi Hip Hop", "Hardstyle", "Psytrance", "Acid Techno",
     "Minimal Techno", "Melodic Techno", "Post-Rock", "Shoegaze", "Dream Pop", "Grunge", "Emo", "Metalcore",
-    "Death Metal", "Black Metal", "Symphonic Metal", "Orchestral", "Cinematic", "Epic", "Trailer", "Meditation", "Drone"
+    "Death Metal", "Black Metal", "Symphonic Metal", "Orchestral", "Cinematic", "Epic", "Trailer", "Meditation", "Drone",
+    "Industrial Peak-Time Techno", "Modern Polish Pop", "Drift Phonk", "Afro House", "Amapiano", "Hard Techno",
+    "Organic House", "Indie Dance", "Dark Disco", "Leftfield Bass"
 ]
 
 MOODS = [
@@ -25,7 +28,8 @@ MOODS = [
     "Dark", "Ominous", "Melancholic", "Sad", "Emotional", "Sentimental", "Nostalgic", "Romantic", "Love", "Passion",
     "Calm", "Relaxed", "Chill", "Peaceful", "Serene", "Ethereal", "Dreamy", "Hypnotic", "Mysterious", "Spiritual",
     "Meditative", "Focus", "Study", "Groovy", "Funky", "Sexy", "Seductive", "Playful", "Quirky", "Funny",
-    "Dramatic", "Epic", "Cinematic", "Hopeful", "Inspiring", "Motivational", "Carefree", "Sunny", "Warm", "Cold"
+    "Dramatic", "Epic", "Cinematic", "Hopeful", "Inspiring", "Motivational", "Carefree", "Sunny", "Warm", "Cold",
+    "Neon-Soaked", "Grit-Infused", "Gritty", "Sophisticated", "Luxurious", "Vivid", "Haunting", "Evocative"
 ]
 
 INSTRUMENTATION = [
