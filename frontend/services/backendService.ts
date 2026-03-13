@@ -1,11 +1,12 @@
 
 import { Metadata } from '../types';
 import { getFullUrl } from '../apiConfig';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export const backendService = {
     async checkHealth(): Promise<boolean> {
         try {
-            const res = await fetch(getFullUrl('/'));
+            const res = await fetchWithRetry(getFullUrl('/'));
             const data = await res.json();
             return data.status === 'MME Worker Online';
         } catch (e) {
@@ -25,7 +26,7 @@ export const backendService = {
         if (metadata.bpm) formData.append('bpm', metadata.bpm.toString());
         if (metadata.key) formData.append('key', metadata.key);
 
-        const res = await fetch(getFullUrl('/tag/flac'), {
+        const res = await fetchWithRetry(getFullUrl('/tag/flac'), {
             method: 'POST',
             body: formData,
         });
@@ -44,7 +45,7 @@ export const backendService = {
         if (metadata.artist) formData.append('artist', metadata.artist);
         if (metadata.album) formData.append('album', metadata.album);
 
-        const res = await fetch(getFullUrl('/tag/wav'), {
+        const res = await fetchWithRetry(getFullUrl('/tag/wav'), {
             method: 'POST',
             body: formData,
         });
@@ -59,7 +60,7 @@ export const backendService = {
     async generateHash(file: File): Promise<string> {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch(getFullUrl('/generate/hash'), {
+        const res = await fetchWithRetry(getFullUrl('/generate/hash'), {
             method: 'POST',
             body: formData,
         });
@@ -77,7 +78,7 @@ export const backendService = {
     },
 
     async generateCertificate(metadata: Metadata, sha256: string, filename: string, jobId?: string): Promise<{ ipfs_hash: string; ipfs_url: string; timestamp: string }> {
-        const res = await fetch(getFullUrl('/generate/certificate'), {
+        const res = await fetchWithRetry(getFullUrl('/generate/certificate'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ metadata, sha256, filename, job_id: jobId }),

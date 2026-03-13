@@ -1,4 +1,5 @@
 import { getFullUrl } from '../apiConfig';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const wait = (ms: number) => {
     // @ts-ignore
@@ -7,11 +8,9 @@ const wait = (ms: number) => {
 };
 
 const callProxyEndpoint = async (provider: string, payload: any): Promise<any> => {
-    const token = localStorage.getItem('access_token') || "";
-
-    const response = await fetch(getFullUrl('/ai/proxy'), {
+    const response = await fetchWithRetry(getFullUrl('/ai/proxy'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, payload })
     });
 
@@ -57,7 +56,7 @@ const shouldRetry = (error: any): boolean => {
 export const callSpotifyProxy = async (endpoint: string, method = 'GET', body?: any) => {
     // Spotify specifically uses its own router in backend/app/routes/spotify.py
     // We keep it separate for now or refactor to unified proxy later
-    const response = await fetch(getFullUrl(`/spotify/${endpoint}`), {
+    const response = await fetchWithRetry(getFullUrl(`/spotify/${endpoint}`), {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined
