@@ -319,8 +319,13 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             )}
                         </Button>
                         {currentAnalysis?.jobId && (
-                            <Button onClick={() => setShowExportModal(true)} variant="secondary" size="sm">
-                                <Download className="w-4 h-4" /> Export
+                            <Button
+                                onClick={() => setShowExportModal(true)}
+                                variant="secondary"
+                                size="sm"
+                                className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-700 dark:text-slate-400"
+                            >
+                                <Download className="w-4 h-4 mr-2" /> Export
                             </Button>
                         )}
                         <Button
