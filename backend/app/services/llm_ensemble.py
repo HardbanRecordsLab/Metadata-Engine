@@ -159,7 +159,8 @@ Rules:
         self, 
         audio_features: Dict,
         ml_predictions: Dict = None,
-        model_preference: str = 'flash'
+        model_preference: str = 'flash',
+        job_id: str = "unknown"
     ) -> Dict:
         """
         Główna funkcja: LLMs równolegle
@@ -167,11 +168,12 @@ Rules:
         - 'pro' mode: All 3 models for max accuracy (~35-40s)
         """
         
-        # Build enhanced prompt
-        user_prompt = self._build_enhanced_prompt(audio_features, ml_predictions)
+        # Build enhanced prompt with job_id for uniqueness
+        user_prompt = self._build_enhanced_prompt(audio_features, ml_predictions, job_id=job_id)
         
         # Wybierz modele na podstawie preferencji
         if model_preference == 'flash':
+
             logger.info("Fast Mode: Using Groq + Gemini only")
             tasks = [
                 self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
@@ -224,8 +226,9 @@ Rules:
 
         return final_result
     
-    def _build_enhanced_prompt(self, audio_features: Dict, ml_hints: Dict) -> str:
+    def _build_enhanced_prompt(self, audio_features: Dict, ml_hints: Dict, job_id: str = "unknown") -> str:
         """Build a premium prompt with rich audio context and quality-focused output guidance."""
+        import secrets
         
         # Extract key features
         rhythm = audio_features.get('rhythm', {})
@@ -233,6 +236,7 @@ Rules:
         harmonic = audio_features.get('harmonic', {})
         spectral = audio_features.get('spectral', {})
         meta = audio_features.get('meta', {})
+        pitch = audio_features.get('pitch', {}) # New pitch/vocal data
         
         def _safe_float(val, default=0.0):
             try:
@@ -254,8 +258,10 @@ Rules:
         contrast = _safe_float(spectral.get('contrast_mean'), 0)
         duration = _safe_float(meta.get('duration'), 0)
         
-        # Additional DSP context
-        vocal_presence = _safe_float(energy.get('vocal_presence', energy.get('zcr_mean')), 0)
+        # Enhanced Vocal Context
+        vocal_presence = _safe_float(pitch.get('vocal_presence', energy.get('vocal_presence', 0)), 0)
+        is_vocal_detected = pitch.get('is_vocal', vocal_presence > 0.05)
+        
         bass_energy = _safe_float(spectral.get('bass_energy', rolloff * 0.1), 0)
         
         # Energy interpretation
@@ -273,7 +279,21 @@ Rules:
         
         if not ml_hints: ml_hints = {}
         
-        prompt = f"""Identify the SONIC DNA of this track and provide ELITE metadata for a top-tier music licensing catalog.
+        unique_seed = secrets.token_hex(4)
+
+        prompt = f"""You are a Master Music Supervisor and DSP Data Scientist.
+Analyze the SONIC DNA of this track and provide ELITE, UNIQUE metadata.
+
+STRICT OPERATIONAL DIRECTIVES:
+1. NO REPETITION: Every track must have a unique story. Avoid generic filler.
+2. 100% ACCURACY: Map the DSP features strictly to the classification.
+3. VOCAL ANALYSIS MANDATE:
+   - VOCAL DNA SCORE: {vocal_presence:.4f}
+   - DETECTION STATUS: {'VOCALS DETECTED' if is_vocal_detected else 'INSTRUMENTAL (Low pitch confidence)'}
+   - If Score > 0.02 or DETECTED: You MUST describe vocal texture, gender, and delivery.
+   - Even if detected as Instrumental, if you hear human-like spectral qualities, mention "vocal-like textures".
+
+[TRACK CONTEXT - ID: {job_id} | SEED: {unique_seed}]
 
 ╔══════════════════════════════════════════════════════════════╗
 ║                    TECHNICAL AUDIO SIGNATURE                 ║
@@ -285,28 +305,19 @@ Rules:
    • TEMPO: {tempo:.1f} BPM
    • CHARACTER: {'Frenetic/Fast' if tempo > 145 else 'Driving/Club' if tempo > 120 else 'Walking-pace' if tempo > 90 else 'Downtempo/Languid'}
    • COMPLEXITY: {rhythm.get('rhythm_complexity', 'Analysis pending')}
-   • SYNC_POTENTIAL: {'High-intensity action' if tempo > 130 and rms > 0.15 else 'Emotional narrative' if rms < 0.08 else 'Modern commercial'}
 
 🎵 HARMONIC SOUL:
    • KEY/MODE: {key_sig} {mode}
-   • EMOTIONAL BIAS: {'Triumphant/Bright/Open' if 'major' in str(mode).lower() else 'Melancholic/Tense/Cinematic'}
-   • MELODIC DOMINANCE: {hp_ratio:.2f} HP Ratio ({'Synthesizer/Melody heavy' if hp_ratio > 2.5 else 'Hard-hitting rhythm section' if hp_ratio < 1.2 else 'Symphonic balance'})
+   • MELODIC DOMINANCE: {hp_ratio:.2f} HP Ratio
 
 🔊 DYNAMICS & PRESENCE:
    • PERCEIVED ENERGY: {energy_label}
    • RMS INTENSITY: {rms:.4f}
    • PRODUCTION STYLE: {'Compressed/Aggressive' if dynamic_range < 0.12 else 'Cinematic/Dynamic' if dynamic_range > 0.35 else 'Standard Studio'}
-   • BASS FOUNDATION: {'Sub-heavy' if bass_energy > 400 else 'Punchy Mid-Bass' if bass_energy > 150 else 'Natural/Light'}
 
 🌊 SPECTRAL PROFILE:
    • TIMBRE: {brightness}
-   • TEXTURE: {'Grainy/Complex' if flatness > 0.6 else 'Pure/Tonal' if flatness < 0.2 else 'Rich/Hybrid'}
-   • SPECTRAL CONTRAST: {contrast:.2f} (High values = High-definition production)
-
-🎤 VOCAL DNA:
-   • PRESENCE SCORE: {vocal_presence:.4f} 
-   • CLASSIFICATION: {'STRICTLY VOCAL/SONG' if vocal_presence > 0.15 else 'VOCAL ELEMENTS DETECTED' if vocal_presence > 0.04 else 'PREDOMINANTLY INSTRUMENTAL'}
-   • GUIDANCE: If SCORE > 0.04, you MUST describe the vocal character (gender, tone, delivery). If < 0.04, treat as Instrumental unless DSP hints suggest otherwise.
+   • SPECTRAL CONTRAST: {contrast:.2f}
 
 💡 PRE-ANALYSIS HINTS:
    • Est. Genre tags: {ml_hints.get('genre', {}).get('hints', ['None detected'])}
@@ -317,16 +328,16 @@ Rules:
 ╚══════════════════════════════════════════════════════════════╝
 
 📝 TRACK DESCRIPTION (CRITICAL):
-   Write a STUNNING 5-7 sentence description. Start with the "Vibe First". 
+   Write a UNIQUE and STUNNING 5-7 sentence description. Start with the "Vibe First". 
    Describe the evolution — does it start sparse and build? Is it a relentless wall of sound?
    Use professional adjectives: "hauntingly beautiful", "pulse-pounding", "neon-soaked", "grit-infused", "shimmering".
-   Mention a specific "Ideal Sync Placement" (e.g., "The perfect backdrop for a high-fashion runway or a futuristic tech reveal").
+   IMPORTANT: Avoid repetitive patterns. Every track is a new story.
 
 💭 MOOD VIBE: 
-   One poetic sentence that captures the track's essence. Think "Late-night drive through a rainy metropolis" or "The first light of a mountain sunrise."
+   One poetic sentence that captures the track's essence.
 
 🎸 INSTRUMENTATION: 
-   Be specific. If the spectral data is "bright" and "melodic", look for "Shimmering Synths" or "Clean Electric Guitars".
+   Be specific. Look for "Analog Synths", "Crisp Percussion", "Atmospheric Pads".
 
 ╔══════════════════════════════════════════════════════════════╗
 ║              OUTPUT FORMAT (STRICT JSON)                     ║
@@ -358,7 +369,10 @@ Rules:
   "confidence": 0.98
 }}
 
-⚠️ RULES: No generic terms. No technical jargon in 'trackDescription'. Quality is everything."""
+⚠️ RULES: Quality is everything. No generic "sonic journey" phrases."""
+
+        return prompt
+
 
         return prompt
 
@@ -425,53 +439,32 @@ Rules:
         groq_model = "llama-3.1-8b-instant" if is_flash else "llama-3.3-70b-versatile"
         groq_max_tokens = 800 if is_flash else 1000
         
+        # INCREASE VARIETY: Use job_id as part of the seed or just increase temperature
+        # Temperature 0.7 allows for creative variety while keeping structure
+        temperature = 0.7 
+
         if system_prompt:
+            # Add a unique "thought token" to force unique output per call
+            import secrets
+            unique_token = secrets.token_hex(4)
             messages = [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": f"{system_prompt}\n\n[SESSION_ID: {unique_token}]"},
                 {"role": "user", "content": context}
             ]
         else:
-            # Fallback for legacy calls (should not be reached in new flow)
-            prompt = f"""{context}
-    
-    STRICT INSTRUCTIONS FROM MUSIC SUPERVISOR:
-    1. Use these STANDARD LISTS as a guide (choose from them when applicable, but stay accurate):
-       - GENRES: {", ".join(MAIN_GENRES[:20])}...
-       - SUB-GENRES: {", ".join(SUB_GENRES[:20])}...
-       - MOODS: {", ".join(MOODS[:20])}...
-       - INSTRUMENTS: {", ".join(INSTRUMENTATION[:20])}...
-    
-    2. STRICT QUANTITY REQUIREMENTS:
-       - mainGenre: EXACTLY 1 tag
-       - additionalGenres: 1-2 tags (Sub-Genres)
-       - moods: 2-3 tags
-       - instrumentation: 2-3 tags
-       - mainInstrument: EXACTLY 1 tag. BAN "Vocals" as mainInstrument. If vocal-heavy, choose the backing instrument (e.g., Synthesizer, Guitar, Piano).
-       - keywords: EXACTLY 5 tags
-       - useCases: EXACTLY 3 examples
-       - trackDescription: MINIMUM 400 characters. Emotional, practical, marketing-ready bio. NOT technical analysis.
-       - mood_vibe: REQUIRED. detailed atmospheric description.
-       - energy_level: REQUIRED.
-    
-    3. VOCAL STYLE RULES:
-       - If instrumental: "gender": "none", "timbre": "none", "delivery": "none", "emotionalTone": "none".
-       - If vocals exist: NEVER use "none". Classify gender as "Male", "Female", or "Mixed". Provide descriptive tags for timbre (e.g., Warm, Raspy), delivery (e.g., Rap, Soulful), and emotionalTone (e.g., Aggressive, Sad).
-    
-    4. Never return empty arrays or placeholders like "No tags" – always provide the best possible tags.
-    
-    5. RETURN STRICT JSON
-    """
-            messages = [{"role": "user", "content": prompt}]
+            # Fallback legacy prompt
+            messages = [{"role": "user", "content": context}]
         
         for attempt in range(retries):
             try:
                 response = client.chat.completions.create(
                     model=groq_model,
                     messages=messages,
-                    temperature=0.2,
+                    temperature=temperature,
                     max_tokens=groq_max_tokens,
                     response_format={"type": "json_object"}
                 )
+
                 
                 content = response.choices[0].message.content
                 if not content:
@@ -564,11 +557,17 @@ Analyze this track and return STRICT JSON:
             
             for attempt in range(retries):
                 try:
+                    # Unique session ID for Gemini
+                    import secrets
+                    unique_token = secrets.token_hex(4)
+                    enhanced_prompt = f"{prompt}\n\n[UNIQUE_ANALYSIS_TOKEN: {unique_token}]"
+
                     response = await asyncio.to_thread(
                         model.generate_content,
-                        prompt,
-                        generation_config={"response_mime_type": "application/json", "temperature": 0.4}
+                        enhanced_prompt,
+                        generation_config={"response_mime_type": "application/json", "temperature": 0.7}
                     )
+
                     
                     result = json.loads(response.text)
                     result['llm_source'] = 'gemini'
@@ -606,6 +605,13 @@ Analyze this track and return STRICT JSON:
             async with aiohttp.ClientSession() as session:
                 for attempt in range(retries):
                     try:
+                        import secrets
+                        unique_token = secrets.token_hex(4)
+                        
+                        # Inject unique token into the last message
+                        temp_messages = messages.copy()
+                        temp_messages[-1]["content"] = f"{temp_messages[-1]['content']}\n\n[SEED: {unique_token}]"
+
                         async with session.post(
                             'https://api.mistral.ai/v1/chat/completions',
                             headers={
@@ -614,12 +620,13 @@ Analyze this track and return STRICT JSON:
                             },
                             json={
                                 'model': 'open-mistral-7b', # Fast, good for classification
-                                'messages': messages,
-                                'temperature': 0.2,
+                                'messages': temp_messages,
+                                'temperature': 0.7,
                                 'response_format': {"type": "json_object"}
                             },
                             timeout=aiohttp.ClientTimeout(total=30)
                         ) as resp:
+
                             if resp.status != 200:
                                 error_text = await resp.text()
                                 raise ValueError(f"Mistral API error {resp.status}: {error_text}")
@@ -658,6 +665,12 @@ Analyze this track and return STRICT JSON:
             async with aiohttp.ClientSession() as session:
                 for attempt in range(retries):
                     try:
+                        import secrets
+                        unique_token = secrets.token_hex(4)
+                        
+                        temp_messages = messages.copy()
+                        temp_messages[-1]["content"] = f"{temp_messages[-1]['content']}\n\n[SESSION: {unique_token}]"
+
                         async with session.post(
                             'https://api.deepseek.com/chat/completions',
                             headers={
@@ -666,12 +679,13 @@ Analyze this track and return STRICT JSON:
                             },
                             json={
                                 'model': 'deepseek-chat',
-                                'messages': messages,
-                                'temperature': 0.2,
+                                'messages': temp_messages,
+                                'temperature': 0.7,
                                 'response_format': {"type": "json_object"}
                             },
                             timeout=aiohttp.ClientTimeout(total=30)
                         ) as resp:
+
                             if resp.status != 200:
                                 error_text = await resp.text()
                                 raise ValueError(f"DeepSeek API error {resp.status}: {error_text}")
@@ -711,6 +725,12 @@ Analyze this track and return STRICT JSON:
             async with aiohttp.ClientSession() as session:
                 for attempt in range(retries):
                     try:
+                        import secrets
+                        unique_token = secrets.token_hex(4)
+                        
+                        temp_messages = messages.copy()
+                        temp_messages[-1]["content"] = f"{temp_messages[-1]['content']}\n\n[ID: {unique_token}]"
+
                         async with session.post(
                             'https://api.x.ai/v1/chat/completions',
                             headers={
@@ -719,12 +739,13 @@ Analyze this track and return STRICT JSON:
                             },
                             json={
                                 'model': 'grok-2-latest',
-                                'messages': messages,
-                                'temperature': 0.2,
+                                'messages': temp_messages,
+                                'temperature': 0.7,
                                 'response_format': {"type": "json_object"}
                             },
                             timeout=aiohttp.ClientTimeout(total=30)
                         ) as resp:
+
                             if resp.status != 200:
                                 error_text = await resp.text()
                                 raise ValueError(f"xAI API error {resp.status}: {error_text}")

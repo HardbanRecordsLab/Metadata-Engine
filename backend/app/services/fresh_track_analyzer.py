@@ -119,10 +119,12 @@ class FreshTrackAnalyzer:
                         self.llm_ensemble.consensus_classification(
                             audio_features,
                             ml_hints,
-                            model_preference=model_preference
+                            model_preference=model_preference,
+                            job_id=job_id or "fresh_analysis"
                         ),
                         timeout=llm_timeout
                     )
+
                 except asyncio.TimeoutError:
                     logger.warning("LLM Ensemble timed out. Using fallback.")
                     llm_consensus = self.llm_ensemble._fallback_classification(audio_features)
@@ -501,8 +503,9 @@ Return JSON:
             "dynamics":          llm_consensus.get('dynamics', ''),
             "targetAudience":    llm_consensus.get('targetAudience', ''),
             "tempoCharacter":    tempo_char or llm_consensus.get('tempoCharacter', ''),
-            "hasVocals":         audio_features.get('energy', {}).get('vocal_presence', 0) > 0.04,
+            "hasVocals":         audio_features.get('pitch', {}).get('is_vocal', audio_features.get('energy', {}).get('vocal_presence', 0) > 0.04),
             "language":          llm_consensus.get('language') or lyrics_analysis.get('insights', {}).get('language', 'Instrumental'),
+
             "analysisReasoning": llm_consensus.get('analysisReasoning') or llm_consensus.get('reasoning', ''),
             "similar_artists":   llm_consensus.get('similar_artists', []),
             # ── Technical (DSP authoritative) ──────────────────────────────
