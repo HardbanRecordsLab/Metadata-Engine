@@ -13,6 +13,7 @@ import ResourcesModal, { ResourceDocType } from './components/ResourcesModal';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import DashboardHome from './components/DashboardHome';
+import SettingsPanel from './components/SettingsPanel';
 import AuthModal from './components/AuthModal';
 import Button from './components/Button';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -28,7 +29,7 @@ const HistoryPanel = lazy(() => import('./components/HistoryPanel'));
 
 
 type Theme = 'light' | 'dark';
-type View = 'dashboard' | 'analyze' | 'results' | 'history';
+type View = 'dashboard' | 'analyze' | 'results' | 'history' | 'settings';
 
 interface ToastState {
     message: string;
@@ -315,7 +316,8 @@ const AppContent: React.FC = () => {
                             {view === 'dashboard' ? 'Dashboard' :
                                 view === 'analyze' ? 'Audio Analysis' :
                                     view === 'results' ? 'Analysis Results' :
-                                        'History'}
+                                        view === 'settings' ? 'Settings & Profile' :
+                                            'History'}
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
@@ -393,6 +395,13 @@ const AppContent: React.FC = () => {
                                             <HistoryPanel history={analysisHistory} onSelectItem={handleViewHistoryItem} />
                                         </Suspense>
                                     </div>
+                                )}
+
+                                {view === 'settings' && (
+                                    <SettingsPanel
+                                        user={user}
+                                        onOpenPricing={() => { }}
+                                    />
                                 )}
 
                                 {/* Views not connected to backend removed from UI: tools, settings, usage, bulk-edit */}
