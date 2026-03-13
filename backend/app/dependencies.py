@@ -58,14 +58,15 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     return current_user
 
 
-async def decrement_user_credits(user_id: str, db: Session):
+async def decrement_user_credits(user_id: str, db: Session, amount: int = 1):
     """
-    Subtract 1 credit from user account after successful analysis.
+    Subtract credits from user account after successful action.
+    Default: 1 credit (analysis).
     """
     user = db.query(User).filter(User.id == user_id).first()
     if user and not user.is_superuser:
-        if user.credits > 0:
-            user.credits -= 1
+        if user.credits >= amount:
+            user.credits -= amount
             db.commit()
             return True
     return False

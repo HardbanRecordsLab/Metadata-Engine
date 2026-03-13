@@ -20,3 +20,4 @@ from .cwr import router as cwr_router
 from .system import router as system_router
 # from .webhook import router as webhook_router
 from .certificate import router as certificate_router
+from .webhooks import router as webhooks_router

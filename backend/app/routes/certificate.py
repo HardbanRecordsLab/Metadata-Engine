@@ -127,8 +127,14 @@ async def generate_certificate(
     db.commit()
     db.refresh(certificate)
 
-    # Credits are decremented on successful analysis completion.
-    # Do not decrement again on certificate generation to avoid double-charging.
+    # Monetization: Subtract 1 credit for certificate generation if not superuser
+    try:
+        if current_user and not current_user.is_superuser:
+            from app.dependencies import decrement_user_credits
+            await decrement_user_credits(current_user.id, db, amount=1)
+            logger.info(f"Subtracted 1 credit from user {current_user.id} for certificate {certificate_human_id}")
+    except Exception as e:
+        logger.error(f"Failed to subtract credit for certificate: {e}")
 
     return {
         "id": certificate.id,
