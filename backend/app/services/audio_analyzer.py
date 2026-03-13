@@ -419,28 +419,40 @@ class AdvancedAudioAnalyzer:
     def analyze_pitch(file_path: str) -> Dict[str, Any]:
         """
         Pitch and vocal analysis.
-        Uses: librosa.pyin (faster CPU alternative to CREPE)
+        Uses: librosa.pyin (faster CPU alternative to CREPE) with Smart Slicing.
         """
         try:
             librosa = get_librosa()
 
-            # pYIN is very slow on CPU. Limit to 15s to stay under 25s total limit.
+            # 1. Get total duration first
             try:
-                y, sr = librosa.load(file_path, sr=None, mono=True, duration=15)
+                # Use a fast loader to get duration
+                import soundfile as sf
+                info = sf.info(file_path)
+                total_duration = info.duration
+            except:
+                total_duration = 180 # Fallback 3 mins
+
+            # 2. Smart Slicing: Analyze the middle part where vocals are most prominent
+            # We take 20 seconds from the middle
+            offset = max(0, (total_duration / 2) - 10)
+            
+            try:
+                y, sr = librosa.load(file_path, sr=None, mono=True, offset=offset, duration=20)
             except Exception as load_err:
-                 logger.warning(f"Librosa load failed, trying safe load: {load_err}")
-                 return {"error": "Audio load failed"}
+                 logger.warning(f"Librosa load failed, trying from start: {load_err}")
+                 y, sr = librosa.load(file_path, sr=None, mono=True, duration=20)
 
             # Estimate f0 using pYIN
-            # fmin=65 (C2), fmax=2093 (C7) covers most vocal ranges
+            # Higher resolution for better vocal detection
             f0, voiced_flag, voiced_probs = librosa.pyin(
                 y, 
                 fmin=librosa.note_to_hz('C2'), 
                 fmax=librosa.note_to_hz('C7'), 
-                sr=sr
+                sr=sr,
+                fill_na=None
             )
             
-            # Filter out NaNs (unvoiced)
             if f0 is None:
                  return {"vocal_presence": 0, "message": "No pitch detected"}
                  
@@ -449,8 +461,11 @@ class AdvancedAudioAnalyzer:
             if len(confident_freqs) > 0:
                 avg_pitch = float(np.mean(confident_freqs))
                 pitch_range = float(np.max(confident_freqs) - np.min(confident_freqs))
+                
+                # Vocal Presence Calculation: Ratio of voiced frames to total frames
+                # Vocals usually have higher confidence and continuous pitch
+                vocal_presence = round(len(confident_freqs) / len(f0), 2)
 
-                # Convert to musical note (simple look-up)
                 def freq_to_note(freq):
                     if freq <= 0: return "N/A"
                     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -467,14 +482,16 @@ class AdvancedAudioAnalyzer:
                     "average_pitch_hz": round(avg_pitch, 2),
                     "average_note": freq_to_note(avg_pitch),
                     "pitch_range_hz": round(pitch_range, 2),
-                    "vocal_presence": round(len(confident_freqs) / len(f0), 2)
+                    "vocal_presence": vocal_presence,
+                    "is_vocal": vocal_presence > 0.05
                 }
             
             return {"vocal_presence": 0, "message": "Instrumental/No clear pitch"}
 
         except Exception as e:
             logger.error(f"Pitch analysis failed: {e}")
-            return {"error": str(e)}
+            return {"error": str(e), "vocal_presence": 0}
+
 
     @staticmethod
     def read_metadata(file_path: str) -> Dict[str, Any]:

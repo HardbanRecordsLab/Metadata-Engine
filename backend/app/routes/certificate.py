@@ -109,6 +109,8 @@ async def generate_certificate(
     # For saved certificates, generate a private view token and embed a frontend verify URL with token
     view_token = secrets.token_urlsafe(24)
     verify_url = f"https://app-metadata.hardbanrecordslab.online/verify/{certificate_human_id}?token={view_token}"
+    
+    # Always generate PDF to ensure latest template and data are used
     pdf_path = generate_certificate_pdf(
         certificate_id=certificate_human_id,
         file_name=job.file_name,
@@ -116,6 +118,7 @@ async def generate_certificate(
         metadata=job.result,
         verify_url=verify_url,
     )
+
 
     certificate = Certificate(
         certificate_id=certificate_human_id,
