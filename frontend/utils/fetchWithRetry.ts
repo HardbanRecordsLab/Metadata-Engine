@@ -10,6 +10,17 @@ export async function fetchWithRetry(
 ): Promise<Response> {
     let lastError: any;
 
+    // Automatic Authorization Header Injection
+    const token = localStorage.getItem('access_token');
+    const headers = (options.headers || {}) as Record<string, string>;
+    
+    if (token && !headers['Authorization']) {
+        options.headers = {
+            ...headers,
+            'Authorization': `Bearer ${token}`
+        };
+    }
+
     for (let i = 0; i <= maxRetries; i++) {
         try {
             const response = await fetch(url, options);
