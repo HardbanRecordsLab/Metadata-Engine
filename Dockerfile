@@ -21,12 +21,19 @@ RUN node node_modules/vite/bin/vite.js build
 # ==================== STAGE 2: Python Backend ====================
 FROM python:3.10-slim
 
-# Install system dependencies for audio processing
+# Install system dependencies for audio processing and PDF generation (WeasyPrint)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1 \
     libgomp1 \
     curl \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user

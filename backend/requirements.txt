@@ -41,6 +41,7 @@ soundfile
 Pillow
 Jinja2
 qrcode[pil]
+weasyprint
 
 # === Dev Tools ===
 pytest
