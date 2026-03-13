@@ -99,8 +99,9 @@ def setup_app():
         ],
         allow_origin_regex='^https://.*\\.hardbanrecordslab\\.online$',
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
+        allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
     
     # Create temp directory

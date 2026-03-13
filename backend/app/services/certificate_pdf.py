@@ -68,16 +68,19 @@ def generate_certificate_pdf(certificate_id, file_name, sha256, metadata, verify
             "STRUCTURE": get_meta("structure"),
             "COPYRIGHT": get_meta("copyright"),
             "COMPOSER": get_meta("composer"),
+            "LYRICIST": get_meta("lyricist"),
             "PRODUCER": get_meta("producer"),
             "PUBLISHER": get_meta("publisher"),
             "P_LINE": get_meta("pLine"),
             "ISRC": get_meta("isrc"),
             "ISWC": get_meta("iswc"),
+            "UPC": get_meta("upc"),
             "CATALOG_NUMBER": get_meta("catalogNumber"),
             "LICENSE": get_meta("license", "Standard Music License"),
             "SHA256": sha256,
             "ANALYSIS_REASONING": get_meta("analysisReasoning", "Verified via HardbanRecords Lab DSP Engine."),
-            "VERIFY_URL": verify_url
+            "VERIFY_URL": verify_url,
+            "LEGAL_NOTE": "This digital record constitutes cryptographic proof of the audio file's state and metadata as of its registration date. Under the Berne Convention and international 'prior art' standards, this timestamped fingerprint serves as essential evidentiary support for ownership claims and creative attribution."
         }
 
         # 2. Render Template
