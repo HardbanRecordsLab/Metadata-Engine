@@ -168,11 +168,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <div className={`grid ${isCollapsed ? 'grid-cols-1 gap-1' : 'grid-cols-1 gap-2'}`}>
                                 <button
                                     onClick={() => handleNavigation('settings')}
-                                    title="Setup"
+                                    title="Settings & Profile"
                                     className={`flex flex-col items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group ${isCollapsed ? 'p-2' : 'p-3'}`}
                                 >
                                     <Settings className="w-4 h-4 text-slate-500 group-hover:text-accent-violet transition-colors mb-1" />
-                                    {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Setup</span>}
+                                    {!isCollapsed && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Settings & Profile</span>}
                                 </button>
                             </div>
 
