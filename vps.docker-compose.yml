@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: music-metadata-engine:latest
+    container_name: metadata-backend
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://hbrl_admin:HardbanRecordsLab2026!@hbrl-postgres:5432/hbrl_central
+    ports:
+      - "8888:7860"
+    volumes:
+      - ./data:/data
+      - ./logs:/home/user/app/logs
+      - ./temp_uploads:/home/user/app/temp_uploads
+      - ./.env:/home/user/app/.env
+    deploy:
+      resources:
+        limits:
+          cpus: '6.0'
+          memory: 10G
+    networks:
+      - hbrl-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7860/api/health/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  hbrl-network:
+    external: true

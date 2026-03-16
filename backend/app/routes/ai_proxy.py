@@ -41,6 +41,16 @@ async def ai_proxy(request: ProxyRequest):
                     "Content-Type": "application/json"
                 }
                 response = await client.post(url, json=payload, headers=headers)
+            elif provider == "anthropic":
+                if not settings.ANTHROPIC_API_KEY:
+                    raise HTTPException(status_code=500, detail="Anthropic API key not configured")
+                url = "https://api.anthropic.com/v1/messages"
+                headers = {
+                    "x-api-key": settings.ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json"
+                }
+                response = await client.post(url, json=payload, headers=headers)
             elif provider == "spotify":
                 from app.routes.spotify import get_spotify_access_token
                 token = await get_spotify_access_token()

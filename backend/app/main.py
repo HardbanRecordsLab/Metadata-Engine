@@ -97,7 +97,7 @@ def setup_app():
             "https://app-metadata.hardbanrecordslab.online",
             "https://metadata.hardbanrecordslab.online",
         ],
-        allow_origin_regex='^https://.*\\.hardbanrecordslab\\.online$',
+        allow_origin_regex='^https://.*\\.(hardbanrecordslab\\.online|vercel\\.app)$',
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
