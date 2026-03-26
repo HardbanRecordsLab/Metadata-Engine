@@ -8,13 +8,12 @@ interface HeaderProps {
   openValidationPanel: () => void;
 }
 
-import { Link } from 'react-router-dom';
 import { Database } from './icons';
 
 const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel }) => {
   return (
     <div className="flex items-center justify-between w-full px-4">
-      <Link to="/" className="flex items-center gap-2 group">
+      <a href="/" className="flex items-center gap-2 group">
             <div className="p-1 rounded-lg">
               <img src="/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
@@ -22,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel
               <span className="text-xl font-black tracking-tighter text-white group-hover:text-primary transition-colors italic">HRL METADATA</span>
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">HardbanRecords Lab</span>
             </div>
-          </Link>
+          </a>
 
       <div className="flex items-center gap-2">
         <button
