@@ -11,9 +11,10 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://hbrl_admin:REDACTED-PASSWORD@hbrl-postgres:5432/hbrl_central
+      - DATABASE_URL=sqlite:////data/music_metadata.db
+      - SECRET_KEY=REDACTED-JWT-SECRET
     ports:
-      - "8888:7860"
+      - "127.0.0.1:8888:7860"
     volumes:
       - ./data:/data
       - ./logs:/home/user/app/logs
