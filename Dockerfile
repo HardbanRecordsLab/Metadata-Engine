@@ -71,7 +71,7 @@ EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:7860/api/worker_status || exit 1
+    CMD curl -f http://localhost:7860/api/health/ || exit 1
 
 # Copy entrypoint script
 COPY --chown=user backend/entrypoint.sh /home/user/app/entrypoint.sh
