@@ -24,7 +24,7 @@ const API_URL = '/api/auth'; // Relative path for Vercel Rewrite (see vercel.jso
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
+    const [token, setToken] = useState<string | null>(localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token'));
 
     const checkIsAdmin = (email: string, meta: any): boolean => {
         if (meta && typeof meta.is_superuser !== 'undefined') {
@@ -69,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
             console.error("Failed to fetch user profile", error);
             setUser(null);
+            localStorage.removeItem('hrl_sso_token_v3');
             localStorage.removeItem('access_token');
             setToken(null);
         }
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const refetchUser = async () => {
-        const currentToken = localStorage.getItem('access_token');
+        const currentToken = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
         if (currentToken) {
             await fetchUserProfile(currentToken);
         } else {
@@ -112,9 +113,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error(data.detail || 'Login failed');
         }
 
-        const accessToken = data.access_token;
+        const accessToken = data.hrl_sso_token_v3 || data.access_token || data.token;
         
-        localStorage.setItem('access_token', accessToken);
+        localStorage.setItem('hrl_sso_token_v3', accessToken);
         setToken(accessToken);
         await fetchUserProfile(accessToken);
     };

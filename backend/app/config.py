@@ -27,7 +27,7 @@ class Settings:
 
     # Database / Security
     DATABASE_URL = os.getenv("DATABASE_URL")
-    SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("SUPABASE_KEY") # Fallback to existing key during migration
+    SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or os.getenv("SUPABASE_KEY")  # Shared JWT_SECRET for cross-service SSO
     
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
