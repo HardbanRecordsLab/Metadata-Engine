@@ -11,7 +11,7 @@ export async function fetchWithRetry(
     let lastError: any;
 
     // Automatic Authorization Header Injection
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
     const headers = (options.headers || {}) as Record<string, string>;
     
     if (token && !headers['Authorization']) {

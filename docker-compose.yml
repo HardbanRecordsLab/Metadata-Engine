@@ -13,7 +13,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=sqlite:////data/music_metadata.db
+      - DATABASE_URL=postgresql://hbrl_admin:HardbanRecordsLab2026!@hbrl-postgres:5432/hbrl_central
     volumes:
       - ./data:/data
       - ./logs:/home/user/app/logs

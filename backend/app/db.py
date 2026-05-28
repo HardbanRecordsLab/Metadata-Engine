@@ -12,20 +12,23 @@ logger = logging.getLogger(__name__)
 PERSISTENT_DATA_PATH = "/data"
 SQLITE_DB_NAME = "music_metadata.db"
 
-# Default to centralized Postgres if not specified
-DEFAULT_POSTGRES_URL = "postgresql://hbrl_admin:HardbanRecordsLab2026!@hbrl-postgres:5432/hbrl_central"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if os.path.exists(PERSISTENT_DATA_PATH):
-    DEFAULT_DB_URL = f"sqlite:///{PERSISTENT_DATA_PATH}/{SQLITE_DB_NAME}"
-else:
-    DEFAULT_DB_URL = f"sqlite:///./{SQLITE_DB_NAME}"
-
-DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+if DATABASE_URL is None:
+    if os.path.exists(PERSISTENT_DATA_PATH):
+        DATABASE_URL = f"sqlite:///{PERSISTENT_DATA_PATH}/{SQLITE_DB_NAME}"
+    else:
+        DATABASE_URL = f"sqlite:///./{SQLITE_DB_NAME}"
+    logger.warning("DATABASE_URL not set. Using SQLite fallback.")
+elif "postgresql" in DATABASE_URL:
+    logger.info("PostgreSQL database configured.")
 
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    connect_args={"check_same_thread": False} if DATABASE_URL and "sqlite" in DATABASE_URL else {},
+    pool_size=5 if DATABASE_URL and "postgresql" in DATABASE_URL else 0,
+    max_overflow=10 if DATABASE_URL and "postgresql" in DATABASE_URL else 0,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
