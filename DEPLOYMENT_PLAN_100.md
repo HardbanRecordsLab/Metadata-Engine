@@ -23,7 +23,13 @@
 | **Kontener** | `metadata-backend` — restart po rebuild |
 | **Health** | `/api/health/` 200; `/api/health/diagnose` 200 po fix |
 | **Backup VPS** | `/srv/hbrl/backups/metadata-engine-2026-05-31-201144.tar.gz` |
-| **Następny krok** | Faza 5 SSL/nginx smoke; Faza 7 testy E2E; redeploy Vercel |
+| **Faza 5** | SSL/nginx — smoke health 200 (app + metadata) |
+| **Faza 7** | **Zakończona 2026-06-01** — E2E: health/diagnose/export/ai_proxy; login hasłem **401** (hasło prod ≠ Bible/WP) |
+| **Faza 8** | Backup dir OK; cron — sugestia w `VERIFICATION_STATUS_2026-05-31.md` |
+| **Faza 9** | `VERIFICATION_STATUS_2026-05-31.md`; plan zaktualizowany |
+| **Lokalny HEAD** | `f4f87ba` |
+| **VPS HEAD** | `f4f87ba` |
+| **Następny krok** | Reset/hasło admina + login E2E w UI; opcjonalny redeploy Vercel; Faza 5 pełny nginx checklist |
 ---
 
 ## Cel i definicja „100%”

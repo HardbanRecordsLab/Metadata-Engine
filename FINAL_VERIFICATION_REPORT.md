@@ -1,3 +1,5 @@
+> **Status 2026-06-01:** Raport z lutego 2026 uznany za nieaktualny. Aktualne wyniki testów: `VERIFICATION_STATUS_2026-05-31.md`. VPS: `f4f87ba`.
+
 # Music Metadata Engine - Final Verification Report
 **Date**: 2026-02-23  
 **Version**: 2.1.0  
