@@ -128,6 +128,11 @@ def setup_app():
     app.include_router(certificate_router, prefix="/api")
     app.include_router(webhooks_router, prefix="/api")
 
+    app.include_router(export_router, prefix="/api")
+    app.include_router(tools_router, prefix="/api")
+    app.include_router(ddex_router, prefix="/api")
+    app.include_router(cwr_router, prefix="/api")
+
     # AUTH Routes
     app.include_router(analysis_router, prefix="/auth")
     app.include_router(ddex_router, prefix="/auth")

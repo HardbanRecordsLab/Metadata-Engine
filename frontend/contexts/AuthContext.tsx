@@ -1,8 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserTier } from '../types';
-// import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'; // REMOVED
-import { db } from '../services/databaseService';
+import { getFullUrl } from '../apiConfig';
 
 interface AuthContextType {
     user: User | null;
@@ -19,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = '/api/auth'; // Relative path for Vercel Rewrite (see vercel.json)
+const authUrl = (path: string) => getFullUrl(`/auth${path}`);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -36,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchUserProfile = async (accessToken: string) => {
         try {
-            const response = await fetch(`${API_URL}/me`, {
+            const response = await fetch(authUrl('/me'), {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
@@ -94,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [token]);
 
     const login = async (email: string, password: string) => {
-        const response = await fetch(`${API_URL}/login`, {
+        const response = await fetch(authUrl('/login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -126,10 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (email: string, name: string, password: string) => {
-        const response = await fetch(`${API_URL}/register`, {
+        const response = await fetch(authUrl('/register'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, username: name || email.split('@')[0], password })
         });
 
         const text = await response.text();
