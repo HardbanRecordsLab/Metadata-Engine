@@ -4,53 +4,66 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("migration")
 
-def migrate():
-    columns_to_add = {
-        "users": [
-            ("username", "VARCHAR", True),
-            ("full_name", "VARCHAR", True),
-            ("is_superuser", "BOOLEAN", False),
-            ("is_premium", "BOOLEAN", False),
-            ("tier", "VARCHAR", "starter"),
-            ("credits", "INTEGER", 10),
-            ("last_login", "TIMESTAMP", True),
-            ("api_key", "VARCHAR", True)
-        ],
-        "certificates": [
-            ("price_usd", "FLOAT", 0.5),
-            ("view_token", "VARCHAR", True)
-        ]
-    }
+COLUMNS_TO_ADD = {
+    "users": [
+        ("username", "VARCHAR", True),
+        ("full_name", "VARCHAR", True),
+        ("is_superuser", "BOOLEAN", False),
+        ("is_premium", "BOOLEAN", False),
+        ("tier", "VARCHAR", "starter"),
+        ("credits", "INTEGER", 10),
+        ("last_login", "TIMESTAMP", True),
+        ("api_key", "VARCHAR", True),
+    ],
+    "certificates": [
+        ("price_usd", "FLOAT", 0.5),
+        ("view_token", "VARCHAR", True),
+    ],
+}
 
+
+def _column_exists(conn, table: str, col_name: str) -> bool:
+    if engine.dialect.name == "sqlite":
+        rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+        return any(row[1] == col_name for row in rows)
+    check_query = text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name = :table AND column_name = :col"
+    )
+    return conn.execute(check_query, {"table": table, "col": col_name}).fetchone() is not None
+
+
+def _alter_sql(table: str, col_name: str, col_type: str, default_val) -> str:
+    if default_val is True:
+        return f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+    if isinstance(default_val, bool):
+        default = "TRUE" if default_val else "FALSE"
+        if engine.dialect.name == "sqlite":
+            default = "1" if default_val else "0"
+        return f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {default}"
+    if isinstance(default_val, (int, float)):
+        return f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {default_val}"
+    return f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT '{default_val}'"
+
+
+def migrate():
     with engine.connect() as conn:
-        for table, cols in columns_to_add.items():
+        for table, cols in COLUMNS_TO_ADD.items():
             for col_name, col_type, default_val in cols:
                 try:
-                    # Check if column exists
-                    check_query = text(f"SELECT 1 FROM information_schema.columns WHERE table_name = '{table}' AND column_name = '{col_name}'")
-                    res = conn.execute(check_query).fetchone()
-                    
-                    if not res:
-                        logger.info(f"Adding column {col_name} to table {table}...")
-                        
-                        if default_val is True: # Nullable
-                            alter_query = text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
-                        elif isinstance(default_val, (int, float)):
-                            alter_query = text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {default_val}")
-                        elif isinstance(default_val, bool):
-                            alter_query = text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT {'TRUE' if default_val else 'FALSE'}")
-                        else: # String
-                            alter_query = text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type} DEFAULT '{default_val}'")
-                        
-                        conn.execute(alter_query)
-                        conn.commit()
-                        logger.info(f"Successfully added {col_name}.")
-                    else:
-                        logger.info(f"Column {col_name} already exists in {table}.")
+                    if _column_exists(conn, table, col_name):
+                        logger.info("Column %s already exists in %s.", col_name, table)
+                        continue
+                    alter_query = text(_alter_sql(table, col_name, col_type, default_val))
+                    logger.info("Adding column %s to table %s...", col_name, table)
+                    conn.execute(alter_query)
+                    conn.commit()
+                    logger.info("Successfully added %s.", col_name)
                 except Exception as e:
-                    logger.error(f"Failed to add column {col_name} to {table}: {e}")
-        
+                    logger.error("Failed to add column %s to %s: %s", col_name, table, e)
+
     logger.info("Migration finished.")
+
 
 if __name__ == "__main__":
     migrate()

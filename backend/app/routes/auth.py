@@ -24,7 +24,7 @@ SECRET_KEY = settings.SECRET_KEY
 # Schemas
 class UserRegister(BaseModel):
     email: EmailStr
-    username: str
+    username: str | None = None
     password: str
 
 
@@ -80,9 +80,11 @@ async def get_current_user(
 async def register(payload: UserRegister, db: Session = Depends(get_db)):
     """Register new user"""
     
+    username = payload.username or payload.email.split("@")[0]
+    
     # Check if user exists
     existing = db.query(User).filter(
-        (User.email == payload.email) | (User.username == payload.username)
+        (User.email == payload.email) | (User.username == username)
     ).first()
     
     if existing:
@@ -92,7 +94,7 @@ async def register(payload: UserRegister, db: Session = Depends(get_db)):
     user = User(
         id=str(uuid.uuid4()),
         email=payload.email,
-        username=payload.username,
+        username=username,
         password_hash=get_password_hash(payload.password),
         api_key=str(uuid.uuid4()),
         credits=10,

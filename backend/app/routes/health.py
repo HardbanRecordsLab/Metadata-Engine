@@ -11,11 +11,12 @@ async def diagnose_system():
         "status": "online",
         "backend_version": "0.1.0",
         "environment_variables": {
-            "AUDD_API_TOKEN": "Present" if settings.AUDD_API_TOKEN else "Missing",
+            "ACOUSTID_API_KEY": "Present" if settings.ACOUSTID_API_KEY else "Missing",
+            "ACOUSTID_API_TOKEN": "Present" if settings.ACOUSTID_API_TOKEN else "Missing",
             "SECRET_KEY": "Present" if settings.SECRET_KEY else "Missing",
             "GEMINI_API_KEY": (
                 "Present" if settings.GEMINI_API_KEY else "Missing"
-            ),  # Legacy if using Puter
+            ),
             "SPOTIFY_CLIENT_ID": "Present" if settings.SPOTIFY_CLIENT_ID else "Missing",
         },
         "system": {"os": os.name, "cwd": os.getcwd()},
