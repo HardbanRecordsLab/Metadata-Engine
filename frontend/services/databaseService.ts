@@ -4,7 +4,7 @@ import { AnalysisRecord, UserTier } from '../types';
 const API_BASE = '/api';
 
 const getHeaders = () => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
     return {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : ''

@@ -28,7 +28,7 @@ const RedeemCodeModal: React.FC<RedeemCodeModalProps> = ({ onClose, showToast })
         }
 
         try {
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
             if (!token) {
                 setError("Session expired. Please log in again.");
                 setIsSubmitting(false);

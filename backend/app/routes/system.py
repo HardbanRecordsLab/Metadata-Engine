@@ -1,18 +1,25 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 import subprocess
 import os
 import json
 import logging
 import asyncio
 from datetime import datetime
+from app.db import User
+from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/system", tags=["system"])
 logger = logging.getLogger(__name__)
 
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend"))
 
+def require_superuser(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 @router.get("/validate")
-async def project_validate():
+async def project_validate(current_user: User = Depends(require_superuser)):
     """
     Runs project validation (lint, type-check, tests) by executing npm commands in the frontend directory.
     This works locally by bridging the Python backend to the Node.js frontend tools.

@@ -4,7 +4,13 @@ from jose import jwt
 import bcrypt
 from app.config import settings
 
-SECRET_KEY = settings.SECRET_KEY or "REDACTED-JWT-SECRET"
+if not settings.SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is not configured. Set JWT_SECRET, SECRET_KEY, or SUPABASE_KEY "
+        "in the environment before starting the app."
+    )
+
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
 

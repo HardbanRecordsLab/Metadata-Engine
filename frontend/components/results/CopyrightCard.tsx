@@ -79,7 +79,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
     };
 
     const getAuthHeaders = () => {
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
         return token ? { 'Authorization': `Bearer ${token}` } : {};
     };
 

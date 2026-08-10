@@ -19,7 +19,7 @@ const UsagePanel: React.FC<UsagePanelProps> = ({ user }) => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
                 if (!token) return;
 
                 const res = await fetch(getFullUrl('/history/'), {

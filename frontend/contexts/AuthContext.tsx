@@ -156,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
+        localStorage.removeItem('hrl_sso_token_v3');
         localStorage.removeItem('access_token');
         setToken(null);
         setUser(null);
