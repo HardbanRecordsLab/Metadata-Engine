@@ -1,5 +1,7 @@
-from jinja2 import Template
+from jinja2 import Environment
 from .sonic_intelligence import TrackMetadata
+
+_env = Environment(autoescape=True)
 
 class DDEXOrchestrator:
     """
@@ -121,7 +123,7 @@ class DDEXOrchestrator:
         seconds = int(duration_sec % 60)
         duration_iso = f"PT{minutes}M{seconds}S"
 
-        template = Template(DDEXOrchestrator.ERN_TEMPLATE)
+        template = _env.from_string(DDEXOrchestrator.ERN_TEMPLATE)
         return template.render(
             msg_id=f"MSG_{uuid.uuid4()}",
             creation_date=datetime.now().isoformat(),

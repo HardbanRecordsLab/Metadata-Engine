@@ -207,22 +207,6 @@ async def health_check():
         "timestamp": datetime.utcnow()
     }
 
-@app.get("/api/auth")
-async def unified_auth_proxy(email: str):
-    """
-    Standardowy endpoint autoryzacji HRL (Unified SSO Proxy).
-    """
-    import httpx
-    ACCESS_MANAGER_URL = os.getenv("ACCESS_MANAGER_URL", "http://hrl-webhook-hub-backend:9107")
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.get(f"{ACCESS_MANAGER_URL}/api/auth/profile", params={"email": email})
-            if resp.status_code != 200:
-                return JSONResponse(status_code=resp.status_code, content={"error": "Auth Service Error"})
-            return resp.json()
-        except Exception as e:
-            return JSONResponse(status_code=503, content={"error": f"Access Manager Connection Error: {str(e)}"})
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

@@ -299,12 +299,14 @@ async def process_analysis(
         metadata["sha256"] = file_hash
 
         # Read existing file tags and merge (file tags win for identity fields only)
+        file_tag_fields = set()
         try:
             from app.services.audio_analyzer import AdvancedAudioAnalyzer
             existing = AdvancedAudioAnalyzer.read_metadata(file_path) or {}
             for field in ("title", "artist", "album", "year", "isrc", "upc", "catalogNumber", "copyright", "publisher"):
                 if existing.get(field) and not metadata.get(field):
                     metadata[field] = existing[field]
+                    file_tag_fields.add(field)
         except Exception as e:
             logger.warning(f"Could not read existing file tags: {e}")
 
@@ -312,7 +314,11 @@ async def process_analysis(
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=85)
 
+        from app.utils.provenance import build_provenance
+        provenance = build_provenance(metadata, file_tag_fields, metadata.get("confidence"))
+
         final_metadata = sanitize_metadata(metadata)
+        final_metadata["_provenance"] = provenance
 
         # Store result and cache
         cache.set(file_hash, final_metadata)

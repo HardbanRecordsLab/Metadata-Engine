@@ -11,6 +11,12 @@ services:
     env_file:
       - .env
     environment:
+      # Intentionally pinned to SQLite: this overrides any DATABASE_URL set in
+      # .env (Docker Compose `environment` wins over `env_file` for the same
+      # key). Production data currently lives in this SQLite file. Do not
+      # change this to a Postgres URL without first migrating the data in
+      # /data/music_metadata.db — flipping this silently would make the app
+      # start against an empty/different database.
       - DATABASE_URL=sqlite:////data/music_metadata.db
     ports:
       - "127.0.0.1:8888:7860"

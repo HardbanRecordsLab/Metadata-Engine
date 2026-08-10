@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup, escape
 from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,8 @@ def generate_certificate_pdf(certificate_id, file_name, sha256, metadata, verify
         
         moods_html = ""
         for mood in moods:
-            moods_html += f'<span class="badge">{mood}</span> '
+            moods_html += f'<span class="badge">{escape(mood)}</span> '
+        moods_html = Markup(moods_html)
 
         # Map fields to HTML placeholders
         data = {
@@ -87,7 +89,7 @@ def generate_certificate_pdf(certificate_id, file_name, sha256, metadata, verify
         current_dir = os.path.dirname(os.path.abspath(__file__))
         template_dir = os.path.join(os.path.dirname(current_dir), "templates")
         
-        env = Environment(loader=FileSystemLoader(template_dir))
+        env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
         template = env.get_template("certyficat.html")
         
         html_content = template.render(**data)
