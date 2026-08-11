@@ -354,19 +354,30 @@ async def process_analysis(
             logger.warning(f"History save failed: {e}")
 
     except Exception as e:
-        logger.error(f"Background analysis failed for Job {job_id}: {e}")
+        logger.error(f"Background analysis failed for Job {job_id}: {e}", exc_info=True)
+        # str(e) is empty for some exception types (e.g. bare `raise SomeError()`),
+        # which used to produce an unhelpful "Analysis failed: " with no detail.
+        error_detail = str(e) or type(e).__name__
         try:
             job = db.query(Job).filter(Job.id == job_id).first()
             if job:
                 job.status = "error"
-                job.error = str(e)
-                job.message = f"Analysis failed: {str(e)[:200]}"
+                job.error = error_detail
+                job.message = f"Analysis failed: {error_detail[:200]}"
                 db.commit()
-            await ws_manager.send_progress(job_id, f"Error: {str(e)[:100]}", progress=0, status="error")
+            await ws_manager.send_progress(job_id, f"Error: {error_detail[:100]}", progress=0, status="error")
         except Exception:
             pass
     finally:
         db.close()
+        # The uploaded file at file_path lives in ./uploads, which (unlike
+        # temp_uploads) is never swept and isn't in a mounted volume — it
+        # would otherwise accumulate on disk forever, one file per analysis.
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as cleanup_err:
+            logger.warning(f"Failed to clean up upload {file_path}: {cleanup_err}")
 
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
