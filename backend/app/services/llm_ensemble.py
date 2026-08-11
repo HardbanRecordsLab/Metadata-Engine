@@ -493,7 +493,7 @@ STRICT OPERATIONAL DIRECTIVES:
             genai.configure(api_key=self.gemini_key, transport="rest")
             
             # Configure model with system instruction if possible or fallback
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.0-flash')
             
             if system_prompt:
                 prompt = f"""SYSTEM INSTRUCTIONS:
