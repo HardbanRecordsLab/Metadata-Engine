@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db import Job, SessionLocal
-from app.services.audio_analyzer import AudioAnalyzer
+from app.services.audio_analyzer import AdvancedAudioAnalyzer
 import os
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ class BatchProcessor:
             Analysis results dictionary
         """
         db = SessionLocal()
+        job = None
         try:
             # Update job status to processing
             job = db.query(Job).filter(Job.id == job_id).first()
@@ -51,9 +52,8 @@ class BatchProcessor:
             
             logger.info(f"[BatchProcessor] Starting analysis for job {job_id}: {file_path}")
             
-            # Run analysis
-            analyzer = AudioAnalyzer(file_path)
-            result = await analyzer.analyze()
+            # Run analysis (analyze_core is blocking/CPU-bound, run off the event loop)
+            result = await asyncio.to_thread(AdvancedAudioAnalyzer.analyze_core, file_path)
             
             # Update job with results
             job.status = "completed"

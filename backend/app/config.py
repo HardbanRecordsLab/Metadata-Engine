@@ -21,6 +21,7 @@ class Settings:
     DISCOGS_CONSUMER_SECRET = os.getenv("DISCOGS_SECRETS") or os.getenv("DISCOGS_CONSUMER_SECRET")
     ACOUSTID_API_KEY = os.getenv("ACOUSTID_API") or os.getenv("ACOUSTID_API_KEY")
     ACOUSTID_API_TOKEN = os.getenv("ACOUSTID_API_TOKEN")  # For submitting fingerprints
+    AUDD_API_TOKEN = os.getenv("AUDD_API_TOKEN")
     ACR_HOST = os.getenv("ACR_HOST")
     ACR_ACCESS_KEY = os.getenv("ACR_ACCESS_KEY")
     ACR_ACCESS_SECRET = os.getenv("ACR_ACCESS_SECRET")

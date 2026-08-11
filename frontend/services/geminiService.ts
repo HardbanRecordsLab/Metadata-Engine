@@ -139,10 +139,13 @@ export const generateMetadata = async (
                 formData.append('is_fresh', String(isFresh));
                 formData.append('model_preference', modelPreference);
 
+                // Large audio files (up to 100MB) can take a while to upload on a slow
+                // connection, so this call gets a longer per-attempt timeout than the
+                // fetchWithRetry default.
                 const response = await fetchWithRetry(getFullUrl('/analysis/generate'), {
                     method: 'POST',
                     body: formData,
-                });
+                }, 3, 1000, 300000);
 
                 if (!response.ok) {
                     const errorText = await response.text();

@@ -115,7 +115,13 @@ async def separate_track_vocals(
     Separates the uploaded track using Demucs.
     Returns the ISOLATED VOCAL track (MP3).
     """
-    from app.services.separation import SeparationService
+    try:
+        from app.services.separation import SeparationService
+    except ImportError:
+        return JSONResponse(
+            status_code=501,
+            content={"error": "Vocal separation is not implemented in this deployment (Demucs/Torch not installed)."},
+        )
 
     if not SeparationService.is_available():
         return JSONResponse(
