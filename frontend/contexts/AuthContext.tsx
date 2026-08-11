@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserTier } from '../types';
+import { User } from '../types';
 import { getFullUrl } from '../apiConfig';
 
 interface AuthContextType {
@@ -12,7 +12,6 @@ interface AuthContextType {
     register: (email: string, name: string, password: string) => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     logout: () => void;
-    upgradeTier: (tier: UserTier) => Promise<void>;
     refetchUser: () => Promise<void>;
 }
 
@@ -168,11 +167,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
     };
 
-    const upgradeTier = async (tier: UserTier) => {
-        // Todo: Call API to upgrade tier
-        console.log("Upgrade tier not implemented yet");
-    };
-
     return (
         <AuthContext.Provider value={{
             user,
@@ -183,7 +177,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             register,
             resetPassword,
             logout,
-            upgradeTier,
             refetchUser
         }}>
             {children}

@@ -9,13 +9,7 @@ try:
     import librosa
     import numpy as np
 except ImportError:
-    # Local analysis disabled
     librosa = None
-    # numpy might be missing too if librosa is missing, handled by earlier lazy loading logic usually
-    # but here we imported it at top level. Wait, top level import is at line 2.
-    # If numpy is missing, line 2 crashes.
-    # But I removed numpy from requirements. So line 2 WILL crash.
-    pass
 
 try:
     from mutagen.easyid3 import EasyID3

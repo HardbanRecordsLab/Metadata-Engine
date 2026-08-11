@@ -120,6 +120,8 @@ class Certificate(Base):
     price_usd = Column(Float, default=0.5)
     created_at = Column(DateTime, default=datetime.utcnow)
     view_token = Column(String, nullable=True)
+    ipfs_hash = Column(String, nullable=True)
+    ipfs_url = Column(String, nullable=True)
 
 class VerificationEvent(Base):
     __tablename__ = "verification_events"
@@ -151,6 +153,18 @@ def run_migrations():
             # Safely add view_token to certificates if missing
             try:
                 conn.execute(text("ALTER TABLE certificates ADD COLUMN view_token TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
+            # Safely add IPFS pinning columns to certificates if missing
+            try:
+                conn.execute(text("ALTER TABLE certificates ADD COLUMN ipfs_hash TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+            try:
+                conn.execute(text("ALTER TABLE certificates ADD COLUMN ipfs_url TEXT"))
                 conn.commit()
             except Exception:
                 pass  # Column already exists

@@ -1,5 +1,5 @@
 import { backendService } from './backendService';
-import { Metadata } from '../types';
+import { getFullUrl } from '../apiConfig';
 
 /**
  * Calculates SHA-256 hash of a file.
@@ -23,35 +23,28 @@ export const calculateFileHash = async (file: File): Promise<string> => {
     }
 };
 
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 /**
- * Generates and downloads the premium HTML certificate via backend.
+ * Pins an already-saved certificate's PDF to IPFS via the backend (Pinata)
+ * and returns the resulting content-addressed hash/url.
  */
-/**
- * Generates the certificate on the backend, which uploads to IPFS (Pinata) 
- * and returns the secure hash/url.
- */
-export const pinCertificateToIPFS = async (metadata: Metadata, hash: string, fileName: string, jobId?: string): Promise<{ ipfs_hash: string; ipfs_url: string }> => {
+export const pinCertificateToIPFS = async (certificateId: string): Promise<{ ipfs_hash: string; ipfs_url: string }> => {
+    const res = await fetch(getFullUrl(`/certificate/${certificateId}/pin-ipfs`), {
+        method: 'POST',
+        headers: { ...getAuthHeaders() },
+        credentials: 'include',
+    });
+    const text = await res.text();
+    let data;
     try {
-        const result = await backendService.generateCertificate(metadata, hash, fileName, jobId);
-        return { ipfs_hash: result.ipfs_hash, ipfs_url: result.ipfs_url };
+        data = JSON.parse(text);
     } catch (e) {
-        console.error("IPFS pinning failed", e);
-        throw e;
+        throw new Error(`Failed to parse IPFS pin response: ${text.substring(0, 100)}`);
     }
-};
-
-/**
- * For preview/download, we now use the frontend viewer. 
- * This function can return the data or allow client-side handling.
- */
-export const generateCertificate = async (metadata: Metadata, hash: string, fileName: string) => {
-    // Legacy support: The new flow uses the Viewer component. 
-    // We can trigger the backend generation (IPFS upload) here too if desired,
-    // or just return success.
-    return await pinCertificateToIPFS(metadata, hash, fileName);
-};
-
-export const getCertificateContent = async (metadata: Metadata, hash: string, fileName: string): Promise<any> => {
-    // Preview is now client-side, this is just a stub or could fetch existing IPFS data if needed
-    return "";
+    if (!res.ok) throw new Error(data.detail || 'Failed to pin certificate to IPFS');
+    return { ipfs_hash: data.ipfs_hash, ipfs_url: data.ipfs_url };
 };

@@ -1,5 +1,5 @@
 
-import { AnalysisRecord, UserTier } from '../types';
+import { AnalysisRecord } from '../types';
 
 const API_BASE = '/api';
 
@@ -88,15 +88,4 @@ export const db = {
         }
     },
 
-    createProfile: async (userId: string, email: string, fullName: string, tier: UserTier, credits: number) => {
-        // Handled by registration endpoint in backend now.
-        // This function is kept for interface compatibility but might be unused.
-        return null; 
-    },
-
-    upgradeTier: async (userId: string, tier: string) => {
-        // Not implemented in backend yet
-        console.log("Upgrade tier to " + tier);
-        return true;
-    }
 };

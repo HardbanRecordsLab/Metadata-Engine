@@ -4,17 +4,6 @@ import { getFullUrl } from '../apiConfig';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export const backendService = {
-    async checkHealth(): Promise<boolean> {
-        try {
-            const res = await fetchWithRetry(getFullUrl('/'));
-            const data = await res.json();
-            return data.status === 'MME Worker Online';
-        } catch (e) {
-            console.error('Backend health check failed', e);
-            return false;
-        }
-    },
-
     async tagFlac(file: File, metadata: Partial<Metadata>): Promise<Blob> {
         const formData = new FormData();
         formData.append('file', file);
@@ -75,25 +64,6 @@ export const backendService = {
 
         if (!res.ok) throw new Error(data.detail || 'Failed to generate hash');
         return data.sha256;
-    },
-
-    async generateCertificate(metadata: Metadata, sha256: string, filename: string, jobId?: string): Promise<{ ipfs_hash: string; ipfs_url: string; timestamp: string }> {
-        const res = await fetchWithRetry(getFullUrl('/generate/certificate'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ metadata, sha256, filename, job_id: jobId }),
-        });
-        
-        const text = await res.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            throw new Error(`Failed to parse certificate response: ${text.substring(0, 50)}`);
-        }
-
-        if (!res.ok) throw new Error(data.detail || 'Failed to generate certificate');
-        return data;
     },
 
     getExportCsvUrl(jobId: string): string {

@@ -176,15 +176,10 @@ async def verify_certificate(identifier: str, request: Request, token: str | Non
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate details not found. Please ensure the identifier or QR code is valid.")
 
-    # Check view token if present
+    # Certificates with a view_token are private: the token must match.
     vt = getattr(certificate, "view_token", None)
-    if vt:
-        # If accessing via public ID but token is missing/wrong, still allow basic info or restrict?
-        # Requirement: "identyczny certyfikat co do pobrania"
-        if not token or token != vt:
-            # We can log this but maybe allow viewing if the user has the direct link?
-            # Or enforce token for QR-coded private certs.
-            pass 
+    if vt and token != vt:
+        raise HTTPException(status_code=403, detail="Invalid or missing verification token for this certificate.")
 
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
@@ -239,6 +234,62 @@ async def get_certificate_pdf(identifier: str, db: Session = Depends(get_db)):
             verify_url=verify_url,
         )
     return FileResponse(pdf_path, filename=f"{certificate.certificate_id}.pdf", media_type="application/pdf")
+
+
+@router.post("/{certificate_id}/pin-ipfs")
+async def pin_certificate_to_ipfs(
+    certificate_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_user_and_check_quota),
+):
+    """Pins the certificate's PDF to IPFS via Pinata and stores the resulting hash/url."""
+    certificate = db.query(Certificate).filter(Certificate.certificate_id == certificate_id).first()
+    if not certificate:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    owner_id = certificate.user_id
+    if owner_id:
+        caller_id = str(getattr(current_user, "id", "")) if current_user else ""
+        is_owner = bool(caller_id) and caller_id == str(owner_id)
+        is_admin_user = False
+        if current_user:
+            try:
+                from app.admin_config import is_admin
+                is_admin_user = is_admin(getattr(current_user, "email", None))
+            except Exception:
+                is_admin_user = False
+        if not is_owner and not is_admin_user:
+            raise HTTPException(status_code=403, detail="Not authorized to pin this certificate")
+
+    if certificate.ipfs_hash and certificate.ipfs_url:
+        return {"ipfs_hash": certificate.ipfs_hash, "ipfs_url": certificate.ipfs_url, "cached": True}
+
+    pdf_path = os.path.join(CERT_DIR, f"{certificate.certificate_id}.pdf")
+    if not os.path.exists(pdf_path):
+        vt = getattr(certificate, "view_token", None)
+        if vt:
+            verify_url = f"https://app-metadata.hardbanrecordslab.online/verify/{certificate.certificate_id}?token={vt}"
+        else:
+            verify_url = f"https://metadata.hardbanrecordslab.online/api/certificate/verify/{certificate.certificate_id}"
+        pdf_path = generate_certificate_pdf(
+            certificate_id=certificate.certificate_id,
+            file_name=certificate.file_name,
+            sha256=certificate.sha256,
+            metadata=certificate.certificate_metadata or {},
+            verify_url=verify_url,
+        )
+
+    from app.services.ipfs_pinning import pin_file_to_ipfs, IPFSPinningError
+    try:
+        result = await pin_file_to_ipfs(pdf_path, f"{certificate.certificate_id}.pdf")
+    except IPFSPinningError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    certificate.ipfs_hash = result["ipfs_hash"]
+    certificate.ipfs_url = result["ipfs_url"]
+    db.commit()
+
+    return {"ipfs_hash": certificate.ipfs_hash, "ipfs_url": certificate.ipfs_url, "cached": False}
 
 
 @router.get("/list")

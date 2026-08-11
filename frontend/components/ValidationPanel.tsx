@@ -2,7 +2,39 @@
 
 import React, { useState } from 'react';
 import { getFullUrl } from '../apiConfig';
-import { ValidationReport } from '../services/validationBot';
+
+interface LintResult {
+    filePath: string;
+    messages: Array<{
+        line: number;
+        column: number;
+        severity: number; // 1 = warning, 2 = error
+        ruleId: string | null;
+        message: string;
+    }>;
+}
+
+interface TypeCheckResult {
+    file: string;
+    errors: string[];
+}
+
+interface TestResult {
+    suite: string;
+    success: boolean;
+    total: number;
+    passed: number;
+    failed: number;
+    failures?: Array<{ test: string; message: string }>;
+}
+
+interface ValidationReport {
+    lint: LintResult[];
+    typeCheck: TypeCheckResult[];
+    unitTests: TestResult[];
+    e2eTests?: TestResult[];
+    timestamp: string;
+}
 
 const getEnv = (key: string): string => {
     // @ts-ignore

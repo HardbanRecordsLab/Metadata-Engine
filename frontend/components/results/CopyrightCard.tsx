@@ -23,6 +23,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
     const [ipfsLink, setIpfsLink] = useState<string | null>(null);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [savedPdfUrl, setSavedPdfUrl] = useState<string | null>(null);
+    const [savedCertificateId, setSavedCertificateId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [previewing, setPreviewing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +36,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
             setHash(null);
         }
         setIpfsLink(null);
+        setSavedCertificateId(null);
         setIsHashing(false);
         setFileError(null);
     }, [file, metadata.sha256]);
@@ -135,6 +137,7 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
             const data = await res.json();
             const url = data?.pdf_url;
             if (url) setSavedPdfUrl(url);
+            if (data?.certificate_id) setSavedCertificateId(data.certificate_id);
             showToast("Certyfikat zapisany (naliczono $0.50).", 'success');
         } catch (e: any) {
             console.error('Save PDF failed:', e);
@@ -221,16 +224,16 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
     };
 
     const handleUploadIPFS = async () => {
-        if (!hash || !file) return;
+        if (!savedCertificateId) {
+            showToast("Najpierw zapisz certyfikat (Issue & Download), żeby móc go przypiąć do IPFS.", 'info');
+            return;
+        }
         setIsUploading(true);
         try {
-            showToast("Generating premium cert and pinning JSON to IPFS...", 'info');
-
-            // This now calls the backend which uploads JSON to Pinata
-            const { ipfs_url } = await pinCertificateToIPFS(metadata, hash, file.name, jobId);
+            showToast("Pinning certificate PDF to IPFS...", 'info');
+            const { ipfs_url } = await pinCertificateToIPFS(savedCertificateId);
             setIpfsLink(ipfs_url);
             showToast("Successfully pinned to IPFS!", 'success');
-
         } catch (e: any) {
             console.error("IPFS pinning failed:", e);
             showToast(`IPFS pinning failed: ${e.message}`, 'error');
@@ -365,6 +368,25 @@ const CopyrightCard: React.FC<CopyrightCardProps> = ({ metadata, file, onUpdateF
                             </div>
                             {!hash && (
                                 <p className="text-[10px] text-slate-400 italic text-center">Complete Step 1 to enable certificate generation.</p>
+                            )}
+                            {!ipfsLink && (
+                                <Button
+                                    onClick={handleUploadIPFS}
+                                    disabled={isUploading || !savedCertificateId}
+                                    size="sm"
+                                    variant="secondary"
+                                    className={`w-full justify-center ${!savedCertificateId ? 'opacity-50' : ''}`}
+                                >
+                                    {isUploading ? (
+                                        <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mr-2" />
+                                    ) : (
+                                        <Upload className="w-4 h-4 mr-2" />
+                                    )}
+                                    Pin Certificate to IPFS
+                                </Button>
+                            )}
+                            {savedCertificateId === null && (
+                                <p className="text-[10px] text-slate-400 italic text-center">Save the certificate above first to enable IPFS pinning.</p>
                             )}
                             {ipfsLink && (
                                 <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-fade-in">

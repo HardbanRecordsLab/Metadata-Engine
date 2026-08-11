@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Music, Shield, ArrowLeft, Plus, Fingerprint, Star, Users, Zap, LayoutGrid, Gift, Globe } from './icons';
+import { Music, Shield, ArrowLeft, Plus, Fingerprint, Zap, LayoutGrid, Globe } from './icons';
 import { UserProfile } from '../types';
 import Button from './Button'; // Import Button component
 
@@ -11,8 +11,6 @@ interface DashboardHomeProps {
 }
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, userProfile }) => {
-  const isPaid = true;
-
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-20 animate-fade-in">
 
@@ -217,25 +215,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
             <ArrowLeft className="absolute right-4 w-5 h-5 text-slate-400 rotate-180 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
           </button>
 
-          {/* Cloud Storage Tool */}
-          <button
-            onClick={() => onNavigate('analyze')}
-            className="group relative overflow-hidden flex items-center gap-4 p-6 bg-white dark:bg-[#0f111a] rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-[0_10px_40px_-10px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02]"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-            <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all">
-              <Users className="w-7 h-7 text-white" />
-            </div>
-
-            <div className="relative text-left">
-              <p className="font-black text-lg text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors">Collaboration</p>
-              <p className="text-[11px] uppercase font-bold text-slate-500 tracking-wide">Team Workspace</p>
-            </div>
-
-            <ArrowLeft className="absolute right-4 w-5 h-5 text-slate-400 rotate-180 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-          </button>
-
         </div>
       </div>
 
@@ -287,22 +266,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
                 <LayoutGrid className="w-8 h-8 text-white" />
               </div>
               <span className="text-sm font-black text-slate-400 group-hover:text-orange-500 transition-colors">MusicBrainz</span>
-            </div>
-          </div>
-
-          {/* Stats Section */}
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-8">
-            <div className="text-center">
-              <div className="text-3xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text mb-1">10K+</div>
-              <div className="text-xs uppercase font-bold text-slate-600 dark:text-slate-400 tracking-wider">Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-teal-400 text-transparent bg-clip-text mb-1">500K+</div>
-              <div className="text-xs uppercase font-bold text-slate-600 dark:text-slate-400 tracking-wider">Files Analyzed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-black bg-gradient-to-r from-pink-400 to-rose-400 text-transparent bg-clip-text mb-1">99.9%</div>
-              <div className="text-xs uppercase font-bold text-slate-600 dark:text-slate-400 tracking-wider">Accuracy Rate</div>
             </div>
           </div>
         </div>

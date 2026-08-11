@@ -246,8 +246,6 @@ async def process_analysis(
             await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
             return
 
-        transcribe = False  # Disabled for performance
-
         logger.info(f"Job {job_id}: Fast Local Pipeline (budget {time_budget_sec}s)...")
         job.message = f"Fast analysis mode (<= {time_budget_sec}s)..."
         db.commit()

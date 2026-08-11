@@ -476,17 +476,6 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                             >
                                 <FileSignature className="w-4 h-4 mr-2" /> Issue & Download Certificate
                             </Button>
-                            <Button
-                                onClick={() => {
-                                    // Logic to send to public database
-                                    showToast("Requesting registration in public database...", 'info');
-                                    setTimeout(() => showToast("Certificate successfully registered in HRL Global Registry!", 'success'), 1500);
-                                }}
-                                variant="secondary"
-                                className="w-full border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                            >
-                                <Globe className="w-4 h-4 mr-2" /> Register in Public Database (HRL Registry)
-                            </Button>
                         </div>
                     </div>
                 </div>
