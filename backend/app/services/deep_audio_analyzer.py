@@ -10,10 +10,48 @@ Czas: 12-15s na i5 (bez GPU)
 import librosa
 import numpy as np
 from scipy import signal
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Krumhansl-Schmuckler key profiles: typical pitch-class weight distribution
+# for a major/minor key, starting from the tonic. Standard reference values
+# from Krumhansl & Kessler (1982), used by most key-detection implementations
+# (including Essentia's, which this pipeline used to rely on but doesn't for
+# this code path — see _detect_key_from_chroma).
+_KS_MAJOR_PROFILE = np.array(
+    [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
+)
+_KS_MINOR_PROFILE = np.array(
+    [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+)
+_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+
+def _detect_key_from_chroma(chroma_mean: np.ndarray) -> Tuple[str, str, float]:
+    """Krumhansl-Schmuckler key estimation from a 12-bin chroma vector.
+
+    librosa's chroma_cqt/chroma_stft index 0 = C, following standard pitch
+    class ordering, matching _NOTE_NAMES here.
+    """
+    best_corr = -2.0
+    best_key = 'C'
+    best_mode = 'Major'
+    for shift in range(12):
+        major_rot = np.roll(_KS_MAJOR_PROFILE, shift)
+        minor_rot = np.roll(_KS_MINOR_PROFILE, shift)
+        corr_major = np.corrcoef(chroma_mean, major_rot)[0, 1]
+        corr_minor = np.corrcoef(chroma_mean, minor_rot)[0, 1]
+        if corr_major > best_corr:
+            best_corr = corr_major
+            best_key = _NOTE_NAMES[shift]
+            best_mode = 'Major'
+        if corr_minor > best_corr:
+            best_corr = corr_minor
+            best_key = _NOTE_NAMES[shift]
+            best_mode = 'Minor'
+    return best_key, best_mode, float(best_corr)
 
 
 class DeepAudioAnalyzer:
@@ -90,7 +128,25 @@ class DeepAudioAnalyzer:
         
         # Tempogram
         tempogram = librosa.feature.tempogram(onset_envelope=oenv, sr=sr, hop_length=self.hop_length)
-        
+
+        # Rhythmic complexity: coefficient of variation of onset strength
+        # (bursty/syncopated onsets vs. steady) combined with beat-interval
+        # irregularity (tempo drift/swing vs. a rigid grid). Heuristic proxy,
+        # not a validated classifier — used only as an LLM hint, never as an
+        # authoritative output field.
+        onset_cv = float(np.std(oenv) / (np.mean(oenv) + 1e-6))
+        beat_intervals = np.diff(beat_times) if len(beat_times) > 1 else np.array([])
+        beat_irregularity = (
+            float(np.std(beat_intervals) / (np.mean(beat_intervals) + 1e-6))
+            if len(beat_intervals) > 1 else 0.0
+        )
+        if onset_cv > 1.4 or beat_irregularity > 0.25:
+            rhythm_complexity = 'complex'
+        elif onset_cv > 1.0 or beat_irregularity > 0.12:
+            rhythm_complexity = 'medium'
+        else:
+            rhythm_complexity = 'simple'
+
         return {
             'tempo': float(tempo[0]) if isinstance(tempo, (np.ndarray, list)) else float(tempo),
             'beat_count': len(beats),
@@ -98,6 +154,7 @@ class DeepAudioAnalyzer:
             'tempogram_mean': tempogram.mean(axis=1).tolist()[:10],
             'onset_strength_mean': float(np.mean(oenv)),
             'onset_strength_std': float(np.std(oenv)),
+            'rhythm_complexity': rhythm_complexity,
         }
     
     def _extract_harmonic_features(self, y: np.ndarray, sr: int) -> Dict:
@@ -116,9 +173,12 @@ class DeepAudioAnalyzer:
         # Harmonic change
         chroma_diff = np.diff(chroma_cqt, axis=1)
         harmonic_change_rate = np.mean(np.abs(chroma_diff))
-        
+
+        chroma_cqt_mean = chroma_cqt.mean(axis=1)
+        key, mode, key_strength = _detect_key_from_chroma(chroma_cqt_mean)
+
         return {
-            'chroma_cqt_mean': chroma_cqt.mean(axis=1).tolist(),
+            'chroma_cqt_mean': chroma_cqt_mean.tolist(),
             'chroma_cqt_std': chroma_cqt.std(axis=1).tolist(),
             'chroma_stft_mean': chroma_stft.mean(axis=1).tolist(),
             'tonnetz_mean': tonnetz.mean(axis=1).tolist(),
@@ -126,7 +186,10 @@ class DeepAudioAnalyzer:
             'harmonic_change_rate': float(harmonic_change_rate),
             'harmonic_percussive_ratio': float(
                 np.mean(y_harmonic**2) / (np.mean(y_percussive**2) + 1e-6)
-            )
+            ),
+            'key': key,
+            'mode': mode,
+            'key_strength': key_strength,
         }
     
     def _extract_spectral_features(self, y: np.ndarray, sr: int) -> Dict:
