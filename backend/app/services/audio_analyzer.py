@@ -510,6 +510,9 @@ class AdvancedAudioAnalyzer:
                 return None
 
         try:
+            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                return {"error": "File is empty or does not exist"}
+
             TinyTag = get_tinytag()
             tag = TinyTag.get(file_path, image=True)
 

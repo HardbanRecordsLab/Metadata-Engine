@@ -36,6 +36,9 @@ class DDEXOrchestrator:
         <SoundRecording>
             <ResourceReference>A1</ResourceReference>
             <Type>SoundRecording</Type>
+            <SoundRecordingId>
+                <ISRC>{{ isrc }}</ISRC>
+            </SoundRecordingId>
             <ReferenceTitle>
                 <TitleText>{{ title }}</TitleText>
             </ReferenceTitle>

@@ -61,9 +61,8 @@ class CWRGenerator:
         duration_sec = metadata.get('duration') or 0
         minutes = int(duration_sec // 60)
         seconds = int(duration_sec % 60)
-        dur_str = f"{minutes:03}{seconds:02}{0}" # HHMMSS -> MMMSS? Spec varies, usually HHMMSS
-        # Standard CWR 2.1 duration is HHMMSS usually, but field len is 6. Let's use 000300 (3 min)
-        dur_str = f"00{minutes:02}{seconds:02}" 
+        # CWR duration field is 6 chars, HHMMSS; hours are always "00" here.
+        dur_str = f"00{minutes:02}{seconds:02}"
 
         iswc = (metadata.get('iswc') or "").replace("-", "")
         
@@ -72,7 +71,7 @@ class CWRGenerator:
         wrk += "00000000" # Record sequence (always 00000000 for WRK)
         wrk += CWRGenerator._pad(title, 60)
         wrk += "EN " # Language Code (ISO 639 2)
-        wrk += "_UNK_" # Work Type (Pop, etc - optional/std) -> "POP"? Leaving blank/UNK 
+        wrk += "     " # Work Type (optional per spec) — left blank, not populated by this pipeline
         wrk += CWRGenerator._pad(iswc, 11)
         wrk += CWRGenerator._pad(date_str, 8) # Copyright Date (assuming today for fresh)
         wrk += " "*60 # Original Title (if version)
@@ -123,20 +122,15 @@ class CWRGenerator:
         lines.append(swr)
 
         # 7. PWR - Publisher Writer Link
-        # PWR | Trans Seq | Rec Seq | Publisher Address | Writer Address ...
+        # PWR | Trans Seq | Rec Seq | Publisher IP # | Writer IP # | ...
         pwr = "PWR"
         pwr += "00000001"
         pwr += "00000004"
-        pwr += CWRGenerator._pad(sender_id, 9) # Publisher IP Key
-        pwr += CWRGenerator._pad(composer.upper(), 9) # Writer Key (using Name as ID placeholder logic is risky but...) 
-        # Actually PWR links SPU and SWR.
-        pwr += " "*2 # Code?
-        pwr += "10000" # Writer share 100% of the 50%? CWR logic is complex. 
-        # Simplified:
-        # Just linking
-        pwr = f"PWR0000000100000004{CWRGenerator._pad(sender_id, 9)}{CWRGenerator._pad('WRITER001', 9)}00000"
-        # Re-doing SWR ID
-        
+        pwr += CWRGenerator._pad(sender_id, 9)  # Publisher IP Key
+        pwr += CWRGenerator._pad("WRITER001", 9)  # Writer Key (placeholder ID)
+        pwr += "00000"  # Writer share
+        lines.append(pwr)
+
         # 8. GRL - Group Trailer
         # GRL | Group ID | Transaction Count | Record Count
         trans_count = 1
