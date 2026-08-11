@@ -99,7 +99,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
                             <StatusItem label="Batch Processing" status="ready" />
                             <StatusItem label="Backend Proxy (Key Protection)" status="pending" />
                             <StatusItem label="User Accounts System (Auth)" status="pending" />
-                            <StatusItem label="Payments (Stripe/LemonSqueezy)" status="pending" />
+                            <StatusItem label="Payments (Stripe credit packs)" status="ready" />
                             <StatusItem label="Legal Documents (GDPR, TOS)" status="pending" />
                         </div>
                     </div>

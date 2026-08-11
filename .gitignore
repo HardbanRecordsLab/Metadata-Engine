@@ -60,6 +60,12 @@ logs/
 .cache/
 *.tmp
 
+# Local credential files (never commit)
+HRL_KOMPLETNY_EKOSYSTEM_2026_Z_CREDENTIALS1
+stripe key metadate engine1
+HRL_KOMPLETNY_EKOSYSTEM_2026_Z_CREDENTIALS1.*
+stripe key metadate engine1.*
+
 # Build artifacts
 *.pyc
 *.pyo

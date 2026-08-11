@@ -43,6 +43,9 @@ Jinja2
 qrcode[pil]
 weasyprint
 
+# === Payments ===
+stripe>=8.0.0
+
 # === Dev Tools ===
 pytest
 pytest-asyncio

@@ -71,7 +71,8 @@ def setup_app():
         tagging_router, ddex_router, analysis_router, generative_router,
         health_router, mir_router, ai_proxy_router, cwr_router,
         batch_router, system_router, certificate_router,
-        webhooks_router
+        webhooks_router,
+        billing_router,
     )
     from app.routes.fresh_analysis import router as fresh_router
     from app.routes.export import router as export_router
@@ -127,6 +128,7 @@ def setup_app():
     app.include_router(system_router, prefix="/api")
     app.include_router(certificate_router, prefix="/api")
     app.include_router(webhooks_router, prefix="/api")
+    app.include_router(billing_router, prefix="/api")
 
     app.include_router(export_router, prefix="/api")
     app.include_router(tools_router, prefix="/api")

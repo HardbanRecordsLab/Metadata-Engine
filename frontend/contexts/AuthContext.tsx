@@ -25,12 +25,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
     const [token, setToken] = useState<string | null>(localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token'));
 
-    const checkIsAdmin = (email: string, meta: any): boolean => {
+    const checkIsAdmin = (email: string, meta: Record<string, unknown> | null | undefined): boolean => {
         if (meta && typeof meta.is_superuser !== 'undefined') {
             return !!meta.is_superuser;
         }
         const admins = ['hardbanrecordslab.pl@gmail.com'];
-        return admins.some(admin => admin.toLowerCase() === email.toLowerCase());
+        return admins.some((admin) => admin.toLowerCase() === email.toLowerCase());
     };
 
     const fetchUserProfile = async (accessToken: string) => {
@@ -54,15 +54,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error(userData.detail || 'Failed to fetch user profile');
             }
 
-            const isAdm = checkIsAdmin(userData.email, userData.user_metadata);
+            const profileMeta = {
+                is_superuser: userData.is_superuser,
+                tier: userData.tier,
+                credits: userData.credits,
+                ...userData.user_metadata,
+            };
+            const isAdm = checkIsAdmin(userData.email, profileMeta);
             setUser({
                 id: userData.id,
                 email: userData.email,
                 name: (userData.username || userData.email.split('@')[0]),
-                tier: isAdm ? 'studio' : (userData.tier || userData.user_metadata?.tier || 'starter'),
+                tier: isAdm ? 'studio' : (userData.tier || 'starter'),
                 createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
-                credits: isAdm ? 999999999 : (typeof userData.credits === 'number' ? userData.credits : (userData.user_metadata?.credits ?? 10)),
-                isAdmin: isAdm
+                credits: isAdm ? 999999999 : (typeof userData.credits === 'number' ? userData.credits : 3),
+                isAdmin: isAdm,
             });
 
         } catch (error) {

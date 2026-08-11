@@ -22,6 +22,7 @@ import { Menu } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 import { db } from './services/databaseService';
 import ValidationPanel from './components/ValidationPanel';
+import PricingModal from './components/PricingModal';
 // BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
 
 // Lazy Load Heavy Components
@@ -68,6 +69,7 @@ const AppContent: React.FC = () => {
     const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocType | null>(null);
     const [activeResourceDoc, setActiveResourceDoc] = useState<ResourceDocType | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isPricingOpen, setIsPricingOpen] = useState(false);
 
     const isAdmin = !!user?.isAdmin;
     const displayProfile = user ? { name: user.name } : { name: 'Guest' };
@@ -135,6 +137,18 @@ const AppContent: React.FC = () => {
         setToastMessage({ message, type });
         setTimeout(() => setToastMessage(null), 3000);
     };
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('billing') === 'success') {
+            refetchUser();
+            showToast('Płatność przyjęta — kredyty zostały dodane do konta.', 'success');
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('billing') === 'cancelled') {
+            showToast('Płatność anulowana.', 'info');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, [refetchUser]);
 
     const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
 
@@ -400,7 +414,7 @@ const AppContent: React.FC = () => {
                                 {view === 'settings' && (
                                     <SettingsPanel
                                         user={user}
-                                        onOpenPricing={() => { }}
+                                        onOpenPricing={() => setIsPricingOpen(true)}
                                     />
                                 )}
 
@@ -423,6 +437,7 @@ const AppContent: React.FC = () => {
             {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}
             {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}
             {showValidation && <ValidationPanel onClose={() => setShowValidation(false)} />}
+            {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} />}
         </div>
     );
 }

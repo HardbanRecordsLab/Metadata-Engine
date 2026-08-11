@@ -97,7 +97,7 @@ async def register(payload: UserRegister, db: Session = Depends(get_db)):
         username=username,
         password_hash=get_password_hash(payload.password),
         api_key=str(uuid.uuid4()),
-        credits=10,
+        credits=3,
     )
     
     db.add(user)
@@ -127,16 +127,15 @@ async def login(payload: UserLogin, db: Session = Depends(get_db)):
     
     # Update last login
     user.last_login = datetime.utcnow()
-    # Ensure every account has at least 10 free analyses (one-time grant policy)
-    # Do not override if user already has more credits (from purchases)
+    # One-time welcome credits for new accounts (do not override purchases)
     try:
         current = user.credits if user.credits is not None else 0
-        if current < 10:
-            user.credits = 10
+        if current < 3:
+            user.credits = 3
     except Exception as e:
         # Fallback safe default
         logger.error(f"Error checking user credits: {e}")
-        user.credits = 10
+        user.credits = 3
     
     try:
         db.commit()
@@ -165,7 +164,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "username": current_user.username,
         "is_premium": current_user.is_premium,
+        "is_superuser": current_user.is_superuser,
         "tier": current_user.tier,
         "credits": current_user.credits,
-        "created_at": current_user.created_at
+        "created_at": current_user.created_at,
     }

@@ -74,6 +74,19 @@ class Job(Base):
     ipfs_url = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+class CreditPurchase(Base):
+    """Idempotent log of Stripe checkout sessions that granted credits."""
+    __tablename__ = "credit_purchases"
+    id = Column(Integer, primary_key=True, index=True)
+    stripe_session_id = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(String, index=True, nullable=False)
+    pack_id = Column(String, nullable=True)
+    credits_added = Column(Integer, nullable=False)
+    amount_total = Column(Integer, nullable=True)
+    currency = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class RedeemCode(Base):
     __tablename__ = "redeem_codes"
     id = Column(Integer, primary_key=True, index=True)

@@ -41,7 +41,7 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Zaloguj się, aby skorzystać z aplikacji (10 darmowych analiz dla każdego)."
+            detail="Zaloguj się, aby skorzystać z aplikacji."
         )
     
     # Superusers have unlimited access
@@ -52,7 +52,7 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     if current_user.credits <= 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Wykorzystałeś limit darmowych analiz (10). Zakup pakiet w WooCommerce."
+            detail="Brak kredytów. Kup pakiet analiz w ustawieniach (Stripe)."
         )
         
     return current_user
