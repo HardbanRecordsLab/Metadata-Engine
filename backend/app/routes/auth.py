@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ import uuid
 import logging
 from app.db import User, get_db
 from app.security import verify_password, get_password_hash, create_access_token
+from app.rate_limit import limiter
 
 from app.config import settings
 
@@ -77,7 +78,8 @@ async def get_current_user(
 
 # Routes
 @router.post("/register", response_model=TokenResponse)
-async def register(payload: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def register(request: Request, payload: UserRegister, db: Session = Depends(get_db)):
     """Register new user"""
     
     username = payload.username or payload.email.split("@")[0]
@@ -114,7 +116,8 @@ async def register(payload: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, payload: UserLogin, db: Session = Depends(get_db)):
     """Login user"""
     
     user = db.query(User).filter(User.email == payload.email).first()

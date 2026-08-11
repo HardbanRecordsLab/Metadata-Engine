@@ -8,7 +8,11 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
+from app.rate_limit import limiter
 
 # === ULTIMATE INFRASTRUCTURE PATCH ===
 LIMIT_MB = 100
@@ -88,7 +92,14 @@ def setup_app():
     
     # Global Exception Handler
     app.add_exception_handler(Exception, global_exception_handler)
-    
+
+    # Rate limiting (app-level, per client IP). Complements — doesn't
+    # replace — the nginx-level limits already in front of this service;
+    # this layer also covers direct/non-nginx access (e.g. local dev).
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
     # CORS
     app.add_middleware(
         CORSMiddleware,
