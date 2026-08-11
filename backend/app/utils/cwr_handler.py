@@ -39,13 +39,16 @@ def generate_cwr_record(metadata: Dict[str, Any]) -> str:
 
     # NWR - New Work Registration Record
     # Format: NWR + TransID(8) + WorkTitle(60) + ISRC(12) ...
+    duration_sec = metadata.get("duration") or 0
+    duration_hhmmss = f"00{int(duration_sec // 60):02}{int(duration_sec % 60):02}"
+
     nwr = "NWR"
     nwr += "00000001" # Transaction ID
     nwr += format_fixed_width(metadata.get("title", "UNKNOWN TITLE"), 60)
     nwr += format_fixed_width("", 11) # Language Code
     nwr += format_fixed_width(metadata.get("isrc", ""), 12)
     nwr += format_fixed_width("", 8) # Work ID
-    nwr += "000000" # Duration
+    nwr += duration_hhmmss
     nwr += "U" # Title Type (Unspecified)
     records.append(nwr)
 
