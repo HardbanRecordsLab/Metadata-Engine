@@ -3,8 +3,6 @@ import { analyzeAudioFeatures, AudioFeatures } from './audioAnalysisService';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { getFullUrl, getWsUrl } from '../apiConfig';
 
-const UPLOAD_SIZE_LIMIT = 3.5 * 1024 * 1024;
-
 const wait = (ms: number) => {
     if ((import.meta as any).env?.MODE === 'test') return Promise.resolve();
     return new Promise<void>(resolve => setTimeout(resolve, ms));
