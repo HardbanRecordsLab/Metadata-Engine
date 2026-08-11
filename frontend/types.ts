@@ -157,12 +157,6 @@ export interface HFClassificationResult {
 }
 
 // ACRCloud Types
-export interface ACRCloudConfig {
-    host: string;
-    accessKey: string;
-    accessSecret: string;
-}
-
 export interface ACRMusicItem {
     title: string;
     artists?: Array<{ name: string }>;

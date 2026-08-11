@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ACRCloudConfig, ACRResponse, Metadata } from '../../types';
+import { Metadata } from '../../types';
 import { searchSpotifyTrack, getSpotifyAudioFeatures } from '../../services/spotifyService';
 import { getLastFmTrackInfo } from '../../services/lastFmService';
 import { searchMusicBrainz } from '../../services/musicBrainzService';
