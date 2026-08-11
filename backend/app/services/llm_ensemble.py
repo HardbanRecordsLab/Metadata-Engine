@@ -243,7 +243,7 @@ Rules:
                 if isinstance(val, (list, np.ndarray)):
                     return float(np.mean(val)) if len(val) > 0 else default
                 return float(val)
-            except:
+            except Exception:
                 return default
 
         tempo = _safe_float(rhythm.get('tempo'), 120)

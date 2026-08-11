@@ -78,7 +78,7 @@ async def tag_and_download_track(
 
     try:
         metadata = json.loads(metadata_json)
-    except:
+    except Exception:
         return JSONResponse(status_code=400, content={"error": "Invalid metadata JSON"})
 
     file_id = str(uuid.uuid4())

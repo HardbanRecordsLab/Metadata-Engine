@@ -318,5 +318,5 @@ async def calculate_file_hash(file: UploadFile = File(...)):
         if temp_file and os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
-            except:
+            except Exception:
                 pass

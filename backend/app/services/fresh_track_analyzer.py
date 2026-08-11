@@ -448,8 +448,9 @@ Return JSON:
             
             import json
             return json.loads(response.choices[0].message.content)
-            
-        except:
+
+        except Exception as e:
+            logger.warning(f"Lyrics analysis via Groq failed: {e}")
             return {}
     
     def _merge_results(

@@ -293,8 +293,8 @@ async def process_analysis(
         try:
             if isinstance(tech_meta, dict) and "confidence" in tech_meta:
                 metadata["confidence"] = float(tech_meta.get("confidence"))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Job {job_id}: could not parse confidence from tech_meta: {e}")
         # Attach SHA-256 fingerprint
         metadata["sha256"] = file_hash
 

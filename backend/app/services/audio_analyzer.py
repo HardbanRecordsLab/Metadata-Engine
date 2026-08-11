@@ -430,7 +430,7 @@ class AdvancedAudioAnalyzer:
                 import soundfile as sf
                 info = sf.info(file_path)
                 total_duration = info.duration
-            except:
+            except Exception:
                 total_duration = 180 # Fallback 3 mins
 
             # 2. Smart Slicing: Analyze the middle part where vocals are most prominent
@@ -475,7 +475,7 @@ class AdvancedAudioAnalyzer:
                         note_idx = int(round(note_num) % 12)
                         octave = int((round(note_num) + 8) // 12)
                         return f"{notes[note_idx]}{octave}"
-                    except:
+                    except Exception:
                         return "N/A"
 
                 return {
@@ -506,7 +506,7 @@ class AdvancedAudioAnalyzer:
                 return None
             try:
                 return str(val).encode("ascii", "replace").decode("ascii")
-            except:
+            except Exception:
                 return None
 
         try:

@@ -93,7 +93,7 @@ async def analyze_fresh_track(
         # Cleanup on error
         try:
             os.unlink(tmp_path)
-        except:
+        except Exception:
             pass
         
         return JSONResponse(

@@ -281,7 +281,7 @@ class DeepAudioAnalyzer:
                 'avg_segment_length': float(np.mean(segment_durations)) if segment_durations else 0.0,
                 'structure_regularity': float(np.std(segment_durations)) if segment_durations else 0.0,
             }
-        except:
+        except Exception:
             return {
                 'segment_count': 0,
                 'segment_durations': [],

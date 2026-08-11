@@ -189,8 +189,8 @@ def cleanup_old_files():
                 try:
                     os.remove(filepath)
                     removed += 1
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Startup cleanup: could not remove {filepath}: {e}")
     
     if removed > 0:
         logger.info(f"Startup cleanup: removed {removed} files")
