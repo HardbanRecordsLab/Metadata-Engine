@@ -502,10 +502,16 @@ STRICT OPERATIONAL DIRECTIVES:
     # list (not a single pinned name) because OpenRouter's free-model
     # lineup changes over time — if the first one is retired or rate
     # limited, the next candidate is tried before giving up entirely.
+    # Verified against GET /api/v1/models on 2026-08-12 — OpenRouter's free
+    # catalog turns over (the original three picks here, all llama-3.3/
+    # gemma-2/qwen-2.5 based, had already been pulled from the free tier by
+    # the time a real key was tested). If these ever start 404ing with
+    # "unavailable for free... use this slug instead", re-check the current
+    # list rather than guessing a replacement from memory.
     OPENROUTER_FREE_MODELS = [
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "google/gemma-2-9b-it:free",
-        "qwen/qwen-2.5-72b-instruct:free",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "google/gemma-4-31b-it:free",
+        "openai/gpt-oss-20b:free",
     ]
 
     async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
