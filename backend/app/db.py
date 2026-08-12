@@ -97,6 +97,16 @@ class RedeemCode(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
+class RedeemedCode(Base):
+    """One row per (user, code) redemption — stops a single user from
+    redeeming the same code repeatedly to drain its max_uses alone."""
+    __tablename__ = "redeemed_codes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), index=True)
+    redeem_code_id = Column(Integer, ForeignKey("redeem_codes.id"), index=True)
+    redeemed_at = Column(DateTime, default=datetime.utcnow)
+
 class AnalysisHistory(Base):
     __tablename__ = "analysis_history"
     id = Column(Integer, primary_key=True, index=True)

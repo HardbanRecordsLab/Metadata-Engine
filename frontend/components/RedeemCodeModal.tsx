@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { X, Gift, AlertCircle } from './icons';
 import Button from './Button';
 import { useAuth } from '../contexts/AuthContext';
-// import { supabase } from '../lib/supabaseClient'; // REMOVED
 
 interface RedeemCodeModalProps {
     onClose: () => void;

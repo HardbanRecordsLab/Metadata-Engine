@@ -6,9 +6,10 @@ import { fetchPurchaseHistory, CreditPurchaseRecord } from '../services/billingS
 interface SettingsPanelProps {
     user: any;
     onOpenPricing: () => void;
+    onOpenRedeemCode: () => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOpenRedeemCode }) => {
     const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'billing' | 'security'>('profile');
     const [purchases, setPurchases] = useState<CreditPurchaseRecord[] | null>(null);
     const [purchasesError, setPurchasesError] = useState<string | null>(null);
@@ -115,6 +116,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing }) =>
 
                                 <div className="relative z-10 flex flex-wrap gap-4">
                                     <Button variant="primary" className="bg-white text-slate-900 hover:bg-slate-100 px-8" onClick={onOpenPricing}>Kup kredyty</Button>
+                                    <Button variant="secondary" className="border-white/20 text-white hover:bg-white/10 px-8" onClick={onOpenRedeemCode}>Wykorzystaj kod</Button>
                                 </div>
                             </div>
 

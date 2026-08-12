@@ -78,6 +78,7 @@ def setup_app():
         webhooks_router,
         billing_router,
         acr_router,
+        redeem_codes_router,
     )
     from app.routes.fresh_analysis import router as fresh_router
     from app.routes.export import router as export_router
@@ -141,6 +142,7 @@ def setup_app():
     app.include_router(webhooks_router, prefix="/api")
     app.include_router(billing_router, prefix="/api")
     app.include_router(acr_router, prefix="/api")
+    app.include_router(redeem_codes_router, prefix="/api")
 
     app.include_router(export_router, prefix="/api")
     app.include_router(tools_router, prefix="/api")

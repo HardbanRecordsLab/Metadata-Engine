@@ -23,6 +23,7 @@ import { useAuth } from './contexts/AuthContext';
 import { db } from './services/databaseService';
 import ValidationPanel from './components/ValidationPanel';
 import PricingModal from './components/PricingModal';
+import RedeemCodeModal from './components/RedeemCodeModal';
 // BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
 
 // Lazy Load Heavy Components
@@ -70,6 +71,7 @@ const AppContent: React.FC = () => {
     const [activeResourceDoc, setActiveResourceDoc] = useState<ResourceDocType | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isPricingOpen, setIsPricingOpen] = useState(false);
+    const [isRedeemCodeOpen, setIsRedeemCodeOpen] = useState(false);
 
     const isAdmin = !!user?.isAdmin;
     const displayProfile = user ? { name: user.name } : { name: 'Guest' };
@@ -415,6 +417,7 @@ const AppContent: React.FC = () => {
                                     <SettingsPanel
                                         user={user}
                                         onOpenPricing={() => setIsPricingOpen(true)}
+                                        onOpenRedeemCode={() => setIsRedeemCodeOpen(true)}
                                     />
                                 )}
 
@@ -438,6 +441,7 @@ const AppContent: React.FC = () => {
             {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}
             {showValidation && <ValidationPanel onClose={() => setShowValidation(false)} />}
             {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} />}
+            {isRedeemCodeOpen && <RedeemCodeModal onClose={() => setIsRedeemCodeOpen(false)} showToast={showToast} />}
         </div>
     );
 }
