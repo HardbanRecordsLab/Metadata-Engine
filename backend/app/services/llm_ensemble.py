@@ -514,10 +514,18 @@ STRICT OPERATIONAL DIRECTIVES:
         "openai/gpt-oss-20b:free",
     ]
 
-    async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
+    async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 1) -> Dict:
         """
         OpenRouter: free-tier aggregator, used as a third, independent voice
         in the ensemble so consensus voting isn't just Groq vs. Gemini.
+
+        retries defaults to 1 (no backoff) per model, not 3: with 3 fallback
+        models already providing redundancy, retrying the same rate-limited
+        model repeatedly just burns the caller's overall time budget for no
+        benefit — confirmed live, where Groq and OpenRouter both returned
+        200 OK but the whole consensus_classification() call still timed out
+        and got discarded because two rate-limited models ate ~30s+ of
+        backoff before reaching the one that worked.
         """
         if not self.openrouter_key:
             return {'error': 'no_api_key'}
