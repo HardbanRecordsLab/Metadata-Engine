@@ -13,14 +13,6 @@ async def pin_file_to_ipfs(file_path: str, filename: str) -> dict:
     if not jwt:
         raise IPFSPinningError("PINATA_JWT not configured on server")
 
-    # PINATA_GATEWAY is configured on this deployment as a full URL
-    # (https://<subdomain>.mypinata.cloud), but tolerate a bare host too
-    # (gateway.pinata.cloud) rather than assume one format and double up
-    # the scheme.
-    gateway = os.getenv("PINATA_GATEWAY", "gateway.pinata.cloud").strip().rstrip("/")
-    if not gateway.startswith(("http://", "https://")):
-        gateway = f"https://{gateway}"
-
     async with httpx.AsyncClient(timeout=30.0) as client:
         with open(file_path, "rb") as f:
             files = {"file": (filename, f, "application/pdf")}
@@ -45,7 +37,12 @@ async def pin_file_to_ipfs(file_path: str, filename: str) -> dict:
     if not ipfs_hash:
         raise IPFSPinningError("Pinata response missing IpfsHash")
 
+    # Always return the universal public gateway, not PINATA_GATEWAY's
+    # dedicated subdomain: dedicated gateways 401 by default until public
+    # access is explicitly enabled in the Pinata dashboard (Gateway Settings
+    # -> Access Controls), and a certificate's whole point is that anyone
+    # with the link can verify it right away, with no extra setup.
     return {
         "ipfs_hash": ipfs_hash,
-        "ipfs_url": f"{gateway}/ipfs/{ipfs_hash}",
+        "ipfs_url": f"https://gateway.pinata.cloud/ipfs/{ipfs_hash}",
     }
