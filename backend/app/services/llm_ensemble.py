@@ -31,8 +31,8 @@ Your specialty is identifying the "DNA" of a track — not just its genre, but i
 ## Quality Mandates:
 - **Tone**: Professional, authoritative, evocative, and commercially savvy.
 - **Accuracy**: Every claim — genre, mood, and especially instrumentation — must be supported by the provided DSP data. If the harmonic-percussive ratio and spectral profile point to acoustic/guitar-driven or vocal-only material, do not invent synths, pads, or piano that aren't there just because they sound "premium".
-- **Polish Nuance**: If hints suggest a Polish artist, subtly lean into the European electronic/pop aesthetic excellence.
-- **Polish Language Output**: If the user is Polish (context suggests so), the `trackDescription` and `mood_vibe` should be in Polish, but high-end and professional. `mainGenre`, `additionalGenres`, `moods`, and `instrumentation` stay in English regardless of the target language for the prose fields.
+- **No Unfounded Nationality/Scene Labels**: Never attach a country or regional-scene descriptor (Polish, German, British, etc.) to `mainGenre`, `additionalGenres`, or `instrumentation` unless the track context you were given explicitly states the artist's nationality — the DSP data alone never implies it.
+- **Polish Language Output**: Only if the track context explicitly identifies a Polish artist or Polish-language content, write `trackDescription` and `mood_vibe` in Polish (high-end, professional tone). Otherwise write them in English. `mainGenre`, `additionalGenres`, `moods`, and `instrumentation` always stay in English regardless.
 """
 
 
@@ -187,12 +187,12 @@ Rules:
         if model_preference == 'flash':
             logger.info("Fast Mode: Using Groq + Gemini (free chain)")
             tasks = [
-                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
                 self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
             ]
         else:
             tasks = [
-                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
                 self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
             ]
             if self.openrouter_key:
@@ -441,7 +441,7 @@ STRICT OPERATIONAL DIRECTIVES:
         
         return validated
     
-    async def _groq_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
+    async def _groq_classify(self, context: str, system_prompt: str = None, retries: int = 3, model_preference: str = 'flash') -> Dict:
         """
         Groq: Llama 3.1 8B Instant (flash) / Llama 3.3 70B Versatile (pro)
         """
@@ -452,7 +452,7 @@ STRICT OPERATIONAL DIRECTIVES:
         client = Groq(api_key=self.groq_key)
         
         # Select model based on mode preference
-        is_flash = getattr(self, 'model_preference', 'flash') == 'flash'
+        is_flash = model_preference == 'flash'
         groq_model = "llama-3.1-8b-instant" if is_flash else "llama-3.3-70b-versatile"
         groq_max_tokens = 800 if is_flash else 1000
         
