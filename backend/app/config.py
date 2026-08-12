@@ -12,6 +12,7 @@ class Settings:
     DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
     XAI_API_KEY = os.getenv("XAI_API_KEY")
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
     # Music APIs
     SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")

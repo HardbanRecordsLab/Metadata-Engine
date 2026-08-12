@@ -50,27 +50,29 @@ class LLMEnsemble:
     Cost: $0 (free tiers)
     """
     
-    def __init__(self, groq_key: str = None, gemini_key: str = None, mistral_key: str = None, deepseek_key: str = None, xai_key: str = None):
+    def __init__(self, groq_key: str = None, gemini_key: str = None, mistral_key: str = None, deepseek_key: str = None, xai_key: str = None, openrouter_key: str = None):
         """
         Klucze API z .env (E:\\Music-Metadata-Engine\\backend\\.env)
         Example .env content:
-        
+
         # === AI Services ===
         GEMINI_API_KEY=your_gemini_api_key_here
         GROQ_API_KEY=your_groq_api_key_here
         MISTRAL_API_KEY=your_mistral_api_key_here
         DEEPSEEK_API_KEY=your_deepseek_api_key_here
         XAI_API_KEY=your_xai_api_key_here
+        OPENROUTER_API_KEY=your_openrouter_api_key_here
         """
         import os
-        
+
         self.groq_key = groq_key or os.getenv('GROQ_API_KEY')
         self.gemini_key = gemini_key or os.getenv('GEMINI_API_KEY')
         self.mistral_key = mistral_key or os.getenv('MISTRAL_API_KEY')
         self.deepseek_key = deepseek_key or os.getenv('DEEPSEEK_API_KEY')
         self.xai_key = xai_key or os.getenv('XAI_API_KEY')
-        
-        logger.info("LLM Ensemble initialized (Grok, Mistral, DeepSeek enabled, 0 MB Docker footprint)")
+        self.openrouter_key = openrouter_key or os.getenv('OPENROUTER_API_KEY')
+
+        logger.info("LLM Ensemble initialized (active free chain: Groq + Gemini%s)", " + OpenRouter" if self.openrouter_key else "")
     
     # ── Streaming helpers ────────────────────────────────────────────────────
     async def stream_description(
@@ -164,31 +166,41 @@ Rules:
     ) -> Dict:
         """
         Główna funkcja: LLMs równolegle
-        - 'flash' mode: Groq + Gemini only (faster, ~15-20s)
-        - 'pro' mode: All 3 models for max accuracy (~35-40s)
+
+        Active chain is free-tier only (Groq, Gemini, OpenRouter) — xAI,
+        Mistral, and DeepSeek all currently fail on billing/credits, not
+        code bugs (confirmed 2026-08-11: xAI "no credits or licenses",
+        Mistral "check your subscription", DeepSeek "insufficient balance").
+        Their _*_classify methods are left in place so re-enabling them
+        later, once billing is resolved, is a one-line change here rather
+        than rewriting the integration from scratch.
+
+        - 'flash' mode: Groq + Gemini (faster, ~15-20s)
+        - 'pro' mode: Groq + Gemini + OpenRouter, when an OpenRouter key is
+          configured, for a genuine 3-way vote instead of a 2-way one
         """
-        
+
         # Build enhanced prompt with job_id for uniqueness
         user_prompt = self._build_enhanced_prompt(audio_features, ml_predictions, job_id=job_id)
-        
+
         # Wybierz modele na podstawie preferencji
         if model_preference == 'flash':
-
-            logger.info("Fast Mode: Using Groq + Gemini only")
+            logger.info("Fast Mode: Using Groq + Gemini (free chain)")
             tasks = [
                 self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
                 self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
             ]
         else:
-            logger.info("Pro Mode: Using all 5 LLMs (Groq + Gemini + Grok + Mistral + DeepSeek)")
             tasks = [
                 self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
                 self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
-                self._xai_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
-                self._mistral_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
-                self._deepseek_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT)
             ]
-        
+            if self.openrouter_key:
+                logger.info("Pro Mode: Using Groq + Gemini + OpenRouter (free chain)")
+                tasks.append(self._openrouter_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT))
+            else:
+                logger.info("Pro Mode: Using Groq + Gemini (OpenRouter key not configured)")
+
         llm_results = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Filtruj błędy
@@ -481,6 +493,71 @@ STRICT OPERATIONAL DIRECTIVES:
                     return {'error': str(e), 'llm_source': 'groq'}
                 await asyncio.sleep(2 ** attempt)
 
+    # Free-tier chat models on OpenRouter, tried in order. Kept as a short
+    # list (not a single pinned name) because OpenRouter's free-model
+    # lineup changes over time — if the first one is retired or rate
+    # limited, the next candidate is tried before giving up entirely.
+    OPENROUTER_FREE_MODELS = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "qwen/qwen-2.5-72b-instruct:free",
+    ]
+
+    async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
+        """
+        OpenRouter: free-tier aggregator, used as a third, independent voice
+        in the ensemble so consensus voting isn't just Groq vs. Gemini.
+        """
+        if not self.openrouter_key:
+            return {'error': 'no_api_key'}
+
+        import httpx
+
+        if system_prompt:
+            import secrets
+            unique_token = secrets.token_hex(4)
+            messages = [
+                {"role": "system", "content": f"{system_prompt}\n\n[SESSION_ID: {unique_token}]\n\nRespond with valid JSON only."},
+                {"role": "user", "content": context},
+            ]
+        else:
+            messages = [{"role": "user", "content": f"{context}\n\nRespond with valid JSON only."}]
+
+        last_error = "unknown"
+        for model in self.OPENROUTER_FREE_MODELS:
+            for attempt in range(retries):
+                try:
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        response = await client.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {self.openrouter_key}",
+                                "Content-Type": "application/json",
+                            },
+                            json={
+                                "model": model,
+                                "messages": messages,
+                                "temperature": 0.7,
+                                "response_format": {"type": "json_object"},
+                            },
+                        )
+                    if response.status_code == 429:
+                        raise ValueError(f"rate limited on {model}")
+                    response.raise_for_status()
+                    content = response.json()["choices"][0]["message"]["content"]
+                    result = json.loads(content)
+                    result['llm_source'] = 'openrouter'
+                    result['_openrouter_model'] = model
+                    return result
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"OpenRouter ({model}) attempt {attempt+1} failed: {e}")
+                    if attempt < retries - 1:
+                        await asyncio.sleep(2 ** attempt)
+            # exhausted retries for this model, fall through to the next candidate
+
+        return {'error': last_error, 'llm_source': 'openrouter'}
+
     async def _gemini_classify(self, context: str, system_prompt: str = None, retries: int = 3) -> Dict:
         """
         Gemini 2.0 Flash with REST Transport & Retry Logic
@@ -492,8 +569,11 @@ STRICT OPERATIONAL DIRECTIVES:
             import google.generativeai as genai
             genai.configure(api_key=self.gemini_key, transport="rest")
             
-            # Configure model with system instruction if possible or fallback
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            # Configure model with system instruction if possible or fallback.
+            # Use the "latest" alias, not a pinned dated snapshot — a pinned
+            # name like gemini-2.0-flash gets deprecated by Google and then
+            # silently fails every request until someone notices and updates it.
+            model = genai.GenerativeModel('gemini-flash-latest')
             
             if system_prompt:
                 prompt = f"""SYSTEM INSTRUCTIONS:
