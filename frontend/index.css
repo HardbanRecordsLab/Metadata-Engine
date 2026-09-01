@@ -6,8 +6,14 @@
 :root {
   --accent-violet: 139, 92, 246;
   --accent-blue: 59, 130, 246;
+  --accent-cyan: 34, 211, 238;
   --accent-emerald: 16, 185, 129;
   --accent-pink: 236, 72, 153;
+
+  /* Brand gradient (matches the logo mark: violet -> blue -> cyan) */
+  --brand-from: #6d28d9;
+  --brand-via: #3b82f6;
+  --brand-to: #22d3ee;
 }
 
 @layer base {
@@ -43,11 +49,23 @@
 
 /* Custom Gradients */
 .grad-lab {
-  @apply bg-gradient-to-tr from-[#6366f1] via-[#8b5cf6] to-[#d946ef];
+  @apply bg-gradient-to-tr from-[#6d28d9] via-[#3b82f6] to-[#22d3ee];
 }
 
 .grad-violet {
   @apply bg-gradient-to-br from-violet-600 to-indigo-700;
+}
+
+/* Brand gradient helpers (logo palette) */
+.grad-brand {
+  background-image: linear-gradient(120deg, var(--brand-from), var(--brand-via), var(--brand-to));
+}
+
+.text-grad-brand {
+  background-image: linear-gradient(100deg, var(--brand-from), var(--brand-via), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Mesh Gradient Backgrounds - Studio Edition */
@@ -63,10 +81,10 @@
 .dark .mesh-bg {
   background-color: #03040b;
   background-image:
-    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.1) 0, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(217, 70, 239, 0.1) 0, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(109, 40, 217, 0.16) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.12) 0, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(34, 211, 238, 0.12) 0, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.06) 0, transparent 50%);
   background-attachment: fixed;
   background-size: 200% 200%;
   animation: mesh-flow 15s ease infinite;

@@ -13,12 +13,12 @@ import { Database } from './icons';
 const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel }) => {
   return (
     <div className="flex items-center justify-between w-full px-4">
-      <a href="/" className="flex items-center gap-2 group">
-            <div className="p-1 rounded-lg">
-              <img src="/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
-            </div>
+      <a href="/" className="flex items-center gap-3 group">
+            <img src="/favicon.svg" alt="Metadata Engine" className="w-10 h-10 shrink-0 transition-transform group-hover:scale-105" />
             <div className="flex flex-col leading-none">
-              <span className="text-xl font-black tracking-tighter text-white group-hover:text-primary transition-colors italic">HRL METADATA</span>
+              <span className="text-xl font-black tracking-tight text-white">
+                METADATA <span className="text-grad-brand">ENGINE</span>
+              </span>
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">HardbanRecords Lab</span>
             </div>
           </a>

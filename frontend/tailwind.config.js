@@ -22,6 +22,17 @@ export default {
         'light-text': '#0f172a',
         'accent-violet': '#8b5cf6',
         'accent-blue': '#3b82f6',
+        'accent-cyan': '#22d3ee',
+        // brand (logo mark: violet -> cyan)
+        primary: '#8b5cf6',
+        brand: {
+          from: '#6d28d9',
+          via: '#3b82f6',
+          to: '#22d3ee',
+        },
+      },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(120deg, #6d28d9, #3b82f6, #22d3ee)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

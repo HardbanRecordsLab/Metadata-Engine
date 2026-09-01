@@ -69,15 +69,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Logo Section */}
                 <div className={`p-4 ${isCollapsed ? 'flex justify-center' : 'p-8 pb-4'}`}>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-900/50 rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden shrink-0 border border-white/10">
-                            <img src="/assets/logo.png" alt="MME Logo" className="w-full h-full object-contain" />
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center shrink-0 p-1.5 bg-slate-900/40 border border-white/10">
+                            <img src="/favicon.svg" alt="Metadata Engine" className="w-full h-full" />
                         </div>
                         {!isCollapsed && (
                             <div className="animate-fade-in">
-                                <h1 className="font-black text-lg text-slate-900 dark:text-white leading-none tracking-tighter whitespace-nowrap uppercase">
+                                <h1 className="font-black text-lg text-slate-900 dark:text-white leading-none tracking-tight whitespace-nowrap uppercase">
                                     Metadata
                                 </h1>
-                                <span className="text-[10px] font-black text-accent-violet uppercase tracking-[0.3em] whitespace-nowrap text-glow">Engine v2.1</span>
+                                <span className="text-[10px] font-black text-grad-brand uppercase tracking-[0.3em] whitespace-nowrap">Engine v2.1</span>
                             </div>
                         )}
                     </div>

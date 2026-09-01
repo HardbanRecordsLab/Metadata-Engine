@@ -15,13 +15,13 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
     <div className="space-y-8 max-w-7xl mx-auto pb-20 animate-fade-in">
 
       {/* 1. HERO SECTION - Premium Design */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 shadow-[0_20px_60px_-15px_rgba(79,70,229,0.5)] p-1">
+      <div className="relative overflow-hidden rounded-3xl grad-brand shadow-[0_20px_60px_-15px_rgba(59,130,246,0.45)] p-1">
         <div className="relative overflow-hidden rounded-[22px] bg-[#0a0b14] p-8 md:p-12">
           {/* Animated background elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px] animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-            <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-pink-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-cyan-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
           </div>
 
           {/* Premium Decorative Image */}
@@ -36,22 +36,22 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="space-y-4 flex-1">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-500/30 backdrop-blur-sm">
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Studio Active</span>
+                <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Studio Active</span>
               </div>
 
               <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight">
                 Welcome Back,
                 <br />
-                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
+                <span className="bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 text-transparent bg-clip-text">
                   {userProfile.name}
                 </span>
               </h2>
 
               <p className="text-slate-300 text-lg font-medium max-w-xl leading-relaxed">
                 Your creative studio is powered up and ready to transform your music.
-                <span className="block mt-2 font-black text-indigo-400 uppercase tracking-widest text-sm">
+                <span className="block mt-2 font-black text-cyan-400 uppercase tracking-widest text-sm">
                   Unified Studio Access • Basic Processing
                 </span>
               </p>
@@ -113,11 +113,11 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
         {/* Card 2: Batch Processor (Pink/Purple) */}
         <button
           onClick={onCreateNew}
-          className="group relative overflow-hidden flex flex-col items-start text-left rounded-3xl bg-gradient-to-br from-pink-600 via-purple-600 to-violet-700 shadow-[0_20px_60px_-15px_rgba(236,72,153,0.4)] hover:shadow-[0_20px_80px_-15px_rgba(236,72,153,0.6)] transition-all duration-500 hover:scale-[1.02] h-full p-0 border-0"
+          className="group relative overflow-hidden flex flex-col items-start text-left rounded-3xl bg-gradient-to-br from-violet-700 via-blue-600 to-cyan-600 shadow-[0_20px_60px_-15px_rgba(34,211,238,0.4)] hover:shadow-[0_20px_80px_-15px_rgba(34,211,238,0.6)] transition-all duration-500 hover:scale-[1.02] h-full p-0 border-0"
         >
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-violet-600"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-400 via-blue-500 to-cyan-500"></div>
             <div className="absolute inset-0" style={{
               backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1)), linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1))',
               backgroundSize: '60px 60px',
@@ -137,7 +137,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
             <h3 className="text-2xl font-black text-white mb-3 group-hover:scale-105 transition-transform origin-left">
               Batch Processor
             </h3>
-            <p className="text-pink-100 text-sm leading-relaxed mb-8 font-medium">
+            <p className="text-cyan-100 text-sm leading-relaxed mb-8 font-medium">
               Analyze unlimited files at once. Process entire albums in seconds and save hours of manual work with parallel processing.
             </p>
 
