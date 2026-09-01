@@ -80,9 +80,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
 
                 <div className="p-8">
                     <div className="text-center mb-8">
-                        <div className="w-12 h-12 bg-gradient-to-br from-accent-violet to-accent-blue rounded-xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
-                            {view === 'forgotPassword' ? <Key className="w-6 h-6" /> : <User className="w-6 h-6" />}
-                        </div>
+                        {view === 'forgotPassword' ? (
+                            <div className="w-12 h-12 grad-brand rounded-xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
+                                <Key className="w-6 h-6" />
+                            </div>
+                        ) : (
+                            <img src="/favicon.svg" alt="Metadata Engine" className="w-16 h-16 mx-auto mb-4" />
+                        )}
                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                             {view === 'login' ? 'Welcome Back' : view === 'register' ? 'Create Account' : 'Recovery'}
                         </h2>

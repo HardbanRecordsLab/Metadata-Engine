@@ -106,8 +106,8 @@ const InputSection: React.FC<InputSectionProps> = ({
                 ${isDragging ? 'border-accent-violet bg-accent-violet/5 scale-[0.98] shadow-2xl' : 'border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-slate-950/30'}`}
             >
                 {/* Background Visual Enhancements */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity">
-                    <img src="/assets/analysis_visual.png" className="w-full h-full object-cover grayscale mix-blend-overlay" />
+                <div className="absolute inset-0 opacity-[0.06] pointer-events-none group-hover:opacity-[0.12] transition-opacity flex items-center justify-center">
+                    <img src="/favicon.svg" alt="" aria-hidden="true" className="w-3/4 max-w-md" />
                 </div>
 
                 <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="audio/*" multiple />

@@ -24,15 +24,13 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
             <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-cyan-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
           </div>
 
-          {/* Premium Decorative Image */}
-          <div className="absolute right-0 top-0 w-full h-full opacity-40 pointer-events-none overflow-hidden">
-            <img
-              src="/assets/studio_hero.png"
-              className="w-full h-full object-cover scale-110 blur-[2px] opacity-60"
-              alt="Studio Background"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0a0b14] via-[#0a0b14]/80 to-transparent"></div>
-          </div>
+          {/* Decorative brand mark, top-right */}
+          <img
+            src="/favicon.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute -right-10 -top-10 w-64 h-64 opacity-[0.07] pointer-events-none select-none"
+          />
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="space-y-4 flex-1">
@@ -78,10 +76,10 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigate, onCreateNew, 
           onClick={onCreateNew}
           className="group relative overflow-hidden flex flex-col items-start text-left rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-[0_20px_60px_-15px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_80px_-15px_rgba(79,70,229,0.6)] transition-all duration-500 hover:scale-[1.02] h-full p-0 border-0"
         >
-          {/* Background Pattern/Image */}
-          <div className="absolute inset-0 opacity-40 pointer-events-none">
-            <img src="/assets/analysis_visual.png" className="w-full h-full object-cover mix-blend-overlay scale-150 rotate-12 group-hover:scale-110 group-hover:rotate-0 transition-all duration-1000" alt="Analysis Visual" />
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-indigo-900/40 to-transparent"></div>
+          {/* Background sheen */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-transparent to-transparent"></div>
+            <img src="/favicon.svg" alt="" aria-hidden="true" className="absolute -right-8 -bottom-8 w-40 h-40 opacity-10 group-hover:scale-110 transition-transform duration-1000" />
           </div>
 
           {/* Decorative elements */}
