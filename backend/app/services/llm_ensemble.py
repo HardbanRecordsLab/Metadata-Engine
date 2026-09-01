@@ -498,20 +498,43 @@ STRICT OPERATIONAL DIRECTIVES:
                     return {'error': str(e), 'llm_source': 'groq'}
                 await asyncio.sleep(2 ** attempt)
 
-    # Free-tier chat models on OpenRouter, tried in order. Kept as a short
-    # list (not a single pinned name) because OpenRouter's free-model
-    # lineup changes over time — if the first one is retired or rate
-    # limited, the next candidate is tried before giving up entirely.
-    # Verified against GET /api/v1/models on 2026-08-12 — OpenRouter's free
-    # catalog turns over (the original three picks here, all llama-3.3/
-    # gemma-2/qwen-2.5 based, had already been pulled from the free tier by
-    # the time a real key was tested). If these ever start 404ing with
-    # "unavailable for free... use this slug instead", re-check the current
-    # list rather than guessing a replacement from memory.
+    # ── OpenRouter model chain ──────────────────────────────────────────────
+    # Free-tier chat models, tried in order. Kept as a short list (not one
+    # pinned name) because OpenRouter's free lineup turns over constantly —
+    # if the first is retired or rate limited, the next is tried before
+    # giving up. Every entry MUST advertise `response_format` support on
+    # GET /api/v1/models, because the request below sends
+    # response_format={"type": "json_object"}; models without it (most of
+    # the nemotron-nano / thinkingmachines / poolside free models) silently
+    # return prose that fails json.loads().
+    #
+    # Verified with a real key against live /chat/completions on 2026-09-01.
+    # nemotron-3-super and minimax-m3 answered in 1-2s with clean JSON;
+    # glm-5.2:free and gemma-4-31b-it:free were both persistently HTTP 429
+    # ("temporarily rate-limited upstream") across retries — kept as tail
+    # candidates because that state is transient and costs nothing to probe,
+    # but they cannot be relied on. If the first two start 404ing
+    # ("unavailable for free... use this slug instead") or returning
+    # non-JSON, re-query GET /api/v1/models rather than guessing from memory.
     OPENROUTER_FREE_MODELS = [
-        "nvidia/nemotron-3-super-120b-a12b:free",
-        "google/gemma-4-31b-it:free",
-        "openai/gpt-oss-20b:free",
+        "nvidia/nemotron-3-super-120b-a12b:free",  # 120B MoE — fast, clean JSON, most reliable free pick
+        "minimax/minimax-m3:free",                # large, 1M ctx — second working free model
+        "z-ai/glm-5.2:free",                       # strong but free endpoint often 429 — transient fallback
+        "google/gemma-4-31b-it:free",             # dense 31B — same, free endpoint often 429
+    ]
+
+    # Paid fallback, consulted ONLY when OPENROUTER_ALLOW_PAID is truthy and
+    # every free model above has failed (retired / rate limited / non-JSON).
+    # OpenRouter's free tier is genuinely flaky (2 of 4 above were 429 at
+    # test time), so for a reliability-critical deploy this should be on.
+    # All are cheap enough that a full run costs a fraction of a cent
+    # (~2k in + ~1k out tokens per call). Ordered by measured speed +
+    # reliability, not just price — gpt-oss-120b is cheapest but was ~9s vs
+    # sub-3s for the other two, which matters against the consensus budget.
+    OPENROUTER_CHEAP_MODELS = [
+        "google/gemini-2.5-flash-lite",              # ~$0.10/$0.40 per M — 0.6s, Google uptime
+        "mistralai/mistral-small-24b-instruct-2501",  # ~$0.05/$0.08 per M — 2.6s, cheapest output
+        "openai/gpt-oss-120b",                        # ~$0.037/$0.170 per M — strong but ~9s, last resort
     ]
 
     async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 1) -> Dict:
@@ -519,18 +542,29 @@ STRICT OPERATIONAL DIRECTIVES:
         OpenRouter: free-tier aggregator, used as a third, independent voice
         in the ensemble so consensus voting isn't just Groq vs. Gemini.
 
-        retries defaults to 1 (no backoff) per model, not 3: with 3 fallback
-        models already providing redundancy, retrying the same rate-limited
-        model repeatedly just burns the caller's overall time budget for no
-        benefit — confirmed live, where Groq and OpenRouter both returned
-        200 OK but the whole consensus_classification() call still timed out
-        and got discarded because two rate-limited models ate ~30s+ of
-        backoff before reaching the one that worked.
+        Tries OPENROUTER_FREE_MODELS in order; when OPENROUTER_ALLOW_PAID is
+        set it then falls through to OPENROUTER_CHEAP_MODELS (a few cents per
+        thousand analyses) so a total free-tier outage doesn't drop the
+        third vote entirely.
+
+        retries defaults to 1 (no backoff) per model, not 3: with several
+        fallback models already providing redundancy, retrying the same
+        rate-limited model repeatedly just burns the caller's overall time
+        budget for no benefit — confirmed live, where Groq and OpenRouter
+        both returned 200 OK but the whole consensus_classification() call
+        still timed out and got discarded because two rate-limited models
+        ate ~30s+ of backoff before reaching the one that worked.
         """
         if not self.openrouter_key:
             return {'error': 'no_api_key'}
 
+        import os
         import httpx
+
+        allow_paid = os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() in ("1", "true", "yes", "on")
+        model_chain = list(self.OPENROUTER_FREE_MODELS)
+        if allow_paid:
+            model_chain += self.OPENROUTER_CHEAP_MODELS
 
         if system_prompt:
             import secrets
@@ -543,7 +577,7 @@ STRICT OPERATIONAL DIRECTIVES:
             messages = [{"role": "user", "content": f"{context}\n\nRespond with valid JSON only."}]
 
         last_error = "unknown"
-        for model in self.OPENROUTER_FREE_MODELS:
+        for model in model_chain:
             for attempt in range(retries):
                 try:
                     async with httpx.AsyncClient(timeout=30.0) as client:
