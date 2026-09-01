@@ -10,23 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH to VPS
-        uses: appleboy/ssh-action@v1.0.0
+        # v1.0.0 exited 255 within seconds of `docker compose up --build`
+        # starting — the old drone-ssh choked on BuildKit's TTY progress
+        # stream (rapid carriage-return redraws). Fixed by pinning a newer
+        # action AND forcing plain build progress in the script below.
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
-          # Default is 10m — `docker compose up --build` (npm install + vite
-          # build + pip install, no layer cache on a fresh checkout) has been
-          # measured at ~10-12 min even after trimming the CUDA wheels below,
-          # so the action was killing the SSH session mid-build and the
-          # deploy silently never reached `git pull`/restart. Raised with
-          # headroom rather than tuned tight to the current measurement.
+          # v1.2.x dropped the `script_stop` input; `set -e` in the script
+          # below is what aborts on the first failed command now.
+          # Default command_timeout is 10m; a cold `docker compose up --build`
+          # (npm + vite + pip, no layer cache) runs several minutes even after
+          # trimming the CUDA wheels from requirements.txt. Headroom, not tight.
           command_timeout: 30m
           script: |
             set -e
             cd /srv/hbrl/Metadata-Engine
+            # Plain progress: BuildKit's default TTY renderer streams
+            # carriage-return redraws that break the SSH action mid-build.
+            export BUILDKIT_PROGRESS=plain
+            export DOCKER_BUILDKIT=1
 
             # Backup existing env if present (docker-compose reads root .env)
             if [ -f .env ]; then
