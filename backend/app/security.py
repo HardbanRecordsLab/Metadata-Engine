@@ -6,7 +6,7 @@ from app.config import settings
 
 if not settings.SECRET_KEY:
     raise RuntimeError(
-        "SECRET_KEY is not configured. Set JWT_SECRET, SECRET_KEY, or SUPABASE_KEY "
+        "SECRET_KEY is not configured. Set JWT_SECRET or SECRET_KEY "
         "in the environment before starting the app."
     )
 

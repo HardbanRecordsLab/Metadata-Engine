@@ -4,6 +4,9 @@ dist/
 .vercel
 .vscode
 
+# Claude Code
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -20,10 +23,8 @@ venv/
 .env.production
 vps.env
 
-# Database
-backend/music_metadata.db
+# Database (runtime / test DBs — never commit)
 *.db
-backend/analysis_cache.db
 
 # Data & Uploads
 backend/uploads/
@@ -31,14 +32,12 @@ backend/temp_processing/
 backend/temp_uploads/
 frontend/public/uploads/
 backend/local_output/
-czat.txt
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Documentation (keep only deployment docs)
-docs/
+# docs/ is tracked (project documentation) — only ignore generated PDFs
 *.pdf
 
 # Audio files

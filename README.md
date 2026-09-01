@@ -1,163 +1,107 @@
 ---
-title: Music Metadata Engine
+title: Metadata Engine
 emoji: 🎵
 colorFrom: indigo
-colorTo: purple
+colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: false
 license: other
 ---
 
-# 🎵 Music Metadata Engine: Professional Edition
+# 🎵 Metadata Engine
 
-**AI-Powered Audio Analysis & Metadata Enrichment Platform**
+**AI-powered music metadata: DSP analysis, multi-model classification, and
+industry-standard exports.**
 
-A comprehensive music metadata extraction and enrichment system that combines DSP audio analysis (Essentia/Librosa) with AI-powered classification (Gemini 2.0), delivering professional-grade metadata for music production, distribution, and licensing.
+Metadata Engine turns a raw audio file into professional, distribution-ready
+metadata — BPM and key, genre/mood/instrumentation, a written track
+description, identification against public databases, and exports in the
+formats DSPs and PROs actually accept (DDEX ERN 4.3, CWR 2.1, MP3Tag CSV,
+JSON).
 
----
-
-## ✨ Features
-
-### 🔬 **Core Analysis**
-- **BPM Detection**: Precise tempo analysis using Essentia RhythmExtractor
-- **Key Detection**: Chromatic key & mode detection (12-tone + major/minor)
-- **Audio Metrics**: LUFS loudness, danceability, energy level
-- **SHA-256 Fingerprinting**: File integrity verification
-
-### 🤖 **AI Enrichment** (Gemini 2.0 Flash)
-- **Genre Classification**: Main + additional genres with confidence scores
-- **Mood & Vibe**: Context-aware emotional classification
-- **Instrumentation Detection**: AI-identified instruments from audio signature
-- **Use Case Tagging**: Commercial sync licensing categories
-- **Vocal Style Analysis**: Gender, timbre, delivery, emotional tone
-
-### 📦 **Export Formats**
-- **CSV (MP3Tag)**: Bulk import compatible with MP3Tag software
-- **JSON**: Full metadata structure with ISO timestamps
-- **DDEX ERN 4.3**: XML for professional music distribution (Spotify, Apple Music)
-- **CWR V2.1**: Common Works Registration for PRO (ASCAP, BMI, GEMA)
-
-### 🚀 **Advanced Features**
-- **AI Cover Art Generator**: Pollinations.ai with gradient fallback
-- **Premium UI/UX**: Glassmorphic design with dark mode
+Full documentation lives in **[`docs/`](docs/README.md)**.
 
 ---
 
-## 🎯 Use Cases
+## What it does
 
-- **Music Producers**: Accurate BPM/key for mixing & DJing
-- **Labels & Distributors**: DDEX-compliant metadata for global distribution
-- **Sync Licensing**: Mood/use case tagging for music supervisors
-- **PRO Registration**: CWR exports for royalty collection
-
----
-
-## 🛠️ Technology Stack
-
-**Backend**:
-- FastAPI (Python 3.10)
-- Essentia (DSP audio analysis)
-- Librosa (fallback DSP)
-- Gemini 2.0 Flash Experimental (AI enrichment)
-- Mutagen (metadata tagging)
-
-**Frontend**:
-- React 19.2
-- TypeScript 5.2
-- Vite 5.2
-- Tailwind CSS 3.4
-
-**Infrastructure**:
-- Hugging Face Spaces (Docker)
-- SQLite (job queue)
+- **DSP analysis** — Essentia + Librosa on the server, essentia.js (WASM) in
+  the browser: tempo, key/mode, LUFS loudness, energy, spectral profile,
+  harmonic/percussive balance, SHA-256 fingerprint.
+- **AI classification (consensus ensemble)** — Groq (Llama), Google Gemini
+  and OpenRouter vote on genre, sub-genre, mood, instrumentation, vocal
+  style, use-cases and a marketing-grade description. See
+  [`backend/app/services/llm_ensemble.py`](backend/app/services/llm_ensemble.py).
+- **Identification & enrichment** — ACRCloud / AcoustID / MusicBrainz for
+  recognition; Spotify / Last.fm / Discogs for catalogue data.
+- **Exports** — MP3Tag CSV, full JSON, DDEX ERN 4.3 XML, CWR 2.1.
+- **Certificates** — signed analysis certificate (PDF) pinned to IPFS
+  (Pinata) with a public verification page at `/verify/<id>`.
+- **Accounts & billing** — JWT auth, credit model (3 free on signup, one-time
+  credit packs via Stripe). See [`docs/BUSINESS.md`](docs/BUSINESS.md).
 
 ---
 
-## 🚀 Quick Start
+## Stack
 
-1. **Upload** an audio file (.mp3, .wav, .flac)
-2. **Analyze** - wait 30-45 seconds for DSP + AI processing
-3. **Review** metadata across 5 result cards
-4. **Export** in your preferred format (CSV/JSON/DDEX/CWR)
-5. **Save** your work with tagged audio and export formats
-
----
-
-## 📊 API Endpoints
-
-### Analysis
-- `POST /analyze` - Full track analysis (DSP + AI)
-- `POST /mir/analyze` - MIR-only analysis
-- `POST /mir/batch_analyze` - Batch processing
-
-### Export
-- `GET /export/csv/{job_id}` - MP3Tag CSV
-- `GET /export/json/{job_id}` - Full JSON
-- `GET /export/ddex/{job_id}` - DDEX ERN 4.3 XML
-- `GET /export/cwr/{job_id}` - CWR V2.1
-
-### Generative
-- `POST /generate/cover` - AI cover art
-- `POST /generate/hash` - SHA-256 hash
-
-### Tagging
-- `POST /tag/mp3` - ID3 tagging
-- `POST /tag/flac` - FLAC tagging
-
-Full API documentation: `/docs` (FastAPI Swagger)
+| Layer | Tech |
+|---|---|
+| Backend | FastAPI (Python 3.10), SQLAlchemy, SQLite |
+| Audio | Essentia, Librosa, openai-whisper (CPU), FFmpeg + Chromaprint |
+| AI | Groq, Google Gemini, OpenRouter |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Infra | Docker Compose on a VPS, Nginx, GitHub Actions; frontend on Vercel |
 
 ---
 
-## 🔐 Environment Variables
-
-Required for full functionality:
+## Run locally
 
 ```bash
-GEMINI_API_KEY=your_gemini_key
+# backend
+cd backend
+python -m venv .venv && . .venv/Scripts/activate   # or .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env        # fill in at least SECRET_KEY + GROQ/GEMINI/OPENROUTER
+uvicorn app.main:app --reload --port 8888
+
+# frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-Optional (enrichment):
-```bash
-GROQ_API_KEY=your_groq_key  # AI fallback
-SPOTIFY_CLIENT_ID=your_spotify_id
-LASTFM_API_KEY=your_lastfm_key
-```
+Or both at once from the repo root: `npm run start` (uses `concurrently`).
+
+API docs: `http://localhost:8888/docs` (FastAPI Swagger).
 
 ---
 
-## 📈 Performance
+## Deploy
 
-- **Analysis Speed**: 30-45 seconds per track (3-5 min duration)
-- **Batch Processing**: 3x faster with concurrent queue (3 parallel jobs)
-- **Supported Formats**: MP3, WAV, FLAC (up to 100MB)
+Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) SSHes to the
+VPS, writes `.env` from **GitHub repo Secrets**, and runs
+`docker compose -f vps.docker-compose.yml up -d --build`.
 
----
-
-## 📄 License
-
-Proprietary License - © 2026 HardbanRecords Lab. All Rights Reserved.
-Commercial use without prior authorization is strictly prohibited.
+Everything about env vars, secrets, the VPS layout and operational procedures
+is in **[`docs/OPERATIONS.md`](docs/OPERATIONS.md)**.
 
 ---
 
-## 🙏 Acknowledgments
+## Documentation
 
-Built with:
-- [Essentia](https://essentia.upf.edu/) - Audio analysis framework
-- [Librosa](https://librosa.org/) - Audio DSP library
-- [Gemini 2.0](https://deepmind.google/technologies/gemini/) - Google's AI model
-
----
-
-## 📞 Support
-
-For issues, feature requests, or questions:
-- Open an issue on GitHub
-- Contact: hardbanrecords@proton.me
+| Doc | For |
+|---|---|
+| [`docs/BUSINESS.md`](docs/BUSINESS.md) | Product, market, pricing, roadmap |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the system is built |
+| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | Using the app end-to-end |
+| [`docs/LEGAL-OVERVIEW.md`](docs/LEGAL-OVERVIEW.md) | Plain-language map of the on-site legal docs |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Deploy, env, secrets, admin, backups |
+| [`docs/SEO.md`](docs/SEO.md) | SEO setup and maintenance |
 
 ---
 
-**Version**: 2.1.0  
-**Status**: Production Ready ✅  
-**Last Updated**: January 2026
+## License
+
+Proprietary — © 2026 HardbanRecords Lab. All rights reserved.
+Contact: **contact@hardbanrecordslab.online**
