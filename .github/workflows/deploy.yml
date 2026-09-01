@@ -17,6 +17,13 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
+          # Default is 10m — `docker compose up --build` (npm install + vite
+          # build + pip install, no layer cache on a fresh checkout) has been
+          # measured at ~10-12 min even after trimming the CUDA wheels below,
+          # so the action was killing the SSH session mid-build and the
+          # deploy silently never reached `git pull`/restart. Raised with
+          # headroom rather than tuned tight to the current measurement.
+          command_timeout: 30m
           script: |
             set -e
             cd /srv/hbrl/Metadata-Engine

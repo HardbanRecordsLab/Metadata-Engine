@@ -18,6 +18,17 @@ email-validator
 
 # === AI / LLM ===
 groq
+# CPU-only torch build for openai-whisper: the deploy VPS has no GPU, and
+# fresh_track_analyzer.py always calls whisper with fp16=False (CPU mode)
+# anyway, but plain `torch` on Linux drags in ~2GB of unused CUDA/cuDNN/NCCL
+# wheels (nvidia-cublas, nvidia-cudnn-cu13, etc.) — that's what was blowing
+# the deploy past appleboy/ssh-action's 10-minute command_timeout. Pinning
+# the +cpu build (confirmed to exist for this exact torch/py version on
+# download.pytorch.org) resolves the same openai-whisper dependency without
+# any CUDA packages. If openai-whisper's pinned torch range changes, re-check
+# https://download.pytorch.org/whl/cpu/torch/ for a matching +cpu build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu
 openai-whisper
 google-generativeai
 
