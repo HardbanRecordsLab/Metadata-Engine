@@ -31,9 +31,16 @@ def _send_sync(to: str, subject: str, html: str, text: str) -> None:
     msg.set_content(text)
     msg.add_alternative(html, subtype="html")
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
-        if settings.SMTP_STARTTLS:
-            smtp.starttls(context=ssl.create_default_context())
+    ctx = ssl.create_default_context()
+    # Port 465 = implicit TLS (SMTP_SSL); 587/25 = plain connect + STARTTLS.
+    if settings.SMTP_PORT == 465:
+        smtp_cm = smtplib.SMTP_SSL(settings.SMTP_HOST, 465, timeout=20, context=ctx)
+    else:
+        smtp_cm = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20)
+
+    with smtp_cm as smtp:
+        if settings.SMTP_PORT != 465 and settings.SMTP_STARTTLS:
+            smtp.starttls(context=ctx)
         if settings.SMTP_USER and settings.SMTP_PASS:
             smtp.login(settings.SMTP_USER, settings.SMTP_PASS)
         smtp.send_message(msg)
