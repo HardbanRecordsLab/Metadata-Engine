@@ -36,10 +36,13 @@ adequacy decisions.
 
 ## Your GDPR rights
 
-Access, rectification, erasure, restriction, portability (export is available
-as JSON/CSV in-app), objection. Email
-**contact@hardbanrecordslab.online**, subject `GDPR Request`. We respond
-within one month. Breaches affecting your rights are notified within 72 hours.
+Access, rectification, erasure, restriction, portability, objection.
+**Self-service in the app:** Settings → Security lets a signed-in user
+download a full JSON export (`GET /auth/me/export`) and permanently delete
+their account (`DELETE /auth/me`, password-confirmed). For anything else,
+email **contact@hardbanrecordslab.online**, subject `GDPR Request` — we
+respond within one month. Breaches affecting your rights are notified within
+72 hours.
 
 ## Billing & refunds
 

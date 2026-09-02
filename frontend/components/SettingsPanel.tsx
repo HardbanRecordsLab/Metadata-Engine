@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { User, Shield, Zap, FileText, Star } from './icons';
 import Button from './Button';
 import { fetchPurchaseHistory, CreditPurchaseRecord } from '../services/billingService';
+import { useAuth } from '../contexts/AuthContext';
+import { getFullUrl } from '../apiConfig';
 
 interface SettingsPanelProps {
     user: any;
@@ -10,9 +12,55 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOpenRedeemCode }) => {
+    const { logout } = useAuth();
     const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'billing' | 'security'>('profile');
     const [purchases, setPurchases] = useState<CreditPurchaseRecord[] | null>(null);
     const [purchasesError, setPurchasesError] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deletePwd, setDeletePwd] = useState('');
+    const [deleteBusy, setDeleteBusy] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const authToken = () => localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token') || '';
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const res = await fetch(getFullUrl('/auth/me/export'), { headers: { Authorization: `Bearer ${authToken()}` } });
+            if (!res.ok) throw new Error('Export failed');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'metadata-engine-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : 'Export failed');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setDeleteBusy(true);
+        setDeleteError(null);
+        try {
+            const res = await fetch(getFullUrl('/auth/me'), {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+                body: JSON.stringify({ password: deletePwd }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || 'Could not delete account.');
+            logout();
+            window.location.href = '/';
+        } catch (e) {
+            setDeleteError(e instanceof Error ? e.message : 'Could not delete account.');
+            setDeleteBusy(false);
+        }
+    };
 
     useEffect(() => {
         if (activeTab !== 'billing' || purchases !== null) return;
@@ -179,6 +227,55 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOp
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'security' && (
+                        <div className="space-y-6">
+                            <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border border-white/10">
+                                <h4 className="text-xl font-black mb-2 dark:text-white flex items-center gap-3">
+                                    <FileText className="w-7 h-7 text-accent-violet" /> Your data
+                                </h4>
+                                <p className="text-sm text-slate-500 mb-6">Download a machine-readable copy of your account, analysis history and certificates (GDPR Art. 15 / 20).</p>
+                                <Button variant="secondary" onClick={handleExport} disabled={exporting}>
+                                    {exporting ? 'Preparing…' : 'Download my data (JSON)'}
+                                </Button>
+                            </div>
+
+                            <div className="bg-red-500/5 rounded-[2.5rem] p-8 md:p-10 border border-red-500/20">
+                                <h4 className="text-xl font-black mb-2 text-red-500 flex items-center gap-3">
+                                    <Shield className="w-7 h-7" /> Delete account
+                                </h4>
+                                <p className="text-sm text-slate-500 mb-6">
+                                    Permanently deletes your account, analysis history and certificates. This cannot be undone.
+                                    Purchase records are kept only as required by tax law and carry no contact data.
+                                </p>
+                                {!deleteOpen ? (
+                                    <Button variant="secondary" className="border-red-500/40 text-red-500 hover:bg-red-500/10" onClick={() => setDeleteOpen(true)}>
+                                        Delete my account
+                                    </Button>
+                                ) : (
+                                    <div className="space-y-3 max-w-sm">
+                                        <label className="block text-xs font-bold uppercase text-slate-500">Confirm with your password</label>
+                                        <input
+                                            type="password"
+                                            value={deletePwd}
+                                            onChange={(e) => setDeletePwd(e.target.value)}
+                                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500"
+                                            placeholder="••••••••"
+                                        />
+                                        {deleteError && <p className="text-red-500 text-xs" role="alert">{deleteError}</p>}
+                                        <div className="flex gap-3">
+                                            <Button variant="secondary" className="border-red-500/40 text-red-500 hover:bg-red-500/10" onClick={handleDelete} disabled={deleteBusy || !deletePwd}>
+                                                {deleteBusy ? 'Deleting…' : 'Permanently delete'}
+                                            </Button>
+                                            <Button variant="secondary" onClick={() => { setDeleteOpen(false); setDeletePwd(''); setDeleteError(null); }} disabled={deleteBusy}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

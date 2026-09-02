@@ -145,8 +145,8 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">8. Data Retention Policy</h3>
                 <p>We will retain your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li><strong>Account Data:</strong> Retained as long as your account is active. Deleted 30 days after an account closure request.</li>
-                    <li><strong>Transaction &amp; invoicing Data:</strong> Retained for the period required by Polish tax and accounting law (currently 5 years from the end of the tax year). Card data is held by Stripe, not by us.</li>
+                    <li><strong>Account Data:</strong> Retained while your account exists. You can delete it yourself at any time in <em>Settings → Security</em> — this removes your account, analysis history and certificates immediately and permanently.</li>
+                    <li><strong>Transaction &amp; invoicing Data:</strong> Retained for the period required by Polish tax and accounting law (currently 5 years from the end of the tax year), even after account deletion. These records carry no contact data — card data is held by Stripe, not by us.</li>
                     <li><strong>Uploaded Audio:</strong> Discarded promptly after the analysis completes; only the resulting metadata and, where you save it, your analysis history are kept.</li>
                 </ul>
             </section>
@@ -301,7 +301,8 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">5. How to Exercise Your Rights</h3>
-                <p>If you make a request, we have one month to respond to you. If you would like to exercise any of these rights, please contact us via email at:</p>
+                <p><strong>Self-service:</strong> in <em>Settings → Security</em> you can download a full machine-readable copy of your data (JSON) and permanently delete your account without contacting us.</p>
+                <p className="mt-2">For anything else, or if you cannot access your account, email us — we respond within one month:</p>
                 <p className="mt-2 font-bold text-lg">{ownerData.email}</p>
                 <p className="text-xs text-slate-500 mt-2">Please use the subject line: "GDPR Request - [Your Name]". We may request specific information from you to help us confirm your identity.</p>
             </section>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, status
+from fastapi import APIRouter, HTTPException, Depends, Request, status, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -6,8 +6,12 @@ from datetime import datetime, timedelta
 import bcrypt
 from jose import jwt
 import uuid
+import json
 import logging
-from app.db import User, get_db
+from app.db import (
+    User, get_db,
+    Job, AnalysisHistory, Certificate, RedeemedCode,
+)
 from app.security import (
     verify_password,
     get_password_hash,
@@ -52,6 +56,10 @@ class ResetPasswordRequest(BaseModel):
 
 class TokenOnlyRequest(BaseModel):
     token: str
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
 
 
 class TokenResponse(BaseModel):
@@ -247,6 +255,64 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "credits": current_user.credits,
         "created_at": current_user.created_at,
     }
+
+
+@router.get("/me/export")
+async def export_my_data(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """GDPR Art. 15 / 20 — a machine-readable copy of everything tied to this account."""
+    uid = current_user.id
+
+    def rows(model, **filt):
+        out = []
+        for r in db.query(model).filter_by(**filt).all():
+            out.append({c.name: getattr(r, c.name) for c in r.__table__.columns})
+        return out
+
+    payload = {
+        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "account": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "username": current_user.username,
+            "full_name": current_user.full_name,
+            "tier": current_user.tier,
+            "credits": current_user.credits,
+            "is_verified": current_user.is_verified,
+            "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+            "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
+        },
+        "analysis_history": rows(AnalysisHistory, user_id=uid),
+        "jobs": rows(Job, user_id=uid),
+        "certificates": rows(Certificate, user_id=uid),
+        "redeemed_codes": rows(RedeemedCode, user_id=uid),
+    }
+    return Response(
+        content=json.dumps(payload, default=str, indent=2, ensure_ascii=False),
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="metadata-engine-export.json"'},
+    )
+
+
+@router.delete("/me")
+@limiter.limit("5/hour")
+async def delete_my_account(request: Request, payload: DeleteAccountRequest,
+                            current_user: User = Depends(get_current_user),
+                            db: Session = Depends(get_db)):
+    """GDPR Art. 17 — permanently delete the account and its data.
+
+    Financial records (`credit_purchases`) are retained as required by Polish
+    tax/accounting law; they carry no contact data (Stripe holds that).
+    """
+    if not verify_password(payload.password, current_user.password_hash):
+        raise HTTPException(status_code=403, detail="Password is incorrect.")
+
+    uid = current_user.id
+    for model in (AnalysisHistory, Job, Certificate, RedeemedCode):
+        db.query(model).filter_by(user_id=uid).delete(synchronize_session=False)
+    db.query(User).filter(User.id == uid).delete(synchronize_session=False)
+    db.commit()
+    logger.info("Account %s deleted at user request", uid)
+    return {"detail": "Your account and analysis data have been permanently deleted."}
 
 
 PWD_RESET_PURPOSE = "pwd_reset"
