@@ -5,9 +5,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0f0f1a" />
-  <title>HRL Metadata Engine | AI-Powered Audio Intelligence</title>
-  <meta name="description" content="Professional AI-powered music metadata extraction and analysis tool. Part of the HardbanRecords Lab ecosystem." />
+
+  <title>Metadata Engine — AI Music Metadata, Tagging &amp; Analysis</title>
+  <meta name="description"
+    content="Turn any audio file into distribution-ready metadata: BPM &amp; key detection, AI genre/mood classification, identification, and DDEX, CWR, CSV &amp; JSON export." />
+  <meta name="keywords"
+    content="music metadata, BPM detection, key detection, AI music tagging, audio analysis, genre classification, DDEX ERN, CWR export, sync licensing metadata, music distribution, ISRC, loudness LUFS" />
   <meta name="author" content="HardbanRecords Lab" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://app-metadata.hardbanrecordslab.online/" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -18,22 +25,161 @@
   <link rel="manifest" href="/manifest.json" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.web.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.web.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 
-  <meta property="og:title" content="Metadata Engine | AI Audio Intelligence" />
-  <meta property="og:description" content="Professional AI-powered music metadata extraction by HardbanRecords Lab" />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="/assets/og-image.png" />
+  <meta property="og:site_name" content="Metadata Engine" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://app-metadata.hardbanrecordslab.online/" />
+  <meta property="og:title" content="Metadata Engine — AI Music Metadata, Tagging &amp; Analysis" />
+  <meta property="og:description"
+    content="Turn any audio file into distribution-ready metadata: BPM &amp; key, AI genre/mood, identification, and DDEX / CWR / CSV / JSON export." />
+  <meta property="og:image" content="https://app-metadata.hardbanrecordslab.online/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@HardbanRecords" />
-  <meta name="twitter:image" content="/assets/og-image.png" />
+  <meta name="twitter:title" content="Metadata Engine — AI Music Metadata, Tagging &amp; Analysis" />
+  <meta name="twitter:description"
+    content="Distribution-ready music metadata from audio: BPM/key, AI genre &amp; mood, identification, DDEX/CWR/CSV/JSON export." />
+  <meta name="twitter:image" content="https://app-metadata.hardbanrecordslab.online/assets/og-image.png" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://app-metadata.hardbanrecordslab.online/#org",
+        "name": "HardbanRecords Lab",
+        "url": "https://hardbanrecordslab.online",
+        "logo": "https://app-metadata.hardbanrecordslab.online/assets/icon.png",
+        "email": "contact@hardbanrecordslab.online",
+        "sameAs": ["https://twitter.com/HardbanRecords"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://app-metadata.hardbanrecordslab.online/#site",
+        "url": "https://app-metadata.hardbanrecordslab.online/",
+        "name": "Metadata Engine",
+        "publisher": { "@id": "https://app-metadata.hardbanrecordslab.online/#org" },
+        "inLanguage": "en"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Metadata Engine",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "url": "https://app-metadata.hardbanrecordslab.online/",
+        "description": "AI-powered music metadata: DSP analysis (BPM, key, loudness), multi-model genre/mood/instrumentation classification, identification against public databases, and industry-standard exports (DDEX ERN 4.3, CWR 2.1, MP3Tag CSV, JSON), plus an IPFS-pinned Certificate of Authenticity.",
+        "publisher": { "@id": "https://app-metadata.hardbanrecordslab.online/#org" },
+        "offers": [
+          { "@type": "Offer", "name": "Starter — 10 credits", "price": "9", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Producer — 50 credits", "price": "35", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Label — 150 credits", "price": "89", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Studio — 400 credits", "price": "199", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What does Metadata Engine do?",
+            "acceptedAnswer": { "@type": "Answer", "text": "It analyses an audio file and produces distribution-ready metadata: BPM and key, genre, mood, instrumentation and vocal style, a written description, identification against public databases, and exports in DDEX ERN 4.3, CWR 2.1, MP3Tag CSV and JSON." }
+          },
+          {
+            "@type": "Question",
+            "name": "How accurate is the AI classification?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Several independent language models classify the same track and a vote decides; every tag carries a confidence score you can override. Technical values like BPM and key come from DSP measurement, not inference." }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does it cost?",
+            "acceptedAnswer": { "@type": "Answer", "text": "One-time credit packs, no subscription. 1 credit = 1 full analysis; exports are free. New accounts get 3 free credits. Packs: Starter 10/$9, Producer 50/$35, Label 150/$89, Studio 400/$199." }
+          },
+          {
+            "@type": "Question",
+            "name": "What audio formats are supported?",
+            "acceptedAnswer": { "@type": "Answer", "text": "MP3, WAV, FLAC and AIFF, up to about 100 MB per file. Batch processing handles many files at once." }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my audio stored?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. Uploaded audio is discarded promptly after the analysis completes. Only the resulting metadata, and your analysis history if you save it, are kept." }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the Certificate of Authenticity?",
+            "acceptedAnswer": { "@type": "Answer", "text": "A signed PDF that embeds a SHA-256 hash of the decoded audio and is pinned to IPFS, with a public verification page anyone can check. Useful as a pre-distribution provenance record." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    /* Shown only to crawlers / no-JS clients — React clears #root on mount */
+    #seo-shell { max-width: 60rem; margin: 0 auto; padding: 3rem 1.25rem; font: 16px/1.6 Inter, system-ui, sans-serif; color: #e2e8f0; }
+    #seo-shell h1 { font-size: 2rem; font-weight: 800; margin: 0 0 .5rem; }
+    #seo-shell h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; }
+    #seo-shell a { color: #a78bfa; }
+    #seo-shell ul { padding-left: 1.25rem; }
+    #seo-shell details { margin: .4rem 0; }
+    #seo-shell summary { cursor: pointer; font-weight: 600; }
+  </style>
 </head>
 
 <body class="bg-[#0f0f1a] text-white">
-  <div id="root"></div>
+  <div id="root">
+    <main id="seo-shell">
+      <h1>Metadata Engine — AI music metadata, tagging &amp; analysis</h1>
+      <p>Metadata Engine turns a raw audio file into professional,
+        distribution-ready metadata. It measures the signal (BPM, key, loudness,
+        spectral profile), runs a multi-model AI classification that must reach
+        consensus before a tag is accepted, identifies the recording against
+        public databases, and exports in the formats DSPs and PROs accept —
+        DDEX ERN 4.3, CWR 2.1, MP3Tag CSV and JSON. Every analysed track can
+        also get a Certificate of Authenticity pinned to IPFS.</p>
+
+      <h2>What you get from one analysis</h2>
+      <ul>
+        <li>BPM, key/mode, LUFS loudness, energy and spectral profile from DSP measurement</li>
+        <li>Genre, sub-genres, moods, instrumentation and vocal style — each with a confidence score</li>
+        <li>A written, marketing-ready track description</li>
+        <li>Identification via ACRCloud, AcoustID and MusicBrainz</li>
+        <li>Catalogue enrichment from Spotify, Last.fm and Discogs</li>
+        <li>Exports: DDEX ERN 4.3, CWR 2.1, MP3Tag CSV, JSON</li>
+        <li>SHA-256 Authenticity DNA and an IPFS-pinned Certificate of Authenticity</li>
+        <li>Batch processing for whole albums and back catalogues</li>
+      </ul>
+
+      <h2>Who it's for</h2>
+      <p>Independent artists and producers preparing releases, labels auditing a
+        back catalogue, distributors verifying incoming metadata, and sync /
+        production-music libraries that need granular mood and instrumentation
+        tagging.</p>
+
+      <h2>FAQ</h2>
+      <details><summary>How much does it cost?</summary>
+        <p>One-time credit packs, no subscription. 1 credit = 1 full analysis;
+          exports are free. New accounts get 3 free credits. Starter 10/$9,
+          Producer 50/$35, Label 150/$89, Studio 400/$199.</p></details>
+      <details><summary>What formats are supported?</summary>
+        <p>MP3, WAV, FLAC and AIFF, up to ~100 MB per file.</p></details>
+      <details><summary>Is my audio stored?</summary>
+        <p>No — uploaded audio is discarded promptly after analysis; only the
+          resulting metadata (and your saved history) is kept.</p></details>
+
+      <p><a href="https://app-metadata.hardbanrecordslab.online/">Open the app</a>
+        &nbsp;·&nbsp; Operated by HardbanRecords Lab (Poland, EU) &nbsp;·&nbsp;
+        <a href="mailto:contact@hardbanrecordslab.online">contact@hardbanrecordslab.online</a></p>
+    </main>
+  </div>
   <script type="module" src="/index.tsx"></script>
 </body>
 

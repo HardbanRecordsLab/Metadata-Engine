@@ -86,6 +86,17 @@ const AppContent: React.FC = () => {
     }, [theme]);
 
     useEffect(() => {
+        const titles: Record<View, string> = {
+            dashboard: 'Dashboard',
+            analyze: 'Audio Analysis',
+            results: 'Analysis Results',
+            history: 'History',
+            settings: 'Settings',
+        };
+        document.title = `${titles[view]} · Metadata Engine`;
+    }, [view]);
+
+    useEffect(() => {
         localStorage.setItem('mme_pro_mode', String(isProMode));
     }, [isProMode]);
 

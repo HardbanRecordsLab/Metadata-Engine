@@ -1,7 +1,7 @@
-
 User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
+Disallow: /verify/
 
 Sitemap: https://app-metadata.hardbanrecordslab.online/sitemap.xml
