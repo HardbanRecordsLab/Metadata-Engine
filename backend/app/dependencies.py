@@ -7,31 +7,37 @@ from jose import jwt, JWTError
 from fastapi import Header
 from typing import Optional
 
-async def get_current_user_optional(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+async def get_current_user_optional(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    db: Session = Depends(get_db),
+):
     """
-    Permissive dependency that tries to get the user but returns None if no token or invalid token.
-    Doesn't raise 401.
+    Permissive dependency: resolves the user from a Bearer JWT or an
+    X-API-Key header. Returns None (no 401) if neither works — the analysis
+    endpoints layer the actual gate via get_user_and_check_quota.
     """
-    if not authorization:
-        return None
-        
-    try:
-        # Extract token from "Bearer <token>"
-        scheme, _, token = authorization.partition(" ")
-        if scheme.lower() != "bearer" or not token:
+    # 1) API key (for programmatic / partner access)
+    if x_api_key:
+        user = db.query(User).filter(User.api_key == x_api_key).first()
+        if user and user.is_active:
+            return user
+
+    # 2) Bearer JWT (the web app)
+    if authorization:
+        try:
+            scheme, _, token = authorization.partition(" ")
+            if scheme.lower() == "bearer" and token:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                user_id = payload.get("sub")
+                if user_id:
+                    return db.query(User).filter(User.id == user_id).first()
+        except JWTError:
             return None
-            
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        except Exception:
             return None
-            
-        user = db.query(User).filter(User.id == user_id).first()
-        return user
-    except JWTError:
-        return None
-    except Exception:
-        return None
+
+    return None
 
 def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
     """

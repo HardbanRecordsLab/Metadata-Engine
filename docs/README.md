@@ -17,6 +17,7 @@ Operated by **HardbanRecords Lab** (Poland, EU). App:
 | [BUSINESS.md](BUSINESS.md) | Founders, partners, investors | The metadata problem, target users, competitive position, pricing, revenue model, roadmap |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Engineers | The real system — services, the LLM consensus ensemble, exports, certificates, deploy topology |
 | [USER-GUIDE.md](USER-GUIDE.md) | End users | Signing up, credits, analysing a track, reading the result cards, exports, certificates, batch, settings |
+| [API.md](API.md) | Integrators | Submitting audio programmatically with an `X-API-Key`, polling for results, exports |
 | [LEGAL-OVERVIEW.md](LEGAL-OVERVIEW.md) | Everyone | Plain-language map of the binding legal documents shown in the app |
 | [OPERATIONS.md](OPERATIONS.md) | Whoever runs the deploy | Env vars, GitHub Secrets, the deploy pipeline, the VPS, admin, backups |
 | [SEO.md](SEO.md) | Whoever maintains the site | Canonical domain, meta/JSON-LD strategy, sitemap upkeep |

@@ -292,19 +292,29 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
 
             case 'api':
                 return (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-                            <Code className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">Developer API</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                                Public access to our REST API is currently in <strong>Closed Beta</strong> for enterprise partners.
-                            </p>
-                            <div className="mt-6">
-                                <Button variant="secondary" onClick={() => window.location.href = 'mailto:contact@hardbanrecordslab.online'}>
-                                    Request Access
-                                </Button>
-                            </div>
+                    <div className="space-y-6 animate-fade-in text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        <div className="flex items-center gap-3">
+                            <Code className="w-8 h-8 text-accent-violet" />
+                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Developer API</h3>
                         </div>
+                        <p>Submit audio programmatically and get the same metadata the app produces. Authenticate with your personal API key from <strong>Settings → Security</strong> in the <code>X-API-Key</code> header. Each analysis costs 1 credit, exactly like the UI.</p>
+
+                        <div>
+                            <p className="font-bold text-light-text dark:text-dark-text mb-1">1. Submit a track</p>
+                            <pre className="bg-slate-900 text-slate-100 text-xs p-4 rounded-xl overflow-x-auto">{`curl -X POST https://metadata.hardbanrecordslab.online/api/analysis/generate \\
+  -H "X-API-Key: <your key>" \\
+  -F "file=@track.wav" \\
+  -F "model_preference=pro"
+# -> { "job_id": "..." }`}</pre>
+                        </div>
+                        <div>
+                            <p className="font-bold text-light-text dark:text-dark-text mb-1">2. Poll for the result</p>
+                            <pre className="bg-slate-900 text-slate-100 text-xs p-4 rounded-xl overflow-x-auto">{`curl https://metadata.hardbanrecordslab.online/api/analysis/job/<job_id> \\
+  -H "X-API-Key: <your key>"
+# status: pending | processing | completed | failed`}</pre>
+                        </div>
+                        <p className="text-xs text-slate-500">Full reference, response schema and export endpoints (DDEX / CWR / CSV / JSON): see <code>docs/API.md</code> in the repository, or the interactive OpenAPI docs at <code>/api/docs</code>.</p>
+                        <p className="text-xs text-slate-500">Need higher throughput or a Data Processing Agreement? <a className="text-accent-violet hover:underline" href="mailto:contact@hardbanrecordslab.online">contact us</a>.</p>
                     </div>
                 );
 
