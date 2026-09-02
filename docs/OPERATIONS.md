@@ -64,6 +64,8 @@ Full annotated list: **`backend/.env.example`**. Summary:
 | `PINATA_JWT`, `PINATA_GATEWAY` | certificates / IPFS | |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PACK_*` | billing | see Stripe setup below |
 | `SPOTIFY_*`, `LASTFM_API_KEY`, `DISCOGS_API_KEY`, `DISCOGS_SECRETS`, `ACOUSTID_API`, `ACOUSTID_API_TOKEN`, `ACR_*` | enrichment / identification | optional |
+| `APP_BASE_URL` | `auth.py` | public frontend URL used in email links (default is the canonical app domain) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` / `SMTP_STARTTLS` | `utils/email.py` | transactional email (password reset). **If `SMTP_HOST` is unset, emails are written to the container logs instead of sent** — set these in prod. |
 | `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` | `startup.py` | optional; creates a superuser on first boot if that email doesn't exist |
 
 **Currently read by nothing / inert code** — safe to omit:

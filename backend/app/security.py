@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union, Any
-from jose import jwt
+from jose import jwt, JWTError
 import bcrypt
 from app.config import settings
 
@@ -40,3 +40,24 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
     to_encode = {"sub": str(subject), "exp": expire}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_purpose_token(subject: Union[str, Any], purpose: str, expires_minutes: int = 30) -> str:
+    """Short-lived, single-purpose token (password reset, email verification)."""
+    to_encode = {
+        "sub": str(subject),
+        "purpose": purpose,
+        "exp": datetime.utcnow() + timedelta(minutes=expires_minutes),
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def verify_purpose_token(token: str, purpose: str) -> Optional[str]:
+    """Return the subject if the token is valid for `purpose`, else None."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("purpose") != purpose:
+        return None
+    return payload.get("sub")

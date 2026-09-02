@@ -4,20 +4,24 @@ import { X, User, Lock, AlertCircle, CheckCircle2, Google, ArrowLeft, Key, Shiel
 import Button from './Button';
 import { useAuth } from '../contexts/AuthContext';
 
+type AuthView = 'login' | 'register' | 'forgotPassword' | 'resetConfirm';
+
 interface AuthModalProps {
     onClose: () => void;
-    initialView?: 'login' | 'register';
+    initialView?: AuthView;
+    resetToken?: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' }) => {
-    const [view, setView] = useState<'login' | 'register' | 'forgotPassword'>(initialView);
+const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login', resetToken }) => {
+    const [view, setView] = useState<AuthView>(resetToken ? 'resetConfirm' : initialView);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const { login, register, loginWithGoogle, resetPassword } = useAuth();
+    const { login, register, loginWithGoogle, resetPassword, confirmPasswordReset } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,8 +40,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                 onClose();
             } else if (view === 'forgotPassword') {
                 await resetPassword(email);
-                setSuccessMessage("Password reset link sent! Please check your email.");
+                setSuccessMessage("If an account exists for that email, a reset link is on its way. Check your inbox (and spam).");
                 // Don't close immediately so user sees message
+            } else if (view === 'resetConfirm') {
+                if (password !== confirmPassword) {
+                    throw new Error("The two passwords don't match.");
+                }
+                if (password.length < 8) {
+                    throw new Error("Password must be at least 8 characters.");
+                }
+                await confirmPasswordReset(resetToken || '', password);
+                onClose();
             }
         } catch (err: any) {
             console.error("Auth Error:", err);
@@ -80,7 +93,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
 
                 <div className="p-8">
                     <div className="text-center mb-8">
-                        {view === 'forgotPassword' ? (
+                        {(view === 'forgotPassword' || view === 'resetConfirm') ? (
                             <div className="w-12 h-12 grad-brand rounded-xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
                                 <Key className="w-6 h-6" />
                             </div>
@@ -88,11 +101,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                             <img src="/favicon.svg" alt="Metadata Engine" className="w-16 h-16 mx-auto mb-4" />
                         )}
                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-                            {view === 'login' ? 'Welcome Back' : view === 'register' ? 'Create Account' : 'Recovery'}
+                            {view === 'login' ? 'Welcome Back' : view === 'register' ? 'Create Account' : view === 'resetConfirm' ? 'Set a new password' : 'Recovery'}
                         </h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                             {view === 'login' ? 'Sign in to access your dashboard' :
                                 view === 'register' ? 'Join thousands of music professionals' :
+                                    view === 'resetConfirm' ? 'Choose a new password for your account' :
                                     'Enter your email to reset password'}
                         </p>
                     </div>
@@ -122,17 +136,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                             </div>
                         )}
 
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-accent-violet outline-none transition-all"
-                                placeholder="name@studio.com"
-                                required
-                            />
-                        </div>
+                        {view !== 'resetConfirm' && (
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-accent-violet outline-none transition-all"
+                                    placeholder="name@studio.com"
+                                    required
+                                />
+                            </div>
+                        )}
 
                         {view !== 'forgotPassword' && (
                             <div>
@@ -157,7 +173,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                                         className="w-full pl-10 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-accent-violet outline-none transition-all"
                                         placeholder="••••••••"
                                         required
-                                        minLength={6}
+                                        minLength={view === 'resetConfirm' ? 8 : 6}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'resetConfirm' && (
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Confirm new password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full pl-10 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-accent-violet outline-none transition-all"
+                                        placeholder="••••••••"
+                                        required
+                                        minLength={8}
                                     />
                                 </div>
                             </div>
@@ -174,12 +208,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                             {isSubmitting ? 'Processing...' : (
                                 view === 'login' ? 'Sign In' :
                                     view === 'register' ? 'Create Account' :
-                                        'Send Reset Link'
+                                        view === 'resetConfirm' ? 'Set new password' :
+                                            'Send Reset Link'
                             )}
                         </Button>
                     </form>
 
-                    {view !== 'forgotPassword' && (
+                    {(view === 'login' || view === 'register') && (
                         <>
                             <div className="relative my-6">
                                 <div className="absolute inset-0 flex items-center">
@@ -206,7 +241,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialView = 'login' })
                     )}
 
                     <div className="mt-6 text-center text-sm text-slate-500">
-                        {view === 'forgotPassword' ? (
+                        {(view === 'forgotPassword' || view === 'resetConfirm') ? (
                             <button
                                 onClick={() => { setView('login'); setError(null); setSuccessMessage(null); }}
                                 className="flex items-center justify-center gap-1 mx-auto text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"

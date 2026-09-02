@@ -49,6 +49,7 @@ const AppContent: React.FC = () => {
     const { user, isAuthenticated, refetchUser } = useAuth();
 
     const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [resetToken, setResetToken] = useState<string | null>(null);
     // Removed features not connected to backend: Cloud Import, Redeem Codes, Tools, Settings, Usage, Bulk Edit
 
     const [batch, setBatch] = useState<BatchItem[]>([]);
@@ -159,6 +160,10 @@ const AppContent: React.FC = () => {
             window.history.replaceState({}, '', window.location.pathname);
         } else if (params.get('billing') === 'cancelled') {
             showToast('Płatność anulowana.', 'info');
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('reset_token')) {
+            setResetToken(params.get('reset_token'));
+            setIsAuthOpen(true);
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, [refetchUser]);
@@ -446,7 +451,7 @@ const AppContent: React.FC = () => {
 
             {toastMessage && <Toast message={toastMessage.message} type={toastMessage.type} />}
             {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
-            {isAuthOpen && <AuthModal onClose={() => setIsAuthOpen(false)} />}
+            {isAuthOpen && <AuthModal onClose={() => { setIsAuthOpen(false); setResetToken(null); }} resetToken={resetToken ?? undefined} />}
 
             {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}
             {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}

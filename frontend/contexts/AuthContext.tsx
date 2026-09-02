@@ -11,6 +11,7 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     register: (email: string, name: string, password: string) => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
+    confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
     logout: () => void;
     refetchUser: () => Promise<void>;
 }
@@ -156,8 +157,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const resetPassword = async (email: string) => {
-        // Not implemented locally yet
-        alert("Password reset not supported in local mode yet.");
+        const response = await fetch(authUrl('/forgot-password'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        if (!response.ok) {
+            let detail = 'Could not send the reset email. Please try again later.';
+            try { detail = (await response.json()).detail || detail; } catch { /* noop */ }
+            throw new Error(detail);
+        }
+    };
+
+    const confirmPasswordReset = async (resetToken: string, newPassword: string) => {
+        const response = await fetch(authUrl('/reset-password'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: resetToken, new_password: newPassword })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.detail || 'This reset link is invalid or has expired.');
+        }
+        const accessToken = data.access_token || data.token;
+        localStorage.setItem('hrl_sso_token_v3', accessToken);
+        setToken(accessToken);
+        await fetchUserProfile(accessToken);
     };
 
     const logout = async () => {
@@ -176,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             loginWithGoogle,
             register,
             resetPassword,
+            confirmPasswordReset,
             logout,
             refetchUser
         }}>

@@ -8,8 +8,15 @@ from jose import jwt
 import uuid
 import logging
 from app.db import User, get_db
-from app.security import verify_password, get_password_hash, create_access_token
+from app.security import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_purpose_token,
+    verify_purpose_token,
+)
 from app.rate_limit import limiter
+from app.utils.email import send_email
 
 from app.config import settings
 
@@ -32,6 +39,15 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 class TokenResponse(BaseModel):
@@ -172,3 +188,50 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "credits": current_user.credits,
         "created_at": current_user.created_at,
     }
+
+
+PWD_RESET_PURPOSE = "pwd_reset"
+
+
+@router.post("/forgot-password")
+@limiter.limit("4/hour")
+async def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Send a password-reset link. Always returns 200 (no account enumeration)."""
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user:
+        token = create_purpose_token(user.id, PWD_RESET_PURPOSE, expires_minutes=30)
+        link = f"{settings.APP_BASE_URL.rstrip('/')}/?reset_token={token}"
+        html = (
+            f"<p>Hi,</p>"
+            f"<p>Someone requested a password reset for your Metadata Engine account. "
+            f"If it was you, set a new password using the link below (valid for 30 minutes):</p>"
+            f'<p><a href="{link}">Reset your password</a></p>'
+            f"<p>If it wasn't you, you can ignore this email — your password stays the same.</p>"
+            f"<p>— Metadata Engine</p>"
+        )
+        await send_email(user.email, "Reset your Metadata Engine password", html)
+        logger.info("Password reset requested for %s", user.email)
+    return {"detail": "If an account exists for that email, a reset link has been sent."}
+
+
+@router.post("/reset-password", response_model=TokenResponse)
+@limiter.limit("10/hour")
+async def reset_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Complete a password reset and return a fresh session token."""
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
+    user_id = verify_purpose_token(payload.token, PWD_RESET_PURPOSE)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+
+    user.password_hash = get_password_hash(payload.new_password)
+    user.last_login = datetime.utcnow()
+    db.commit()
+    logger.info("Password reset completed for %s", user.email)
+
+    return TokenResponse(access_token=create_access_token(user.id), token_type="Bearer", expires_in=604800)
