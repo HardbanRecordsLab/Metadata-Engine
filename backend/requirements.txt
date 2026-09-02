@@ -58,6 +58,9 @@ weasyprint
 # === Payments ===
 stripe>=8.0.0
 
+# === Observability ===
+sentry-sdk>=2.0.0
+
 # === Dev Tools ===
 pytest
 pytest-asyncio

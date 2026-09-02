@@ -64,6 +64,7 @@ Full annotated list: **`backend/.env.example`**. Summary:
 | `PINATA_JWT`, `PINATA_GATEWAY` | certificates / IPFS | |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PACK_*` | billing | see Stripe setup below |
 | `SPOTIFY_*`, `LASTFM_API_KEY`, `DISCOGS_API_KEY`, `DISCOGS_SECRETS`, `ACOUSTID_API`, `ACOUSTID_API_TOKEN`, `ACR_*` | enrichment / identification | optional |
+| `SENTRY_DSN` / `SENTRY_ENV` / `SENTRY_TRACES_SAMPLE_RATE` | `main.py` | error monitoring; no-op if `SENTRY_DSN` unset. Free tier at sentry.io is plenty. |
 | `APP_BASE_URL` | `auth.py` | public frontend URL used in email links (default is the canonical app domain) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` / `SMTP_STARTTLS` | `utils/email.py` | transactional email (password reset, email verification). **If `SMTP_HOST` is unset, emails are logged instead of sent AND email verification is skipped** (new accounts are created verified). Set these in prod to turn verification on. |
 | `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` | `startup.py` | optional; creates a superuser on first boot if that email doesn't exist |

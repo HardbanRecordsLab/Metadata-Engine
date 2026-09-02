@@ -14,6 +14,20 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.rate_limit import limiter
 
+# === Error monitoring (optional) ===
+if settings.SENTRY_DSN:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.SENTRY_ENV,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            send_default_pii=False,
+        )
+        logging.getLogger("app.main").info("Sentry error monitoring enabled (%s)", settings.SENTRY_ENV)
+    except Exception as _e:  # pragma: no cover
+        logging.getLogger("app.main").warning("Sentry init failed: %s", _e)
+
 # === ULTIMATE INFRASTRUCTURE PATCH ===
 LIMIT_MB = 100
 starlette.formparsers.MultiPartParser.max_part_size = LIMIT_MB * 1024 * 1024

@@ -48,6 +48,14 @@ class Settings:
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 
+    # Error monitoring (Sentry). No-op if SENTRY_DSN is unset.
+    SENTRY_DSN = os.getenv("SENTRY_DSN")
+    SENTRY_ENV = os.getenv("SENTRY_ENV") or os.getenv("ENV", "production")
+    try:
+        SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0"))
+    except Exception:
+        SENTRY_TRACES_SAMPLE_RATE = 0.0
+
     # IPFS / Pinata
     PINATA_JWT = os.getenv("PINATA_JWT")
     PINATA_GATEWAY = os.getenv("PINATA_GATEWAY", "gateway.pinata.cloud")
