@@ -50,6 +50,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
     is_superuser = Column(Boolean, default=False)
     is_premium = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -146,6 +147,14 @@ class VerificationEvent(Base):
 def run_migrations():
     try:
         with engine.connect() as conn:
+            # Grandfather existing accounts as verified; new rows default to
+            # unverified via the SQLAlchemy model.
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT 1"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
             # Safely add file_hash column if missing
             try:
                 conn.execute(text("ALTER TABLE analysis_history ADD COLUMN file_hash TEXT"))

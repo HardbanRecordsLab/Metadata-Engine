@@ -50,6 +50,10 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class TokenOnlyRequest(BaseModel):
+    token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "Bearer"
@@ -92,23 +96,38 @@ async def get_current_user(
     return user
 
 
+EMAIL_VERIFY_PURPOSE = "email_verify"
+
+# Email verification is only enforced when the server can actually send email.
+VERIFICATION_ENABLED = bool(settings.SMTP_HOST)
+
+
+async def _send_verification_email(user: User) -> None:
+    token = create_purpose_token(user.id, EMAIL_VERIFY_PURPOSE, expires_minutes=60 * 24)
+    link = f"{settings.APP_BASE_URL.rstrip('/')}/?verify_token={token}"
+    html = (
+        f"<p>Welcome to Metadata Engine!</p>"
+        f"<p>Confirm your email address to activate your account (link valid for 24 hours):</p>"
+        f'<p><a href="{link}">Verify my email</a></p>'
+        f"<p>If you didn't sign up, you can ignore this email.</p>"
+    )
+    await send_email(user.email, "Verify your Metadata Engine email", html)
+
+
 # Routes
-@router.post("/register", response_model=TokenResponse)
+@router.post("/register")
 @limiter.limit("10/minute")
 async def register(request: Request, payload: UserRegister, db: Session = Depends(get_db)):
-    """Register new user"""
-    
+    """Register a new user. Sends a verification email when SMTP is configured."""
+
     username = payload.username or payload.email.split("@")[0]
-    
-    # Check if user exists
+
     existing = db.query(User).filter(
         (User.email == payload.email) | (User.username == username)
     ).first()
-    
     if existing:
         raise HTTPException(status_code=409, detail="Email or username already exists")
-    
-    # Create user
+
     user = User(
         id=str(uuid.uuid4()),
         email=payload.email,
@@ -116,19 +135,52 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
         password_hash=get_password_hash(payload.password),
         api_key=str(uuid.uuid4()),
         credits=3,
+        is_verified=not VERIFICATION_ENABLED,
     )
-    
     db.add(user)
     db.commit()
     db.refresh(user)
-    
-    token = create_access_token(user.id)
-    
+
+    if VERIFICATION_ENABLED:
+        await _send_verification_email(user)
+        return {
+            "requires_verification": True,
+            "detail": "Account created. Check your email to verify your address before signing in.",
+        }
+
     return TokenResponse(
-        access_token=token,
+        access_token=create_access_token(user.id),
         token_type="Bearer",
-        expires_in=604800
+        expires_in=604800,
     )
+
+
+@router.post("/verify-email", response_model=TokenResponse)
+@limiter.limit("20/hour")
+async def verify_email(request: Request, payload: TokenOnlyRequest, db: Session = Depends(get_db)):
+    """Confirm an email address from the token in the verification link."""
+    user_id = verify_purpose_token(payload.token, EMAIL_VERIFY_PURPOSE)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+
+    user.is_verified = True
+    user.last_login = datetime.utcnow()
+    db.commit()
+    logger.info("Email verified for %s", user.email)
+    return TokenResponse(access_token=create_access_token(user.id), token_type="Bearer", expires_in=604800)
+
+
+@router.post("/resend-verification")
+@limiter.limit("4/hour")
+async def resend_verification(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Resend the verification email. Always returns 200."""
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user and not user.is_verified and VERIFICATION_ENABLED:
+        await _send_verification_email(user)
+    return {"detail": "If that account exists and is unverified, a new link has been sent."}
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -140,9 +192,15 @@ async def login(request: Request, payload: UserLogin, db: Session = Depends(get_
     
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    
+
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is disabled")
+
+    if VERIFICATION_ENABLED and not user.is_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email first — check your inbox for the confirmation link.",
+        )
     
     # Update last login
     user.last_login = datetime.utcnow()
@@ -183,6 +241,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "username": current_user.username,
         "is_premium": current_user.is_premium,
+        "is_verified": current_user.is_verified,
         "is_superuser": current_user.is_superuser,
         "tier": current_user.tier,
         "credits": current_user.credits,

@@ -46,7 +46,7 @@ const LoadingFallback = () => (
 );
 
 const AppContent: React.FC = () => {
-    const { user, isAuthenticated, refetchUser } = useAuth();
+    const { user, isAuthenticated, refetchUser, verifyEmail } = useAuth();
 
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [resetToken, setResetToken] = useState<string | null>(null);
@@ -165,8 +165,14 @@ const AppContent: React.FC = () => {
             setResetToken(params.get('reset_token'));
             setIsAuthOpen(true);
             window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('verify_token')) {
+            const vt = params.get('verify_token') as string;
+            window.history.replaceState({}, '', window.location.pathname);
+            verifyEmail(vt)
+                .then(() => showToast('Email verified — you are now signed in.', 'success'))
+                .catch((e) => showToast(e?.message || 'Verification link is invalid or expired.', 'error'));
         }
-    }, [refetchUser]);
+    }, [refetchUser, verifyEmail]);
 
     const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
 

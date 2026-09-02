@@ -12,6 +12,7 @@ interface AuthContextType {
     register: (email: string, name: string, password: string) => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
+    verifyEmail: (token: string) => Promise<void>;
     logout: () => void;
     refetchUser: () => Promise<void>;
 }
@@ -150,10 +151,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error(data.detail || 'Registration failed');
         }
 
-        // Auto login after register? Or ask to login?
-        // Let's just ask to login for now, or auto-login if backend returned token (it doesn't yet).
-        // User created.
+        if (data.requires_verification) {
+            // Backend sent a verification email — don't auto-login.
+            throw new Error('REGISTRATION_SUCCESS_CONFIRM_EMAIL');
+        }
+
+        // No email verification configured server-side → straight in.
         await login(email, password);
+    };
+
+    const verifyEmail = async (verifyToken: string) => {
+        const response = await fetch(authUrl('/verify-email'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: verifyToken })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.detail || 'This verification link is invalid or has expired.');
+        }
+        const accessToken = data.access_token || data.token;
+        localStorage.setItem('hrl_sso_token_v3', accessToken);
+        setToken(accessToken);
+        await fetchUserProfile(accessToken);
     };
 
     const resetPassword = async (email: string) => {
@@ -202,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             register,
             resetPassword,
             confirmPasswordReset,
+            verifyEmail,
             logout,
             refetchUser
         }}>
