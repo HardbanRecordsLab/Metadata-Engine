@@ -1,0 +1,49 @@
+name: Backup database
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # daily 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot + rotate on the VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            cd /srv/hbrl/Metadata-Engine
+            mkdir -p data/backups
+            STAMP=$(date -u +%Y%m%d-%H%M%S)
+            # consistent copy even while the app is running
+            sqlite3 data/music_metadata.db ".backup 'data/backups/mme-$STAMP.db'"
+            gzip -f "data/backups/mme-$STAMP.db"
+            # keep the 14 most recent
+            ls -1t data/backups/mme-*.db.gz | tail -n +15 | xargs -r rm --
+            ln -sf "mme-$STAMP.db.gz" data/backups/latest.db.gz
+            ls -lh data/backups/ | tail -5
+
+      - name: Pull latest snapshot to the runner
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: /srv/hbrl/Metadata-Engine/data/backups/latest.db.gz
+          target: ./_backup
+          strip_components: 5
+
+      - name: Keep an off-site copy as an artifact (90-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ./_backup/latest.db.gz
+          retention-days: 90

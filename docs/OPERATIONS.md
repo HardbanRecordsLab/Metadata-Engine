@@ -120,11 +120,29 @@ Idempotency: the webhook keys on `credit_purchases.stripe_session_id`.
 
 ## Backups
 
-The whole state is `/srv/hbrl/Metadata-Engine/data/` (SQLite + any uploads):
+The whole state is `/srv/hbrl/Metadata-Engine/data/` (the SQLite DB + uploads).
+
+**Automated:** `.github/workflows/backup.yml` runs daily at 03:00 UTC (and on
+manual dispatch). It takes a consistent `sqlite3 .backup` snapshot into
+`data/backups/mme-<stamp>.db.gz` on the VPS (keeps the last 14), then pulls the
+latest to GitHub as a workflow **artifact** with 90-day retention — an
+off-site copy. It reuses the `VPS_*` secrets.
+
+**Ad-hoc full copy:**
 ```bash
 ssh root@84.247.162.167 \
   "tar czf /root/mme-backup-$(date +%F).tar.gz -C /srv/hbrl/Metadata-Engine data"
 ```
+
+**Restore:** stop the container, replace `data/music_metadata.db` with a
+`gunzip`-ed snapshot, start it again.
+```bash
+cd /srv/hbrl/Metadata-Engine
+docker compose -f vps.docker-compose.yml down
+gunzip -c data/backups/latest.db.gz > data/music_metadata.db
+docker compose -f vps.docker-compose.yml up -d
+```
+
 The deploy also drops timestamped `.env.backup.*` files in the repo dir — prune
 them occasionally.
 
