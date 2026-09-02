@@ -53,96 +53,48 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
 
             case 'docs':
                 return (
-                    <div className="space-y-8 text-sm text-slate-600 dark:text-slate-300 animate-fade-in leading-relaxed text-justify">
-                        <div className="border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
-                            <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Official Product Documentation</h1>
-                            <p className="text-xs uppercase font-bold text-slate-400">Version 1.3 • Last Updated: December 2025</p>
+                    <div className="space-y-6 text-sm text-slate-600 dark:text-slate-300 animate-fade-in leading-relaxed">
+                        <div className="border-b border-slate-200 dark:border-slate-800 pb-4 mb-2">
+                            <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Documentation</h1>
+                            <p className="text-xs uppercase font-bold text-slate-400">The full set — business, architecture, user guide, legal, operations, API — lives in the <code>docs/</code> folder of the repository.</p>
                         </div>
 
                         <section>
-                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-3">1. Introduction to the Architecture</h3>
-                            <p className="mb-2">Music Metadata Engine (MME) operates on a "Hybrid Cloud" architecture. Unlike traditional web applications that upload your entire file to a remote server for processing, MME prioritizes client-side execution for speed and privacy.</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                                <li><strong>DSP Engine (Browser-based):</strong> Technical audio analysis (BPM, Key, Loudness, Spectral Balance) is calculated directly in your browser using WebAssembly (WASM) and the Web Audio API. Your raw audio data stays on your machine during this phase.</li>
-                                <li><strong>AI Inference (Cloud-based):</strong> The audio (or a compact feature representation) is transmitted to a consensus ensemble of language models — via Groq, Google Gemini and OpenRouter — for semantic understanding, genre classification, and descriptive writing. Several models must agree before a tag is accepted.</li>
-                            </ul>
-                        </section>
-
-                        <section>
-                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-3">2. Core Workflows</h3>
-
-                            <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-4 mb-2">2.1. Batch Processing (Pro)</h4>
-                            <p>The batch processor is designed for high-volume catalog management. It utilizes a sequential queue system to respect API rate limits while ensuring stability.</p>
-                            <ol className="list-decimal pl-5 space-y-2 mt-2">
-                                <li><strong>Import:</strong> Drag & Drop a folder containing MP3, WAV, AIFF, or FLAC files. The system automatically filters non-audio files.</li>
-                                <li><strong>Queue:</strong> Files are added to a processing list. You can remove items or reorder priority before starting.</li>
-                                <li><strong>Execution:</strong> Click "Analyze". The engine processes files one by one (or in parallel threads for Enterprise plans). <strong>Important:</strong> Do not close the browser tab while the queue is running, as the DSP engine lives in the active window context.</li>
-                                <li><strong>Results:</strong> Completed tracks are marked green. Failed tracks (due to corruption or API timeouts) are marked red and can be retried individually.</li>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">How an analysis works</h3>
+                            <ol className="list-decimal pl-5 space-y-1">
+                                <li>Your browser runs an instant DSP preview (BPM, key, loudness) with Essentia.js / WebAssembly.</li>
+                                <li>The file is uploaded; the server runs the full DSP pass (Essentia + Librosa) and computes a SHA-256 Authenticity DNA of the decoded audio.</li>
+                                <li>A consensus ensemble of language models (Groq, Google Gemini, OpenRouter) classifies genre, mood, instrumentation and vocal style, and writes the description. Several models must agree; each tag carries a confidence score.</li>
+                                <li>Identification runs against ACRCloud / AcoustID / MusicBrainz; enrichment against Spotify / Last.fm / Discogs.</li>
+                                <li>The upload is discarded once the analysis completes.</li>
                             </ol>
+                        </section>
 
-                            <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-4 mb-2">2.2. The Analysis Dashboard</h4>
-                            <p>Once a track is analyzed, the dashboard presents a unified view of three data sources:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                                <li><strong>Engineering Data:</strong> Hard numbers derived from signal processing (RMS, True Peak, Phase Correlation).</li>
-                                <li><strong>AI Classification:</strong> Probabilistic data generated by the LLM (Genre, Mood, Context, Description).</li>
-                                <li><strong>Database Match:</strong> Verified data from MusicBrainz/ACRCloud (ISRC, Release Date, Label).</li>
+                        <section>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Reading the results</h3>
+                            <p>Results are grouped into cards — Track Identity, Sonic Analysis, Classification &amp; Style, Structure, Identification, External Data, Marketing, Commercial/Legal, Copyright, Visuals, and a Validation Report. The confidence widget cross-checks DSP vs AI vs database data and flags contradictions (e.g. 174 BPM measured but "Lullaby" suggested).</p>
+                            <p className="mt-1"><strong>Every AI tag is a suggestion you can override.</strong></p>
+                        </section>
+
+                        <section>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Exports</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li><strong>MP3Tag CSV</strong> — bulk import; includes AI fields standard tags don't carry.</li>
+                                <li><strong>JSON</strong> — the full structure.</li>
+                                <li><strong>DDEX ERN 4.3</strong> — delivery to DSPs via a distributor.</li>
+                                <li><strong>CWR 2.1</strong> — PRO / CMO work registration.</li>
+                                <li><strong>Write-back</strong> — ID3 (TIT2 / TPE1 / TBPM / TKEY / TSRC / COMM…) or Vorbis tags straight into the file.</li>
                             </ul>
-                            <p className="mt-2">The "Confidence Score" widget at the top cross-references these three sources to detect anomalies (e.g., if the DSP detects 174 BPM but the AI suggests "Lullaby", the score drops).</p>
                         </section>
 
                         <section>
-                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-3">3. Advanced Features & Modules</h3>
-
-                            <div className="space-y-4 mt-2">
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <h5 className="font-bold text-accent-violet mb-1">Market Pulse (Strategic Analysis)</h5>
-                                    <p className="text-sm">This module uses "Search Grounding". It queries Google Search in real-time to find tracks with similar sonic profiles that are currently trending. It provides:</p>
-                                    <ul className="list-disc pl-5 mt-1 text-xs">
-                                        <li><strong>Similar Artists:</strong> Who is your competition?</li>
-                                        <li><strong>Target Playlists:</strong> Where does this sound fit (e.g., "Lo-Fi Beats to Study To")?</li>
-                                        <li><strong>Audience Persona:</strong> Who listens to this music (e.g., "Gen Z Gamers")?</li>
-                                    </ul>
-                                </div>
-
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <h5 className="font-bold text-accent-violet mb-1">Creative Suite (Generative Assets)</h5>
-                                    <p className="text-sm">Generates marketing assets based on the audio analysis.</p>
-                                    <ul className="list-disc pl-5 mt-1 text-xs">
-                                        <li><strong>Visuals:</strong> Uses Google Imagen 3 model to generate album art prompts and images based on the track's mood and genre.</li>
-                                        <li><strong>Copywriting:</strong> Generates Press Releases, Social Media posts, and Bios using different Tones of Voice.</li>
-                                    </ul>
-                                </div>
-                            </div>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Batch &amp; certificates</h3>
+                            <p>The Batch Processor queues many files (1 credit each) — keep the tab open while it runs. Any analysed track can get a Certificate of Authenticity (PDF) pinned to IPFS with a public <code>/verify/&lt;id&gt;</code> page.</p>
                         </section>
 
                         <section>
-                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-3">4. Data Standards & Exporting</h3>
-                            <p className="mb-2">MME is compliant with industry standards for metadata embedding.</p>
-
-                            <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-2 mb-1">ID3v2.3 / ID3v2.4 Mapping</h4>
-                            <p>When you click "Download File" (Embed), we write tags directly into the file header. Mappings include:</p>
-                            <div className="overflow-x-auto mt-2">
-                                <table className="w-full text-xs text-left font-mono">
-                                    <thead>
-                                        <tr className="bg-slate-100 dark:bg-slate-800">
-                                            <th className="p-2">MME Field</th>
-                                            <th className="p-2">ID3 Frame</th>
-                                            <th className="p-2">Description</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td className="p-2">Title</td><td className="p-2">TIT2</td><td className="p-2">Track Title</td></tr>
-                                        <tr><td className="p-2">Artist</td><td className="p-2">TPE1</td><td className="p-2">Lead Performer</td></tr>
-                                        <tr><td className="p-2">BPM</td><td className="p-2">TBPM</td><td className="p-2">Beats Per Minute</td></tr>
-                                        <tr><td className="p-2">Key</td><td className="p-2">TKEY</td><td className="p-2">Initial Key</td></tr>
-                                        <tr><td className="p-2">ISRC</td><td className="p-2">TSRC</td><td className="p-2">Intl. Standard Recording Code</td></tr>
-                                        <tr><td className="p-2">Moods/Tags</td><td className="p-2">COMM / TXXX</td><td className="p-2">Comments or Custom User Text</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <h4 className="font-bold text-slate-700 dark:text-slate-200 mt-4 mb-1">CSV Export for Database Import</h4>
-                            <p>The "Export Batch" feature generates a CSV file optimized for tools like Mp3tag, DISCO.ac, or Excel. It includes all AI reasoning fields and technical metrics not typically supported by standard ID3 tags (e.g., "Spectral Balance Character").</p>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Programmatic access</h3>
+                            <p>See the <strong>API</strong> tab — submit audio with an <code>X-API-Key</code> from Settings → Security, poll for the result, export. Full reference in <code>docs/API.md</code> and at <code>/api/docs</code>.</p>
                         </section>
                     </div>
                 );
