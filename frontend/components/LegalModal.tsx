@@ -32,7 +32,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
             <div className="border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Privacy Policy</h1>
                 <p className="text-xs uppercase font-bold text-slate-400">Effective Date: December 12, 2025</p>
-                <p className="text-xs uppercase font-bold text-slate-400">Version: 2.1 (Global SaaS with Merchant of Record)</p>
+                <p className="text-xs uppercase font-bold text-slate-400">Version: 3.0</p>
             </div>
             
             <section>
@@ -54,14 +54,15 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">3. Data Architecture & Audio Processing</h3>
-                <p className="mb-2 font-bold">3.1. Client-Side First Processing</p>
-                <p className="mb-2">A core feature of Music Metadata Engine is its client-side architecture. When you use the Service to analyze audio files, the Digital Signal Processing (DSP) algorithms (such as BPM detection, key detection, and spectral analysis via Essentia.js/WASM) run locally within your web browser environment. <strong>We do not upload your full audio files to our servers for persistent storage.</strong></p>
-                
-                <p className="mb-2 font-bold">3.2. Temporary Data Transmission for AI & Identification</p>
-                <p className="mb-2">To provide advanced features, specific, minimized data packets must be transmitted to third-party providers:</p>
+                <p className="mb-2 font-bold">3.1. Hybrid processing</p>
+                <p className="mb-2">Your browser runs an instant Digital Signal Processing preview (BPM, key, loudness, spectral analysis via Essentia.js / WebAssembly) locally. The full analysis then runs on our server: your file is uploaded, analysed, and <strong>discarded promptly once the analysis completes</strong> — we do not keep the audio. Only the resulting metadata (and, where you save it, your analysis history) is stored.</p>
+
+                <p className="mb-2 font-bold">3.2. Transmission to third parties for AI &amp; identification</p>
+                <p className="mb-2">To produce the classification and identification, minimised data is sent to:</p>
                 <ul className="list-disc pl-5 space-y-2 mt-2">
-                    <li><strong>Google Gemini API (AI Analysis):</strong> When you request AI metadata generation, a temporary buffer of the audio file or a compressed representation is sent securely to Google's servers for inference. This data is processed in ephemeral instances and is not used by Google to train their base foundation models (subject to Google Cloud Enterprise privacy terms).</li>
-                    <li><strong>ACRCloud / AcoustID:</strong> For track identification, a "fingerprint" (a mathematical summary of the audio) or a small audio snippet (first 1MB) is transmitted. The full original file is never stored by these providers.</li>
+                    <li><strong>AI inference (Groq, Google Gemini, OpenRouter):</strong> the audio and/or a compact feature representation is sent for classification. These providers process it transiently and do not use it to train their foundation models.</li>
+                    <li><strong>ACRCloud / AcoustID / MusicBrainz:</strong> a "fingerprint" (a mathematical summary of the audio) or a short snippet is sent for identification. The full file is not stored by these providers.</li>
+                    <li><strong>Enrichment (Spotify, Last.fm, Discogs):</strong> a title / artist / identifier is sent to retrieve public catalogue data.</li>
                 </ul>
             </section>
             
@@ -73,7 +74,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                 <ul className="list-disc pl-5 space-y-1">
                     <li><strong>Identity Data:</strong> Full name, username, or alias provided during registration.</li>
                     <li><strong>Contact Data:</strong> Email address used for authentication and billing communication.</li>
-                    <li><strong>Authentication Data:</strong> Encrypted passwords (hashed), OAuth tokens (Google Login), and session cookies via Supabase Auth.</li>
+                    <li><strong>Authentication Data:</strong> Passwords stored only as bcrypt hashes, OAuth tokens (Google Login), and a signed session token (JWT) held in your browser's local storage.</li>
                 </ul>
 
                 <h4 className="font-bold mt-4 mb-2 text-slate-700 dark:text-slate-200">4.2. Usage & Technical Data</h4>
@@ -83,13 +84,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                     <li><strong>Error Reports:</strong> Stack traces and error codes to identify bugs.</li>
                 </ul>
 
-                <h4 className="font-bold mt-4 mb-2 text-slate-700 dark:text-slate-200">4.3. Financial Data (Processed by Lemon Squeezy)</h4>
+                <h4 className="font-bold mt-4 mb-2 text-slate-700 dark:text-slate-200">4.3. Financial Data (Processed by Stripe)</h4>
                 <p>We <strong>do not</strong> store or process your credit card numbers, bank account details, or full billing address on our servers.</p>
-                <p className="mt-2">All payments are handled by our Merchant of Record, <strong>Lemon Squeezy, LLC</strong>. When you make a purchase:</p>
+                <p className="mt-2">Payments are processed by <strong>Stripe Payments Europe, Ltd.</strong>. {ownerData.company} is the seller of record and issues invoices for its purchases. When you buy a credit pack:</p>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Lemon Squeezy acts as the reseller of the software.</li>
-                    <li>They collect and process payment information in accordance with their own Privacy Policy.</li>
-                    <li>We only receive a transaction identifier (Order ID), subscription status (Active/Cancelled), and the email associated with the purchase to grant you access to Pro features.</li>
+                    <li>Stripe collects and processes your payment information in accordance with its own Privacy Policy.</li>
+                    <li>We receive a transaction identifier (Checkout Session ID), the payment status, the amount, and the email associated with the purchase, in order to add the purchased credits to your account.</li>
                 </ul>
             </section>
 
@@ -108,7 +108,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                             <td className="p-3 border border-slate-200 dark:border-slate-700">Performance of Contract (Art. 6(1)(b))</td>
                         </tr>
                         <tr>
-                            <td className="p-3 border border-slate-200 dark:border-slate-700">Billing and Subscription Management</td>
+                            <td className="p-3 border border-slate-200 dark:border-slate-700">Billing, credit-pack purchases and invoicing</td>
                             <td className="p-3 border border-slate-200 dark:border-slate-700">Performance of Contract & Legal Obligation (Art. 6(1)(c))</td>
                         </tr>
                         <tr>
@@ -125,27 +125,29 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">6. Data Sharing and Third Parties</h3>
-                <p>We do not sell your personal data. We share data only with essential service providers required to operate the infrastructure:</p>
+                <p>We do not sell your personal data. We share data only with the service providers required to operate the Service:</p>
                 <ul className="list-disc pl-5 mt-2 space-y-2">
-                    <li><strong>Hosting/Infrastructure:</strong> For application and database hosting and security.</li>
-                    <li><strong>AI Inference Provider:</strong> To process audio-derived features and generate descriptive metadata.</li>
-                    <li><strong>Payment Processor / Merchant of Record:</strong> When paid plans are enabled, payments may be handled by a third-party MoR for global tax compliance and invoicing.</li>
-                    <li><strong>CDN/Edge Network:</strong> For frontend delivery and performance.</li>
+                    <li><strong>Hosting:</strong> A dedicated virtual server in the EU running the backend and the SQLite database.</li>
+                    <li><strong>AI inference providers:</strong> Groq, Google (Gemini) and OpenRouter — receive audio and audio-derived features to classify the track and generate descriptive metadata. They do not use your content to train their models.</li>
+                    <li><strong>Identification &amp; enrichment providers:</strong> ACRCloud, AcoustID, MusicBrainz, Spotify, Last.fm and Discogs — receive query data (e.g. a fingerprint or a title) to look up public catalogue information.</li>
+                    <li><strong>IPFS pinning:</strong> Pinata — stores the public Certificate of Authenticity you choose to generate.</li>
+                    <li><strong>Payment processor:</strong> Stripe — processes card payments and provides transaction confirmations.</li>
+                    <li><strong>CDN / Edge Network:</strong> Vercel — serves the frontend.</li>
                 </ul>
             </section>
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">7. International Data Transfers</h3>
-                <p>Your information, including Personal Data, may be transferred to — and maintained on — computers located outside of your state, province, country, or other governmental jurisdiction where the data protection laws may differ from those of your jurisdiction. If you are located outside the United States and choose to provide information to us, please note that we transfer the data, including Personal Data, to the United States and process it there. We utilize Standard Contractual Clauses (SCCs) approved by the European Commission to ensure the security of such transfers.</p>
+                <p>The backend and database are hosted on a dedicated server in the EU. Some processing is carried out by third-party providers outside the EEA (for example AI inference and payment processing in the United States). Where that happens we rely on Standard Contractual Clauses approved by the European Commission, or on an applicable adequacy decision, to safeguard the transfer.</p>
             </section>
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">8. Data Retention Policy</h3>
                 <p>We will retain your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li><strong>Account Data:</strong> Retained as long as your account is active. Deleted 30 days after account closure request.</li>
-                    <li><strong>Transaction Data:</strong> Retained for 5-7 years as required by tax laws in Poland and applicable jurisdictions (handled primarily by Lemon Squeezy).</li>
-                    <li><strong>Temporary Audio Data:</strong> Discarded immediately after analysis is complete.</li>
+                    <li><strong>Account Data:</strong> Retained as long as your account is active. Deleted 30 days after an account closure request.</li>
+                    <li><strong>Transaction &amp; invoicing Data:</strong> Retained for the period required by Polish tax and accounting law (currently 5 years from the end of the tax year). Card data is held by Stripe, not by us.</li>
+                    <li><strong>Uploaded Audio:</strong> Discarded promptly after the analysis completes; only the resulting metadata and, where you save it, your analysis history are kept.</li>
                 </ul>
             </section>
 
@@ -206,18 +208,17 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                     <li>Reverse engineer, decompile, or disassemble the software.</li>
                     <li>Use the Service to generate metadata for deepfakes or malicious content.</li>
-                    <li>Share your account credentials with third parties (seat sharing is prohibited unless on an Enterprise plan).</li>
+                    <li>Share your account credentials with third parties.</li>
                 </ul>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">4. Subscriptions, Payments, and Billing</h3>
-                <p className="mb-2"><strong>4.1. Merchant of Record:</strong> When paid plans are enabled, orders may be conducted by an online reseller acting as Merchant of Record. They provide invoicing, tax compliance, customer service inquiries, and handle returns.</p>
-                <p className="mb-2"><strong>4.2. Billing Cycle:</strong> If applicable, the Service may be billed on a subscription basis (monthly or annually) in advance on a recurring and periodic basis.</p>
-                <p className="mb-2"><strong>4.3. Taxes:</strong> Prices may include or exclude taxes depending on your location. Any applicable taxes will be calculated and collected according to local laws.</p>
-                <p className="mb-2"><strong>4.4. Cancellation:</strong> You may cancel a subscription at any time via the available billing portal or the link provided in your invoice email. Access will continue until the end of the current billing period.</p>
-                <p className="mb-2"><strong>4.5. Refunds:</strong> Initial purchases may be eligible for a limited refund window in accordance with our then-current refund policy and local consumer laws.</p>
-                <p className="mb-2"><strong>4.6. Fee Changes:</strong> We may modify pricing at any time. Any change will become effective at the end of the then-current billing cycle.</p>
+                <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">4. Payments and Billing</h3>
+                <p className="mb-2"><strong>4.1. Seller and processor:</strong> {ownerData.company} is the seller. Card payments are processed by <strong>Stripe</strong>; we do not store card data. {ownerData.company} issues invoices for its sales and accounts for any applicable VAT.</p>
+                <p className="mb-2"><strong>4.2. Model:</strong> The Service is sold as <strong>one-time credit packs</strong>, not a subscription. One credit is consumed per full analysis; exporting the results of an analysis you have already run is included. New accounts receive a small number of free credits.</p>
+                <p className="mb-2"><strong>4.3. Taxes:</strong> Prices are shown exclusive or inclusive of tax depending on your location; any applicable tax is calculated at checkout according to local law.</p>
+                <p className="mb-2"><strong>4.4. Refunds:</strong> Because credit packs are digital content supplied immediately, by completing a purchase you request immediate performance and acknowledge that your statutory right of withdrawal is lost once credits are delivered. Unused credits from a recent purchase may still be refundable at our discretion and under applicable consumer law — contact {ownerData.email}. <span className="italic text-slate-500">[This clause is to be confirmed with legal counsel for EU consumer-law compliance.]</span></p>
+                <p className="mb-2"><strong>4.5. Price changes:</strong> We may change pack prices at any time; changes do not affect credits already purchased.</p>
             </section>
 
             <section>
@@ -291,10 +292,10 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
             <section>
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">4. Cross-Border Data Transfers</h3>
-                <p>As we use servers located in the United States (via Supabase and Google Cloud), your data is transferred outside the EEA. We ensure that such transfers are lawful by relying on:</p>
+                <p>Our backend and database run on a dedicated server in the EU. Some sub-processing is performed by providers based in the United States (notably AI inference — Groq, Google, OpenRouter — and payment processing — Stripe). To the extent your data reaches those providers outside the EEA, we rely on:</p>
                 <ul className="list-disc pl-5 mt-2">
-                    <li><strong>Standard Contractual Clauses (SCCs):</strong> Our contracts with US-based providers incorporate the EU Commission's approved standard contractual clauses.</li>
-                    <li><strong>Adequacy Decisions:</strong> Where applicable (e.g., EU-US Data Privacy Framework).</li>
+                    <li><strong>Standard Contractual Clauses (SCCs):</strong> Our agreements with those providers incorporate the EU Commission's approved standard contractual clauses.</li>
+                    <li><strong>Adequacy Decisions:</strong> Where applicable (e.g. the EU-US Data Privacy Framework).</li>
                 </ul>
             </section>
 
@@ -328,9 +329,8 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                         <h4 className="font-bold text-light-text dark:text-dark-text border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">A. Strictly Necessary (Essential)</h4>
                         <p className="mb-2">These are essential for the website to function properly. Without these, you cannot log in or use the core features.</p>
                         <ul className="list-disc pl-5 space-y-1 text-xs font-mono bg-slate-100 dark:bg-slate-800 p-3 rounded">
-                            <li><strong>sb-access-token:</strong> (Local Storage) Used by Supabase to maintain your secure login session.</li>
-                            <li><strong>sb-refresh-token:</strong> (Local Storage) Used to refresh your session without forcing you to log in repeatedly.</li>
-                            <li><strong>mme_theme:</strong> (Local Storage) Remembers your Dark Mode/Light Mode preference.</li>
+                            <li><strong>hrl_sso_token_v3:</strong> (Local Storage) Your signed login token (JWT). Without it you cannot stay logged in.</li>
+                            <li><strong>theme:</strong> (Local Storage) Remembers your Dark Mode / Light Mode preference.</li>
                         </ul>
                     </div>
 
@@ -358,7 +358,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-4">3. Third-Party Cookies (Payments)</h3>
                 <p>In addition to our own cookies, we may also use various third-parties cookies to report usage statistics of the Service and handle payments.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li><strong>Payment Processor / MoR:</strong> When you initiate a checkout process (if enabled), a payment provider may place cookies to process payments securely, remember your cart contents, and detect fraud. By proceeding to checkout, you agree to the provider's Cookie Policy.</li>
+                    <li><strong>Stripe:</strong> When you start a checkout, Stripe places cookies on its own checkout pages to process the payment securely and detect fraud. By proceeding to checkout you accept Stripe's cookie and privacy policies.</li>
                     <li><strong>Google Identity:</strong> If you use "Sign in with Google", Google may place cookies for authentication purposes.</li>
                 </ul>
             </section>
@@ -378,7 +378,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
                     <div>
                         <h4 className="font-bold text-lg text-yellow-700 dark:text-yellow-400 mb-1">AI Generative Content Warning</h4>
                         <p className="text-xs leading-relaxed text-yellow-800 dark:text-yellow-200">
-                            This Service utilizes advanced Large Language Models (LLM) including Google Gemini, and generative image models (Imagen). By using these features, you acknowledge the probabilistic nature of Artificial Intelligence.
+                            This Service uses several Large Language Models (via Groq, Google Gemini and OpenRouter) in a consensus ensemble, and a generative image model (Pollinations) for cover-art suggestions. By using these features you acknowledge the probabilistic nature of Artificial Intelligence.
                         </p>
                     </div>
                 </div>

@@ -113,22 +113,22 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
                                         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 5.917 5.724 10.5 15 1.5"/>
                                     </svg>
                                 </span>
-                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 1: MVP (Current)</h3>
-                                <p className="text-sm text-slate-500">Full client functionality, local analysis, no backend.</p>
+                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 1: MVP</h3>
+                                <p className="text-sm text-slate-500">Browser DSP preview, single-file analysis, PDF certificate.</p>
                             </li>
                              <li className="mb-2 ml-6">
                                 <span className="absolute flex items-center justify-center w-6 h-6 bg-slate-200 rounded-full -left-3 ring-4 ring-white dark:ring-slate-900 dark:bg-slate-700">
                                     <Clock className="w-3 h-3 text-slate-600 dark:text-slate-300" />
                                 </span>
-                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 2: Infrastructure (Q1 2026)</h3>
-                                <p className="text-sm text-slate-500">Firebase/Supabase implementation, secure API Proxy, user accounts.</p>
+                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 2: Infrastructure (Current)</h3>
+                                <p className="text-sm text-slate-500">FastAPI backend, accounts, credit billing, batch processing, IPFS certificates.</p>
                             </li>
                             <li className="mb-2 ml-6">
                                 <span className="absolute flex items-center justify-center w-6 h-6 bg-slate-200 rounded-full -left-3 ring-4 ring-white dark:ring-slate-900 dark:bg-slate-700">
                                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">3</span>
                                 </span>
-                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 3: Commercialization (Q2 2026)</h3>
-                                <p className="text-sm text-slate-500">Subscription plans, B2B API, DAW plugins.</p>
+                                <h3 className="font-medium leading-tight text-light-text dark:text-dark-text">Phase 3: Scale</h3>
+                                <p className="text-sm text-slate-500">Partner / enterprise API with async batch + webhooks, DAW integration.</p>
                             </li>
                         </ol>
                     </div>

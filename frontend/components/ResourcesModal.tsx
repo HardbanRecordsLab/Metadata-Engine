@@ -64,7 +64,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                             <p className="mb-2">Music Metadata Engine (MME) operates on a "Hybrid Cloud" architecture. Unlike traditional web applications that upload your entire file to a remote server for processing, MME prioritizes client-side execution for speed and privacy.</p>
                             <ul className="list-disc pl-5 space-y-1 mt-2">
                                 <li><strong>DSP Engine (Browser-based):</strong> Technical audio analysis (BPM, Key, Loudness, Spectral Balance) is calculated directly in your browser using WebAssembly (WASM) and the Web Audio API. Your raw audio data stays on your machine during this phase.</li>
-                                <li><strong>AI Inference (Cloud-based):</strong> Only a optimized representation (or a secure, temporary buffer) of the audio is transmitted to Google's Vertex AI (Gemini models) for semantic understanding, genre classification, and descriptive writing.</li>
+                                <li><strong>AI Inference (Cloud-based):</strong> The audio (or a compact feature representation) is transmitted to a consensus ensemble of language models — via Groq, Google Gemini and OpenRouter — for semantic understanding, genre classification, and descriptive writing. Several models must agree before a tag is accepted.</li>
                             </ul>
                         </section>
 
@@ -158,36 +158,33 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                         {/* BILLING & SUBSCRIPTION SECTION */}
                         <section>
                             <h3 className="text-xl font-bold text-accent-violet mb-4 flex items-center gap-2">
-                                <CreditCard className="w-5 h-5" /> Billing & Subscriptions
+                                <CreditCard className="w-5 h-5" /> Billing & Credits
                             </h3>
 
                             <details className="group mb-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                                 <summary className="font-bold text-light-text dark:text-dark-text cursor-pointer flex justify-between items-center">
-                                    Who handles my payments? (Merchant of Record)
+                                    How does pricing work?
                                     <span className="group-open:rotate-180 transition-transform">▼</span>
                                 </summary>
                                 <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-3">
-                                    <p>We partner with <strong>Lemon Squeezy</strong>, a trusted global Merchant of Record. This means:</p>
+                                    <p>There is no subscription. You buy <strong>one-time credit packs</strong> and <strong>1 credit = 1 full analysis</strong>. Exporting the results of an analysis you already ran is free. New accounts start with a few free credits, and promo / referral codes add more.</p>
                                     <ul className="list-disc pl-5 mt-2 space-y-1">
-                                        <li>Your invoice will come from Lemon Squeezy.</li>
-                                        <li>They handle all global tax compliance (VAT, GST, Sales Tax).</li>
-                                        <li>They securely process your credit card or PayPal data; we never see your full financial details.</li>
+                                        <li>Starter — 10 credits — $9</li>
+                                        <li>Producer — 50 credits — $35</li>
+                                        <li>Label — 150 credits — $89</li>
+                                        <li>Studio — 400 credits — $199</li>
                                     </ul>
                                 </div>
                             </details>
 
                             <details className="group mb-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                                 <summary className="font-bold text-light-text dark:text-dark-text cursor-pointer flex justify-between items-center">
-                                    How do I cancel or upgrade my plan?
+                                    Who handles my payment?
                                     <span className="group-open:rotate-180 transition-transform">▼</span>
                                 </summary>
                                 <div className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-3">
-                                    <p>You have full control over your subscription via the Customer Portal.</p>
-                                    <ol className="list-decimal pl-5 mt-2 space-y-1">
-                                        <li>Look for an email from Lemon Squeezy with the subject "Your receipt...". It contains a direct link to manage your subscription.</li>
-                                        <li>Alternatively, go to Settings in our app and click "Manage Billing".</li>
-                                    </ol>
-                                    <p className="mt-2">Cancellation is effective at the end of the current billing period. Upgrades are prorated immediately.</p>
+                                    <p>Payments are processed by <strong>Stripe</strong>. HardbanRecords Lab is the seller and issues the invoice. We never see your full card details — Stripe handles them on its own secure checkout pages.</p>
+                                    <p className="mt-2">To buy credits: <strong>Settings → Buy credits</strong>. Credits are added automatically as soon as the payment confirms.</p>
                                 </div>
                             </details>
 
@@ -279,9 +276,6 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                                 <a href="mailto:contact@hardbanrecordslab.online" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg">
                                     Email Support
                                 </a>
-                                <a href="https://hardbanrecordslab.lemonsqueezy.com/billing" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-6 py-3 border border-slate-300 dark:border-slate-600 text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    Billing Portal (Lemon Squeezy)
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -331,7 +325,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                             <div className="absolute left-[9px] top-1.5 w-3.5 h-3.5 bg-green-500 rounded-full border-4 border-white dark:border-dark-card shadow-sm"></div>
                             <div className="mb-1 text-xs font-bold text-green-500 uppercase tracking-wider">Q1 2025</div>
                             <h4 className="font-bold text-lg text-light-text dark:text-dark-text">Pro Infrastructure</h4>
-                            <p className="text-sm text-slate-500 mt-1">Deployment of Supabase backend, user accounts, and batch processing capabilities.</p>
+                            <p className="text-sm text-slate-500 mt-1">FastAPI backend, user accounts, and batch processing capabilities.</p>
                         </div>
 
                         <div className="relative pl-12">
@@ -380,16 +374,16 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ type, onClose }) => {
                             <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Service Health</h4>
 
                             <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                                <span className="text-sm font-medium">Gemini AI (Vertex)</span>
-                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">99.99% Uptime</span>
+                                <span className="text-sm font-medium">AI ensemble (Groq / Gemini / OpenRouter)</span>
+                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">Operational</span>
                             </div>
                             <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                                <span className="text-sm font-medium">ACRCloud Fingerprinting</span>
-                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">100% Uptime</span>
+                                <span className="text-sm font-medium">ACRCloud / AcoustID</span>
+                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">Operational</span>
                             </div>
                             <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                                <span className="text-sm font-medium">Supabase Database</span>
-                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">100% Uptime</span>
+                                <span className="text-sm font-medium">Database</span>
+                                <span className="text-xs font-bold text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">Operational</span>
                             </div>
                             <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
                                 <span className="text-sm font-medium">Processing Queue</span>
