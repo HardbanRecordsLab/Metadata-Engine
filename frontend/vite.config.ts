@@ -15,6 +15,19 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     base: './',
+    build: {
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-pdf': ['jspdf', 'html2canvas'],
+            'vendor-media': ['wavesurfer.js', 'jszip'],
+            'vendor-motion': ['framer-motion'],
+          },
+        },
+      },
+    },
     server: {
       host: '0.0.0.0', // Listen on all addresses
       port: 5173,      // Preferred port

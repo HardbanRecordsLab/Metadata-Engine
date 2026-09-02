@@ -5,29 +5,31 @@ import { generateMetadata } from './services/geminiService';
 import { Metadata, AnalysisRecord, BatchItem } from './types';
 import Header from './components/Header';
 import InputSection from './components/InputSection';
-import ResultsSection from './components/results/ResultsSection';
 import Toast from './components/Toast';
-import AboutModal from './components/AboutModal';
-import LegalModal, { LegalDocType } from './components/LegalModal';
-import ResourcesModal, { ResourceDocType } from './components/ResourcesModal';
+import type { LegalDocType } from './components/LegalModal';
+import type { ResourceDocType } from './components/ResourcesModal';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import DashboardHome from './components/DashboardHome';
-import SettingsPanel from './components/SettingsPanel';
-import AuthModal from './components/AuthModal';
 import Button from './components/Button';
 import ErrorBoundary from './components/ErrorBoundary';
 import { exportBatchToCsv } from './utils/export';
 import { Menu } from './components/icons';
 import { useAuth } from './contexts/AuthContext';
 import { db } from './services/databaseService';
-import ValidationPanel from './components/ValidationPanel';
-import PricingModal from './components/PricingModal';
-import RedeemCodeModal from './components/RedeemCodeModal';
 // BatchAnalysisPanel and StemSeparationPanel imports removed – views no longer exposed
 
-// Lazy Load Heavy Components
+// Lazy-loaded — none of these are on the first-paint path
 const HistoryPanel = lazy(() => import('./components/HistoryPanel'));
+const ResultsSection = lazy(() => import('./components/results/ResultsSection'));
+const AboutModal = lazy(() => import('./components/AboutModal'));
+const LegalModal = lazy(() => import('./components/LegalModal'));
+const ResourcesModal = lazy(() => import('./components/ResourcesModal'));
+const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const ValidationPanel = lazy(() => import('./components/ValidationPanel'));
+const PricingModal = lazy(() => import('./components/PricingModal'));
+const RedeemCodeModal = lazy(() => import('./components/RedeemCodeModal'));
 
 
 type Theme = 'light' | 'dark';
@@ -407,6 +409,7 @@ const AppContent: React.FC = () => {
 
                                 {view === 'results' && activeAnalysis && (
                                     <div className="max-w-7xl mx-auto">
+                                      <Suspense fallback={<LoadingFallback />}>
                                         <ResultsSection
                                             isLoading={false}
                                             error={null}
@@ -424,6 +427,7 @@ const AppContent: React.FC = () => {
                                             onUpdateFile={handleUpdateActiveFile}
                                             onBackToBatch={handleBackToBatch}
                                         />
+                                      </Suspense>
                                     </div>
                                 )}
 
@@ -436,11 +440,13 @@ const AppContent: React.FC = () => {
                                 )}
 
                                 {view === 'settings' && (
-                                    <SettingsPanel
-                                        user={user}
-                                        onOpenPricing={() => setIsPricingOpen(true)}
-                                        onOpenRedeemCode={() => setIsRedeemCodeOpen(true)}
-                                    />
+                                    <Suspense fallback={<LoadingFallback />}>
+                                        <SettingsPanel
+                                            user={user}
+                                            onOpenPricing={() => setIsPricingOpen(true)}
+                                            onOpenRedeemCode={() => setIsRedeemCodeOpen(true)}
+                                        />
+                                    </Suspense>
                                 )}
 
                                 {/* Views not connected to backend removed from UI: tools, settings, usage, bulk-edit */}
@@ -456,14 +462,16 @@ const AppContent: React.FC = () => {
             </div>
 
             {toastMessage && <Toast message={toastMessage.message} type={toastMessage.type} />}
-            {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
-            {isAuthOpen && <AuthModal onClose={() => { setIsAuthOpen(false); setResetToken(null); }} resetToken={resetToken ?? undefined} />}
 
-            {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}
-            {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}
-            {showValidation && <ValidationPanel onClose={() => setShowValidation(false)} />}
-            {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} />}
-            {isRedeemCodeOpen && <RedeemCodeModal onClose={() => setIsRedeemCodeOpen(false)} showToast={showToast} />}
+            <Suspense fallback={null}>
+                {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
+                {isAuthOpen && <AuthModal onClose={() => { setIsAuthOpen(false); setResetToken(null); }} resetToken={resetToken ?? undefined} />}
+                {activeLegalDoc && <LegalModal type={activeLegalDoc} onClose={() => setActiveLegalDoc(null)} />}
+                {activeResourceDoc && <ResourcesModal type={activeResourceDoc} onClose={() => setActiveResourceDoc(null)} />}
+                {showValidation && <ValidationPanel onClose={() => setShowValidation(false)} />}
+                {isPricingOpen && <PricingModal onClose={() => setIsPricingOpen(false)} />}
+                {isRedeemCodeOpen && <RedeemCodeModal onClose={() => setIsRedeemCodeOpen(false)} showToast={showToast} />}
+            </Suspense>
         </div>
     );
 }
