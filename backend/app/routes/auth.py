@@ -62,6 +62,11 @@ class DeleteAccountRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "Bearer"
@@ -254,7 +259,35 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "tier": current_user.tier,
         "credits": current_user.credits,
         "created_at": current_user.created_at,
+        "api_key": current_user.api_key,
     }
+
+
+@router.post("/me/change-password", response_model=TokenResponse)
+@limiter.limit("10/hour")
+async def change_password(request: Request, payload: ChangePasswordRequest,
+                          current_user: User = Depends(get_current_user),
+                          db: Session = Depends(get_db)):
+    """Change the password for the signed-in user."""
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=403, detail="Current password is incorrect.")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+    current_user.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    logger.info("Password changed for %s", current_user.email)
+    return TokenResponse(access_token=create_access_token(current_user.id), token_type="Bearer", expires_in=604800)
+
+
+@router.post("/me/rotate-api-key")
+@limiter.limit("10/hour")
+async def rotate_api_key(request: Request, current_user: User = Depends(get_current_user),
+                         db: Session = Depends(get_db)):
+    """Generate a fresh API key, invalidating the old one."""
+    current_user.api_key = str(uuid.uuid4())
+    db.commit()
+    logger.info("API key rotated for %s", current_user.email)
+    return {"api_key": current_user.api_key}
 
 
 @router.get("/me/export")

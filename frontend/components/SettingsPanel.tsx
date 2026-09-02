@@ -21,6 +21,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOp
     const [deletePwd, setDeletePwd] = useState('');
     const [deleteBusy, setDeleteBusy] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [curPwd, setCurPwd] = useState('');
+    const [newPwd, setNewPwd] = useState('');
+    const [pwdMsg, setPwdMsg] = useState<{ ok: boolean; text: string } | null>(null);
+    const [pwdBusy, setPwdBusy] = useState(false);
+    const [apiKey, setApiKey] = useState<string | undefined>(user?.apiKey);
+    const [keyRevealed, setKeyRevealed] = useState(false);
 
     const authToken = () => localStorage.getItem('hrl_sso_token_v3') || localStorage.getItem('access_token') || '';
 
@@ -40,6 +46,43 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOp
             alert(e instanceof Error ? e.message : 'Export failed');
         } finally {
             setExporting(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        setPwdBusy(true);
+        setPwdMsg(null);
+        try {
+            const res = await fetch(getFullUrl('/auth/me/change-password'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+                body: JSON.stringify({ current_password: curPwd, new_password: newPwd }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || 'Could not change password.');
+            const t = data.access_token || data.token;
+            if (t) localStorage.setItem('hrl_sso_token_v3', t);
+            setCurPwd(''); setNewPwd('');
+            setPwdMsg({ ok: true, text: 'Password updated.' });
+        } catch (e) {
+            setPwdMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not change password.' });
+        } finally {
+            setPwdBusy(false);
+        }
+    };
+
+    const handleRotateKey = async () => {
+        if (!confirm('Rotate your API key? The current key stops working immediately.')) return;
+        try {
+            const res = await fetch(getFullUrl('/auth/me/rotate-api-key'), {
+                method: 'POST', headers: { Authorization: `Bearer ${authToken()}` },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed');
+            setApiKey(data.api_key);
+            setKeyRevealed(true);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : 'Failed to rotate key');
         }
     };
 
@@ -233,6 +276,43 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ user, onOpenPricing, onOp
 
                     {activeTab === 'security' && (
                         <div className="space-y-6">
+                            <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border border-white/10">
+                                <h4 className="text-xl font-black mb-6 dark:text-white flex items-center gap-3">
+                                    <Shield className="w-7 h-7 text-accent-violet" /> Change password
+                                </h4>
+                                <div className="space-y-3 max-w-sm">
+                                    <input type="password" value={curPwd} onChange={(e) => setCurPwd(e.target.value)}
+                                        placeholder="Current password"
+                                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-accent-violet" />
+                                    <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
+                                        placeholder="New password (min 8)" minLength={8}
+                                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-accent-violet" />
+                                    {pwdMsg && <p className={`text-xs ${pwdMsg.ok ? 'text-accent-emerald' : 'text-red-500'}`} role="alert">{pwdMsg.text}</p>}
+                                    <Button variant="secondary" onClick={handleChangePassword} disabled={pwdBusy || !curPwd || newPwd.length < 8}>
+                                        {pwdBusy ? 'Saving…' : 'Update password'}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border border-white/10">
+                                <h4 className="text-xl font-black mb-2 dark:text-white flex items-center gap-3">
+                                    <Zap className="w-7 h-7 text-accent-violet" /> API key
+                                </h4>
+                                <p className="text-sm text-slate-500 mb-4">For programmatic access to the analysis API. Treat it like a password.</p>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <code className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-mono break-all">
+                                        {apiKey ? (keyRevealed ? apiKey : `${apiKey.slice(0, 8)}••••••••••••••••••••`) : '—'}
+                                    </code>
+                                    {apiKey && (
+                                        <Button variant="secondary" onClick={() => setKeyRevealed((v) => !v)}>{keyRevealed ? 'Hide' : 'Reveal'}</Button>
+                                    )}
+                                    {apiKey && (
+                                        <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(apiKey)}>Copy</Button>
+                                    )}
+                                    <Button variant="secondary" className="border-amber-500/40 text-amber-500 hover:bg-amber-500/10" onClick={handleRotateKey}>Rotate</Button>
+                                </div>
+                            </div>
+
                             <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border border-white/10">
                                 <h4 className="text-xl font-black mb-2 dark:text-white flex items-center gap-3">
                                     <FileText className="w-7 h-7 text-accent-violet" /> Your data

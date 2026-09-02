@@ -17,6 +17,8 @@ export interface User {
     createdAt: number;
     credits: number; // New: Number of remaining analyses
     isAdmin?: boolean;
+    isVerified?: boolean;
+    apiKey?: string;
 }
 
 export interface UserProfile { // Legacy compatibility

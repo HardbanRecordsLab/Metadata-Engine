@@ -70,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                 credits: isAdm ? 999999999 : (typeof userData.credits === 'number' ? userData.credits : 3),
                 isAdmin: isAdm,
+                isVerified: userData.is_verified !== false,
+                apiKey: userData.api_key,
             });
 
         } catch (error) {
