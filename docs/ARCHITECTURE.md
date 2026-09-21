@@ -10,7 +10,7 @@ Browser (React SPA, Vercel)                VPS (Docker)
   app-metadata.hardbanrecordslab.online      metadata.hardbanrecordslab.online
   ├─ essentia.js (WASM) — in-browser DSP     └─ Nginx ──► metadata-backend container
   ├─ jsmediatags — read existing tags             FastAPI (app.main:app), 1 worker
-  └─ /api/* ──proxied──► VPS                       ├─ SQLite  /data/music_metadata.db
+  └─ /api/* ──proxied──► VPS                       ├─ PostgreSQL  hbrl-postgres / metadata_engine
                                                    ├─ Essentia + Librosa (server DSP)
                                                    ├─ LLM ensemble (Groq/Gemini/OpenRouter)
                                                    ├─ WeasyPrint (certificate PDF)
@@ -18,7 +18,7 @@ Browser (React SPA, Vercel)                VPS (Docker)
 ```
 
 - One FastAPI container. No microservices, no worker cluster, no message
-  queue — the "job queue" is a `jobs` table in SQLite plus an in-process
+  queue — the "job queue" is a `jobs` table in the database plus an in-process
   async task.
 - The frontend is a **routerless SPA**: `index.tsx` renders `<App/>` for every
   path except `/verify/<id>` (certificate verification page). Vercel rewrites
@@ -47,7 +47,7 @@ Routers are mounted under both `/api` and `/auth` prefixes (`main.py`) — the
 `/auth`-prefixed copies exist for the Vercel proxy path; treat `/api/*` as
 canonical.
 
-## Data model (`app/db.py`, SQLite)
+## Data model (`app/db.py`, PostgreSQL in prod)
 
 `User`, `Job`, `CreditPurchase`, `RedeemCode`, `RedeemedCode`,
 `AnalysisHistory`, `Certificate`, `VerificationEvent`.
@@ -129,13 +129,17 @@ table (unique `stripe_session_id`) for idempotency. Redeem codes
 ## Deploy
 
 Push to `main` → `.github/workflows/deploy.yml`:
-`appleboy/ssh-action@v1.2.2` SSHes to the VPS, writes
-`/srv/hbrl/Metadata-Engine/.env` from **GitHub repo Secrets**, then
-`docker compose -f vps.docker-compose.yml up -d --build`
-(`BUILDKIT_PROGRESS=plain`, `command_timeout: 30m`). `vps.docker-compose.yml`
-pins `DATABASE_URL=sqlite:////data/music_metadata.db` regardless of what the
-`.env` says, and mounts `./data`, `./logs`, `./.env`. Full operational detail:
-[OPERATIONS.md](OPERATIONS.md).
+`appleboy/ssh-action@v1.2.2` SSHes to the VPS, refreshes
+`/srv/hbrl/Metadata-Engine/.env` from **GitHub repo Secrets** (never
+`DATABASE_URL` — the VPS `.env` owns it and the deploy refuses to run unless it
+points at `hbrl-postgres/metadata_engine`), fast-forwards the checkout, then
+`docker compose -f docker-compose.yml up -d --build`
+(`BUILDKIT_PROGRESS=plain`, `command_timeout: 30m`). The container joins the
+external `hbrl-db` network to reach Postgres. After the swap the job waits for
+`healthy`, re-checks the container's `DATABASE_URL` and rolls back to the
+`music-metadata-engine:previous` image on failure. `vps.docker-compose.yml` is a
+deprecated alias (`include: docker-compose.yml`) — it no longer pins SQLite.
+Full operational detail: [OPERATIONS.md](OPERATIONS.md).
 
 ## Notable constraints
 
