@@ -18,6 +18,12 @@ async def diagnose_system():
                 "Present" if settings.GEMINI_API_KEY else "Missing"
             ),
             "SPOTIFY_CLIENT_ID": "Present" if settings.SPOTIFY_CLIENT_ID else "Missing",
+            "GROQ_API_KEY": "Present" if os.getenv("GROQ_API_KEY") else "Missing",
+            "OPENROUTER_API_KEY": "Present" if os.getenv("OPENROUTER_API_KEY") else "Missing",
+        },
+        "llm": {
+            "openrouter_paid_allowed": os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() not in ("0", "false", "no", "off"),
+            "vote_models": (os.getenv("OPENROUTER_VOTE_MODELS", "").strip() or "default (gemini-2.5-flash-lite, deepseek-v4-flash, gemma-4-31b-it)"),
         },
         "system": {"os": os.name, "cwd": os.getcwd()},
     }

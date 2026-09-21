@@ -184,24 +184,30 @@ Rules:
         user_prompt = self._build_enhanced_prompt(audio_features, ml_predictions, job_id=job_id)
 
         # Wybierz modele na podstawie preferencji
-        if model_preference == 'flash':
-            logger.info("Fast Mode: Using Groq + Gemini (free chain)")
-            tasks = [
-                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
-                self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
-            ]
+        if self.openrouter_key and self._openrouter_paid_allowed():
+            # OpenRouter-first: 2 (flash) or 3 (pro) very cheap models from different families,
+            # answers that arrive within the timeout are used (see _openrouter_vote).
+            logger.info("OpenRouter vote (%s): %s", model_preference, ", ".join(self._openrouter_vote_models(model_preference)))
+            llm_results = await self._openrouter_vote(user_prompt, model_preference)
         else:
-            tasks = [
-                self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
-                self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
-            ]
-            if self.openrouter_key:
-                logger.info("Pro Mode: Using Groq + Gemini + OpenRouter (free chain)")
-                tasks.append(self._openrouter_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT))
+            if model_preference == 'flash':
+                logger.info("Fast Mode: Using Groq + Gemini (free chain)")
+                tasks = [
+                    self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
+                    self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                ]
             else:
-                logger.info("Pro Mode: Using Groq + Gemini (OpenRouter key not configured)")
+                tasks = [
+                    self._groq_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, model_preference=model_preference),
+                    self._gemini_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT),
+                ]
+                if self.openrouter_key:
+                    logger.info("Pro Mode: Using Groq + Gemini + OpenRouter (free chain)")
+                    tasks.append(self._openrouter_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT))
+                else:
+                    logger.info("Pro Mode: Using Groq + Gemini (OpenRouter key not configured)")
 
-        llm_results = await asyncio.gather(*tasks, return_exceptions=True)
+            llm_results = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Filtruj błędy
         valid_results = [
@@ -215,6 +221,10 @@ Rules:
             # Fallback do jednego wyniku lub heurystyk
             if valid_results:
                 final_result = valid_results[0]
+                # keep the provenance of a single valid vote (otherwise the job reports "0 LLMs" and skips caching)
+                final_result.setdefault('meta', {
+                    "llm_count": 1, "agreement_rate": "100%", "sources": [final_result.get('llm_source')]
+                })
             else:
                 return self._fallback_classification(audio_features)
         else:
@@ -537,10 +547,65 @@ STRICT OPERATIONAL DIRECTIVES:
         "openai/gpt-oss-120b",                        # ~$0.037/$0.170 per M — strong but ~9s, last resort
     ]
 
-    async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 1) -> Dict:
+    # OpenRouter-first vote (paid but very cheap, ~$0.0011 for a 3-model vote,
+    # i.e. ~4,000 analyses per $5). Chosen 2026-09-21 after a live test of 7
+    # candidates on the real prompt: all returned clean JSON, but only
+    # gemini-2.5-flash-lite was consistently fast (~3s); deepseek-v4-flash
+    # (~$0.00024/call) and gemma-4-31b-it (~$0.00038/call) are slower (15-40s).
+    # Order matters: 'flash' uses the first two (both reliably < 25s), 'pro'
+    # adds deepseek (a different family, sometimes slow - it is simply dropped
+    # from the vote if it misses the timeout).
+    # Override with OPENROUTER_VOTE_MODELS="a/b,c/d,e/f" (comma separated).
+    OPENROUTER_VOTE_MODELS = [
+        "google/gemini-2.5-flash-lite",
+        "google/gemma-4-31b-it",
+        "deepseek/deepseek-v4-flash",
+    ]
+    # How long the vote waits for the slowest model before using whatever
+    # already answered (a slow model must never discard the fast ones).
+    OPENROUTER_VOTE_TIMEOUT_SEC = 40.0
+
+    @staticmethod
+    def _openrouter_paid_allowed() -> bool:
+        """Paid cheap models are ON by default; set OPENROUTER_ALLOW_PAID=false/0/no/off to disable.
+        An unset or empty variable (e.g. an unset GitHub repo variable rendered as ``OPENROUTER_ALLOW_PAID=``) means ON."""
+        import os
+        return os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() not in ("0", "false", "no", "off")
+
+    def _openrouter_vote_models(self, model_preference: str) -> List[str]:
+        import os
+        raw = os.getenv("OPENROUTER_VOTE_MODELS", "").strip()
+        models = [m.strip() for m in raw.split(",") if m.strip()] or list(self.OPENROUTER_VOTE_MODELS)
+        return models[:2] if model_preference == 'flash' else models[:3]
+
+    async def _openrouter_vote(self, user_prompt: str, model_preference: str) -> List[Dict]:
+        """Run the OpenRouter models in parallel; return the answers that arrive within the timeout.
+        Slow or failing models are dropped instead of failing the whole consensus."""
+        models = self._openrouter_vote_models(model_preference)
+        tasks = [
+            asyncio.ensure_future(self._openrouter_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, models=[m]))
+            for m in models
+        ]
+        done, pending = await asyncio.wait(tasks, timeout=self.OPENROUTER_VOTE_TIMEOUT_SEC)
+        for t in pending:
+            t.cancel()
+        if pending:
+            logger.warning("OpenRouter vote: %d/%d models did not answer within %.0fs", len(pending), len(tasks), self.OPENROUTER_VOTE_TIMEOUT_SEC)
+        results = []
+        for t in done:
+            try:
+                results.append(t.result())
+            except Exception as e:  # a task that raised counts as no vote
+                logger.warning("OpenRouter vote task failed: %s", e)
+        return results
+
+    async def _openrouter_classify(self, context: str, system_prompt: str = None, retries: int = 1, models: List[str] = None) -> Dict:
         """
         OpenRouter: free-tier aggregator, used as a third, independent voice
         in the ensemble so consensus voting isn't just Groq vs. Gemini.
+
+        When ``models`` is given only those models are tried (used by the
+        OpenRouter-first vote); otherwise the legacy free -> cheap chain runs.
 
         Tries OPENROUTER_FREE_MODELS in order; when OPENROUTER_ALLOW_PAID is
         set it then falls through to OPENROUTER_CHEAP_MODELS (a few cents per
@@ -561,10 +626,13 @@ STRICT OPERATIONAL DIRECTIVES:
         import os
         import httpx
 
-        allow_paid = os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() in ("1", "true", "yes", "on")
-        model_chain = list(self.OPENROUTER_FREE_MODELS)
-        if allow_paid:
-            model_chain += self.OPENROUTER_CHEAP_MODELS
+        if models:
+            model_chain = list(models)
+        else:
+            allow_paid = os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() in ("1", "true", "yes", "on")
+            model_chain = list(self.OPENROUTER_FREE_MODELS)
+            if allow_paid:
+                model_chain += self.OPENROUTER_CHEAP_MODELS
 
         if system_prompt:
             import secrets
@@ -591,6 +659,7 @@ STRICT OPERATIONAL DIRECTIVES:
                                 "model": model,
                                 "messages": messages,
                                 "temperature": 0.7,
+                                "max_tokens": 2500,  # some providers cut JSON mid-string without an explicit limit
                                 "response_format": {"type": "json_object"},
                             },
                         )

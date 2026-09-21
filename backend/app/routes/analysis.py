@@ -210,6 +210,7 @@ async def process_analysis(
     model_preference: str = "pro",
 
     time_budget_sec: int | None = None,
+    force_refresh: bool = False,
 ):
     db = SessionLocal()
     try:
@@ -236,7 +237,7 @@ async def process_analysis(
 
         # Cache check
         from app.utils.caching import cache
-        cached_result = cache.get(file_hash)
+        cached_result = None if force_refresh else cache.get(file_hash)
         if cached_result:
             logger.info(f"Cache HIT for Job {job_id} (Hash: {file_hash[:16]}...)")
             job.result = sanitize_metadata(cached_result)
@@ -319,7 +320,12 @@ async def process_analysis(
         final_metadata["_provenance"] = provenance
 
         # Store result and cache
-        cache.set(file_hash, final_metadata)
+        # Cache only results that at least one LLM contributed to: a template-only (fallback)
+        # result must not be served forever for this file hash.
+        if any(tech_meta.get("llm_sources", []) if isinstance(tech_meta, dict) else []):
+            cache.set(file_hash, final_metadata)
+        else:
+            logger.warning(f"Job {job_id}: 0 LLMs contributed - result NOT cached")
         job.result = final_metadata
         job.status = "completed"
         job.message = f"Analysis complete ({tech_meta.get('analysis_time', 0):.1f}s, {len([v for v in tech_meta.get('llm_sources', []) if v])} LLMs)."
@@ -388,6 +394,7 @@ async def generate_analysis(
     transcribe: str = Form("true"),
     is_fresh: str = Form("false"),
     model_preference: str = Form("flash"),
+    force_refresh: str = Form("false"),
     current_user: User | None = Depends(get_user_and_check_quota),
     db: Session = Depends(get_db),
 ):
@@ -432,6 +439,7 @@ async def generate_analysis(
         is_fresh=is_fresh.lower() == "true",
         model_preference=model_preference,
         time_budget_sec=time_budget,
+        force_refresh=force_refresh.lower() == "true",
     )
 
     return {"job_id": job_id, "status": "pending"}

@@ -83,7 +83,12 @@ class FreshTrackAnalyzer:
             
             # Check remaining budget
             remaining = time_budget - (time.time() - start_time)
-            
+
+            # The DSP layer can eat the whole budget on a busy VPS (66-170 s observed). The LLM
+            # vote is cheap and quick (~4-40 s), so it always gets a guaranteed window instead of
+            # being skipped - skipping silently produced template-only results ("0 LLMs").
+            remaining = max(remaining, 45.0)
+
             # RELAXED LIMIT: Only skip if less than 3 seconds (was 5)
             # This gives LLM a chance even in tight scenarios
             if remaining < 3:
