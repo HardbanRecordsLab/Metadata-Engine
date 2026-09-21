@@ -1,14 +1,16 @@
 """Time-budget enforcement in FreshTrackAnalyzer.analyze_fresh_track().
 
-Was previously broken in two ways: (1) it called the real file hasher on a
-literal "test.mp3" path that doesn't exist, crashing before the mocked
-components were ever exercised; (2) its only assertion (target_met == True)
-assumed the analyzer always stays under budget, which contradicts the
-analyzer's own deliberately-relaxed behavior (see the "RELAXED LIMIT"
-comment in fresh_track_analyzer.py) of still giving the LLM a real ~5s
-window even when the remaining budget is tighter than that — so for some
-budgets it is *supposed* to overrun, and is supposed to report that
-honestly via target_met == False. This file now tests both cases.
+Contract (since the OpenRouter-first consensus, commit 1be3f48): the DSP layer can eat the whole time
+budget on a busy VPS, so the LLM step is ALWAYS given a guaranteed window
+(``LLM_MIN_WINDOW_SEC``, default 90 s, never less than 5 s) instead of being skipped - skipping it
+produced template-only "0 LLMs" results. Consequently:
+
+* a fast LLM answer is used even when the DSP layer left no budget, and
+* a slow/unresponsive LLM is cut off at the window and the offline DSP fallback is used; total time
+  then overruns ``time_budget`` and ``target_met`` honestly reports False.
+
+The two tests below used to assert the pre-1be3f48 behaviour (LLM skipped when the budget is tight),
+which is why they failed once CI could import the app at all.
 """
 import pytest
 from unittest.mock import patch
@@ -28,6 +30,12 @@ async def _slow_audio_analysis(*args, **kwargs):
     return dict(MOCK_AUDIO_FEATURES)
 
 
+async def _fast_llm_consensus(*args, **kwargs):
+    import asyncio
+    await asyncio.sleep(0.3)
+    return {'mainGenre': 'Test Genre', 'confidence': 0.9}
+
+
 async def _slow_llm_consensus(*args, **kwargs):
     import asyncio
     await asyncio.sleep(10)  # stands in for a slow/unresponsive LLM
@@ -35,15 +43,16 @@ async def _slow_llm_consensus(*args, **kwargs):
 
 
 @pytest.mark.asyncio
-async def test_tight_budget_skips_llm_and_stays_under_target():
-    """remaining < 3s after the DSP layer: Layer 2 is skipped outright, so
-    the analyzer finishes well under budget and target_met is True."""
+async def test_tight_budget_still_gives_the_llm_its_guaranteed_window(monkeypatch):
+    """DSP layer leaves ~2s of a 4s budget: the LLM is NOT skipped, its (fast) answer is used and the
+    whole analysis still finishes inside the budget."""
     import time
 
+    monkeypatch.setenv("LLM_MIN_WINDOW_SEC", "20")
     analyzer = FreshTrackAnalyzer()
     with patch('app.utils.hash_generator.generate_file_hash', return_value='0' * 64), \
          patch.object(analyzer.audio_analyzer, 'extract_all_features', side_effect=_slow_audio_analysis), \
-         patch.object(analyzer.llm_ensemble, 'consensus_classification', side_effect=_slow_llm_consensus):
+         patch.object(analyzer.llm_ensemble, 'consensus_classification', side_effect=_fast_llm_consensus):
 
         start = time.time()
         result = await analyzer.analyze_fresh_track("test.mp3", time_budget=4)
@@ -51,30 +60,27 @@ async def test_tight_budget_skips_llm_and_stays_under_target():
 
     assert duration < 4
     assert result['_tech_meta']['target_met'] is True
-    # The slow LLM must never have been awaited to completion — genre came
-    # from the offline DSP fallback, not the mocked 10s call.
-    assert result['mainGenre'] != 'Test Genre'
+    assert result['mainGenre'] == 'Test Genre'  # the LLM answer was used, not the DSP fallback
 
 
 @pytest.mark.asyncio
-async def test_moderate_budget_still_gives_llm_a_real_window_even_if_it_overruns():
-    """remaining >= 3s: the analyzer deliberately gives the LLM a ~5s
-    window rather than an unrealistically short one, even if that pushes
-    total time past time_budget. This is intentional (see the "RELAXED
-    LIMIT" comment) — the regression to guard is that target_met correctly
-    reports False when this happens, not that it never happens."""
+async def test_llm_slower_than_its_window_is_cut_off_and_falls_back_to_dsp(monkeypatch):
+    """The LLM window is bounded (here: the 5s floor): a 10s LLM is cut off, the offline DSP fallback
+    is used and, since that overruns the nominal budget, target_met correctly reports False."""
     import time
 
+    # window >= 3s (below that the analyzer skips the LLM outright), so llm_timeout = max(5, 4 - 1) = the 5s floor
+    monkeypatch.setenv("LLM_MIN_WINDOW_SEC", "4")
     analyzer = FreshTrackAnalyzer()
     with patch('app.utils.hash_generator.generate_file_hash', return_value='0' * 64), \
          patch.object(analyzer.audio_analyzer, 'extract_all_features', side_effect=_slow_audio_analysis), \
          patch.object(analyzer.llm_ensemble, 'consensus_classification', side_effect=_slow_llm_consensus):
 
         start = time.time()
-        result = await analyzer.analyze_fresh_track("test.mp3", time_budget=6)
+        result = await analyzer.analyze_fresh_track("test.mp3", time_budget=3)
         duration = time.time() - start
 
-    assert duration > 6  # overran the nominal budget, as designed
-    assert duration < 10  # but bounded by the ~5s LLM timeout, not the full 10s mock sleep
+    assert duration > 3   # overran the nominal budget, as designed
+    assert duration < 10  # but bounded by the LLM window, not the full 10s mock sleep
     assert result['_tech_meta']['target_met'] is False
     assert result['mainGenre'] != 'Test Genre'

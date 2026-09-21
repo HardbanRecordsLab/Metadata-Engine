@@ -70,7 +70,9 @@ async def test_process_analysis_timeout_sets_job_error(tmp_path, monkeypatch):
         job = session.query(db.Job).filter(db.Job.id == "job-timeout").first()
         assert job is not None
         assert job.status == "error"
-        assert job.error == "TIMEOUT_1s"
+        # process_analysis reports str(e) or, when the message is empty (asyncio.TimeoutError), the
+        # exception type name; there was never a "TIMEOUT_<n>s" code in the app (nor in the frontend).
+        assert job.error == "TimeoutError"
     finally:
         session.close()
 
