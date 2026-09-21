@@ -15,7 +15,7 @@ import numpy as np
 import logging
 import json
 from .standards import MAIN_GENRES, SUB_GENRES, MOODS, INSTRUMENTATION, VOCAL_STYLES
-from .groq_models import groq_model, groq_extra, groq_budget
+from .groq_models import groq_create
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,6 @@ class LLMEnsemble:
                 return ""
 
             client = Groq(api_key=groq_key)
-            model = groq_model(model_preference)
 
             rhythm   = audio_features.get("rhythm",   {})
             harmonic = audio_features.get("harmonic", {})
@@ -136,13 +135,12 @@ Rules:
 """
 
             accumulated = []
-            stream = client.chat.completions.create(
-                model=model,
+            stream = groq_create(
+                client, model_preference,
                 messages=[{"role": "user", "content": desc_prompt}],
                 temperature=0.6,
-                max_tokens=groq_budget(model, 600),
+                max_tokens=600,
                 stream=True,
-                **groq_extra(model),
             )
 
             for chunk in stream:
@@ -465,8 +463,7 @@ STRICT OPERATIONAL DIRECTIVES:
         
         # Select model based on mode preference
         is_flash = model_preference == 'flash'
-        model_name = groq_model('flash' if is_flash else 'pro')
-        groq_max_tokens = groq_budget(model_name, 800 if is_flash else 1000)
+        groq_max_tokens = 800 if is_flash else 1000
         
         # INCREASE VARIETY: Use job_id as part of the seed or just increase temperature
         # Temperature 0.7 allows for creative variety while keeping structure
@@ -486,13 +483,12 @@ STRICT OPERATIONAL DIRECTIVES:
         
         for attempt in range(retries):
             try:
-                response = client.chat.completions.create(
-                    model=model_name,
+                response = groq_create(
+                    client, 'flash' if is_flash else 'pro',
                     messages=messages,
                     temperature=temperature,
                     max_tokens=groq_max_tokens,
                     response_format={"type": "json_object"},
-                    **groq_extra(model_name),
                 )
 
                 
@@ -502,7 +498,7 @@ STRICT OPERATIONAL DIRECTIVES:
                     
                 result = json.loads(content)
                 result['llm_source'] = 'groq'
-                result['_groq_model'] = model_name
+                result['_groq_model'] = getattr(response, 'model', None)
                 return result
             except Exception as e:
                 logger.warning(f"Groq attempt {attempt+1} failed: {e}")

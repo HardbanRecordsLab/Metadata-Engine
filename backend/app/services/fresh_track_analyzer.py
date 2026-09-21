@@ -17,7 +17,7 @@ import logging
 
 from .deep_audio_analyzer import DeepAudioAnalyzer
 from .llm_ensemble import LLMEnsemble
-from .groq_models import groq_model, groq_extra, groq_budget
+from .groq_models import groq_create
 
 logger = logging.getLogger(__name__)
 
@@ -451,14 +451,12 @@ Return JSON:
   "genre_hints": ["genre based on lyrical style"]
 }}"""
             
-            lyrics_model = groq_model("pro")
             response = await asyncio.to_thread(
-                client.chat.completions.create,
-                model=lyrics_model,
+                groq_create,
+                client, "pro",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=groq_budget(lyrics_model, 300),
-                **groq_extra(lyrics_model),
+                max_tokens=300,
             )
             
             import json
