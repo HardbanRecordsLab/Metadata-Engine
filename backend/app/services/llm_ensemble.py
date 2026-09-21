@@ -15,6 +15,7 @@ import numpy as np
 import logging
 import json
 from .standards import MAIN_GENRES, SUB_GENRES, MOODS, INSTRUMENTATION, VOCAL_STYLES
+from .groq_models import groq_model, groq_extra, groq_budget
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ class LLMEnsemble:
                 return ""
 
             client = Groq(api_key=groq_key)
-            model = "llama-3.3-70b-versatile" if model_preference == "pro" else "llama-3.1-8b-instant"
+            model = groq_model(model_preference)
 
             rhythm   = audio_features.get("rhythm",   {})
             harmonic = audio_features.get("harmonic", {})
@@ -139,8 +140,9 @@ Rules:
                 model=model,
                 messages=[{"role": "user", "content": desc_prompt}],
                 temperature=0.6,
-                max_tokens=600,
+                max_tokens=groq_budget(model, 600),
                 stream=True,
+                **groq_extra(model),
             )
 
             for chunk in stream:
@@ -453,7 +455,7 @@ STRICT OPERATIONAL DIRECTIVES:
     
     async def _groq_classify(self, context: str, system_prompt: str = None, retries: int = 3, model_preference: str = 'flash') -> Dict:
         """
-        Groq: Llama 3.1 8B Instant (flash) / Llama 3.3 70B Versatile (pro)
+        Groq: model per mode from groq_models.py (GROQ_MODEL_FLASH / GROQ_MODEL_PRO)
         """
         if not self.groq_key:
             return {'error': 'no_api_key'}
@@ -463,8 +465,8 @@ STRICT OPERATIONAL DIRECTIVES:
         
         # Select model based on mode preference
         is_flash = model_preference == 'flash'
-        groq_model = "llama-3.1-8b-instant" if is_flash else "llama-3.3-70b-versatile"
-        groq_max_tokens = 800 if is_flash else 1000
+        model_name = groq_model('flash' if is_flash else 'pro')
+        groq_max_tokens = groq_budget(model_name, 800 if is_flash else 1000)
         
         # INCREASE VARIETY: Use job_id as part of the seed or just increase temperature
         # Temperature 0.7 allows for creative variety while keeping structure
@@ -485,11 +487,12 @@ STRICT OPERATIONAL DIRECTIVES:
         for attempt in range(retries):
             try:
                 response = client.chat.completions.create(
-                    model=groq_model,
+                    model=model_name,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=groq_max_tokens,
-                    response_format={"type": "json_object"}
+                    response_format={"type": "json_object"},
+                    **groq_extra(model_name),
                 )
 
                 
@@ -499,7 +502,7 @@ STRICT OPERATIONAL DIRECTIVES:
                     
                 result = json.loads(content)
                 result['llm_source'] = 'groq'
-                result['_groq_model'] = groq_model
+                result['_groq_model'] = model_name
                 return result
             except Exception as e:
                 logger.warning(f"Groq attempt {attempt+1} failed: {e}")
@@ -547,23 +550,30 @@ STRICT OPERATIONAL DIRECTIVES:
         "openai/gpt-oss-120b",                        # ~$0.037/$0.170 per M — strong but ~9s, last resort
     ]
 
-    # OpenRouter-first vote (paid but very cheap, ~$0.0011 for a 3-model vote,
-    # i.e. ~4,000 analyses per $5). Chosen 2026-09-21 after a live test of 7
-    # candidates on the real prompt: all returned clean JSON, but only
-    # gemini-2.5-flash-lite was consistently fast (~3s); deepseek-v4-flash
-    # (~$0.00024/call) and gemma-4-31b-it (~$0.00038/call) are slower (15-40s).
-    # Order matters: 'flash' uses the first two (both reliably < 25s), 'pro'
-    # adds deepseek (a different family, sometimes slow - it is simply dropped
-    # from the vote if it misses the timeout).
+    # OpenRouter-first vote (paid but very cheap, ~$0.001 for a 3-model vote,
+    # i.e. thousands of analyses per $5). Lineup re-measured 2026-09-21 from the VPS on the real
+    # prompt, 3 concurrent calls per model: gemini-2.5-flash-lite 3-5s, gemma-4-31b-it 17-19s,
+    # mistral-small-24b 15-18s (all stable), gpt-oss-120b 4-36s (erratic), deepseek-v4-flash
+    # 23-45s (usually past the old 40s cut-off, so pro mode kept getting only 1 vote) and
+    # gpt-oss-20b (cut JSON mid-string). deepseek was therefore dropped from the default.
+    # Order matters: 'flash' uses the first two, 'pro' all three - three different providers.
     # Override with OPENROUTER_VOTE_MODELS="a/b,c/d,e/f" (comma separated).
     OPENROUTER_VOTE_MODELS = [
         "google/gemini-2.5-flash-lite",
+        "mistralai/mistral-small-24b-instruct-2501",
         "google/gemma-4-31b-it",
-        "deepseek/deepseek-v4-flash",
     ]
-    # How long the vote waits for the slowest model before using whatever
-    # already answered (a slow model must never discard the fast ones).
-    OPENROUTER_VOTE_TIMEOUT_SEC = 40.0
+    # How long the vote waits for the slowest model before using whatever already answered
+    # (a slow model must never discard the fast ones). Override with OPENROUTER_VOTE_TIMEOUT_SEC.
+    # Must stay below the LLM window granted by fresh_track_analyzer (LLM_MIN_WINDOW_SEC).
+    OPENROUTER_VOTE_TIMEOUT_SEC = 75.0
+
+    def _openrouter_vote_timeout(self) -> float:
+        import os
+        try:
+            return float(os.getenv("OPENROUTER_VOTE_TIMEOUT_SEC", "").strip() or self.OPENROUTER_VOTE_TIMEOUT_SEC)
+        except ValueError:
+            return float(self.OPENROUTER_VOTE_TIMEOUT_SEC)
 
     @staticmethod
     def _openrouter_paid_allowed() -> bool:
@@ -586,11 +596,12 @@ STRICT OPERATIONAL DIRECTIVES:
             asyncio.ensure_future(self._openrouter_classify(user_prompt, system_prompt=MUSIC_EXPERT_SYSTEM_PROMPT, models=[m]))
             for m in models
         ]
-        done, pending = await asyncio.wait(tasks, timeout=self.OPENROUTER_VOTE_TIMEOUT_SEC)
+        vote_timeout = self._openrouter_vote_timeout()
+        done, pending = await asyncio.wait(tasks, timeout=vote_timeout)
         for t in pending:
             t.cancel()
         if pending:
-            logger.warning("OpenRouter vote: %d/%d models did not answer within %.0fs", len(pending), len(tasks), self.OPENROUTER_VOTE_TIMEOUT_SEC)
+            logger.warning("OpenRouter vote: %d/%d models did not answer within %.0fs", len(pending), len(tasks), vote_timeout)
         results = []
         for t in done:
             try:

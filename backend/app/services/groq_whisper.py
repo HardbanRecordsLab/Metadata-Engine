@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from app.config import settings
+from app.services.groq_models import groq_model, groq_extra, groq_budget
 
 logger = logging.getLogger(__name__)
 
@@ -226,15 +227,17 @@ Return ONLY valid JSON with ALL these fields:
 
         logger.info("Sending metadata prompt to Groq (length: %d)", len(prompt))
 
+        merge_model = groq_model("pro")
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=merge_model,
             messages=[
                 {"role": "system", "content": "You are a professional music metadata API. Always respond with valid JSON only. Never include markdown or explanations outside the JSON."},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.25,
-            max_tokens=2500,
+            max_tokens=groq_budget(merge_model, 2500),
             response_format={"type": "json_object"},
+            **groq_extra(merge_model),
         )
 
         result_text = response.choices[0].message.content
@@ -278,7 +281,7 @@ Return ONLY valid JSON with ALL these fields:
         audio_analysis = results[0]
         transcription = results[1].get("text", "") if (transcribe and len(results) > 1) else None
 
-        logger.info("Step 2: Groq Cloud LLM (Llama 3.3 70B)...")
+        logger.info("Step 2: Groq Cloud LLM (%s)...", groq_model("pro"))
         metadata = await GroqWhisperService.generate_metadata(
             audio_analysis=audio_analysis,
             transcription=transcription,

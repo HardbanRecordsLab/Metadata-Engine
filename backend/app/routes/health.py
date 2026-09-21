@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.config import settings
+from app.services.groq_models import groq_model
 import os
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -23,7 +24,9 @@ async def diagnose_system():
         },
         "llm": {
             "openrouter_paid_allowed": os.getenv("OPENROUTER_ALLOW_PAID", "").strip().lower() not in ("0", "false", "no", "off"),
-            "vote_models": (os.getenv("OPENROUTER_VOTE_MODELS", "").strip() or "default (gemini-2.5-flash-lite, deepseek-v4-flash, gemma-4-31b-it)"),
+            "vote_models": (os.getenv("OPENROUTER_VOTE_MODELS", "").strip() or "default (gemini-2.5-flash-lite, mistral-small-24b-instruct-2501, gemma-4-31b-it)"),
+            "vote_timeout_sec": os.getenv("OPENROUTER_VOTE_TIMEOUT_SEC", "").strip() or "default (75)",
+            "groq_models": {"pro": groq_model("pro"), "flash": groq_model("flash")},
         },
         "system": {"os": os.name, "cwd": os.getcwd()},
     }

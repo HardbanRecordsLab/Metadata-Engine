@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 import httpx
 import asyncio
 from urllib.parse import quote
+from app.services.groq_models import groq_model, groq_extra, groq_budget
 
 from app.config import settings
 from app.dependencies import get_user_and_check_quota
@@ -36,9 +37,10 @@ class RefineFieldRequest(BaseModel):
 
 # --- Helper for Groq JSON response ---
 async def call_groq_json(
-    prompt: str, model_name: str = "llama-3.3-70b-versatile"
+    prompt: str, model_name: str = None
 ) -> Dict[str, Any]:
     try:
+        model_name = model_name or groq_model("pro")
         client = get_groq_client()
         response = client.chat.completions.create(
             model=model_name,
@@ -50,8 +52,9 @@ async def call_groq_json(
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=2000,
+            max_tokens=groq_budget(model_name, 2000),
             response_format={"type": "json_object"},
+            **groq_extra(model_name),
         )
         
         result_text = response.choices[0].message.content
