@@ -34,6 +34,13 @@ jobs:
       - name: Install system deps
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
       - working-directory: backend
+        env:
+          # The app creates CERT_DIR at import time (default /data/certificates, not creatable on a
+          # runner) and refuses to start without SECRET_KEY; without these every test module failed
+          # at collection ("PermissionError: /data") - backend CI was red on main since 2026-09-02.
+          CERT_DIR: ${{ runner.temp }}/certificates
+          SECRET_KEY: ci-${{ github.run_id }}-${{ github.sha }}
+          DATABASE_URL: sqlite:///${{ runner.temp }}/ci.db
         run: |
           pip install -r requirements.txt
           pytest -q --no-header

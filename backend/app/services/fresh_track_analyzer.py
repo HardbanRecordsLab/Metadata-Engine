@@ -10,12 +10,14 @@ Docker: LEKKI (~150MB total libs)
 """
 
 import asyncio
+import os
 import time
 from typing import Dict, Any
 import logging
 
 from .deep_audio_analyzer import DeepAudioAnalyzer
 from .llm_ensemble import LLMEnsemble
+from .groq_models import groq_create
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +89,13 @@ class FreshTrackAnalyzer:
             # The DSP layer can eat the whole budget on a busy VPS (66-170 s observed). The LLM
             # vote is cheap and quick (~4-40 s), so it always gets a guaranteed window instead of
             # being skipped - skipping silently produced template-only results ("0 LLMs").
-            remaining = max(remaining, 45.0)
+            # The window must cover the OpenRouter vote timeout (75s by default, see llm_ensemble); a
+            # 45s window cut the vote off and gave "1 LLMs"/"0 LLMs" results. Env: LLM_MIN_WINDOW_SEC.
+            try:
+                llm_min_window = float(os.getenv("LLM_MIN_WINDOW_SEC", "").strip() or 90.0)
+            except ValueError:
+                llm_min_window = 90.0
+            remaining = max(remaining, llm_min_window)
 
             # RELAXED LIMIT: Only skip if less than 3 seconds (was 5)
             # This gives LLM a chance even in tight scenarios
@@ -444,11 +452,11 @@ Return JSON:
 }}"""
             
             response = await asyncio.to_thread(
-                client.chat.completions.create,
-                model="llama-3.3-70b-versatile",
+                groq_create,
+                client, "pro",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=300
+                max_tokens=300,
             )
             
             import json

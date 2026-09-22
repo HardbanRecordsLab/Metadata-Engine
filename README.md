@@ -47,7 +47,7 @@ Full documentation lives in **[`docs/`](docs/README.md)**.
 
 | Layer | Tech |
 |---|---|
-| Backend | FastAPI (Python 3.10), SQLAlchemy, SQLite |
+| Backend | FastAPI (Python 3.10), SQLAlchemy, PostgreSQL (shared `hbrl-postgres`; SQLite only for local dev) |
 | Audio | Essentia, Librosa, openai-whisper (CPU), FFmpeg + Chromaprint |
 | AI | Groq, Google Gemini, OpenRouter |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS |
@@ -80,8 +80,10 @@ API docs: `http://localhost:8888/docs` (FastAPI Swagger).
 ## Deploy
 
 Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) SSHes to the
-VPS, writes `.env` from **GitHub repo Secrets**, and runs
-`docker compose -f vps.docker-compose.yml up -d --build`.
+VPS, refreshes `.env` from **GitHub repo Secrets** (except `DATABASE_URL`, which the
+VPS `.env` owns), fast-forwards the checkout and runs
+`docker compose -f docker-compose.yml up -d --build`, then verifies health and the
+Postgres connection and rolls back to the previous image if either check fails.
 
 Everything about env vars, secrets, the VPS layout and operational procedures
 is in **[`docs/OPERATIONS.md`](docs/OPERATIONS.md)**.

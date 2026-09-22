@@ -1,43 +1,9 @@
-version: '3.8'
-
-services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: music-metadata-engine:latest
-    container_name: metadata-backend
-    restart: always
-    env_file:
-      - .env
-    environment:
-      # Intentionally pinned to SQLite: this overrides any DATABASE_URL set in
-      # .env (Docker Compose `environment` wins over `env_file` for the same
-      # key). Production data currently lives in this SQLite file. Do not
-      # change this to a Postgres URL without first migrating the data in
-      # /data/music_metadata.db — flipping this silently would make the app
-      # start against an empty/different database.
-      - DATABASE_URL=sqlite:////data/music_metadata.db
-    ports:
-      - "127.0.0.1:8888:7860"
-    volumes:
-      - ./data:/data
-      - ./logs:/home/user/app/logs
-      - ./temp_uploads:/home/user/app/temp_uploads
-      - ./.env:/home/user/app/.env
-    deploy:
-      resources:
-        limits:
-          cpus: '6.0'
-          memory: 10G
-    networks:
-      - hbrl-network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:7860/api/health/" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  hbrl-network:
-    external: true
+# DEPRECATED (2026-09-21) - do not use directly. Production runs from docker-compose.yml
+# (Postgres hbrl-postgres / metadata_engine, over the external hbrl-db network).
+#
+# This file used to pin DATABASE_URL=sqlite:////data/music_metadata.db and mount ./.env. That pin
+# silently switched production back to an empty SQLite file when the "Deploy to VPS" workflow
+# ran on 2026-09-21. It is kept only as an alias so old commands and links keep working
+# without flipping the database; delete it once nothing references it.
+include:
+  - docker-compose.yml
