@@ -78,6 +78,11 @@ jobs:
             OLD_DB_LINE="$(grep -m1 '^DATABASE_URL=' .env || true)"
             printf '%s\n' "$OLD_DB_LINE" | grep -Eq "$DB_RE" || { echo "FAIL: DATABASE_URL in the VPS .env is not production Postgres (hbrl-postgres/metadata_engine) - refusing to deploy"; exit 1; }
 
+            # Same "VPS owns this" treatment for the R2 backup credentials: set once by hand on
+            # 2026-09-24, not mirrored to a GitHub Secret, so they must survive the rewrite below
+            # exactly like DATABASE_URL does.
+            OLD_R2_LINES="$(grep -E '^R2_(ACCOUNT_ID|ACCESS_KEY_ID|SECRET_ACCESS_KEY|BUCKET)=' .env || true)"
+
             # Backup existing env (docker-compose reads root .env)
             cp -p .env ".env.backup.$(date +%F-%H%M%S)"
 
@@ -128,8 +133,10 @@ jobs:
             SENTRY_DSN=${{ secrets.SENTRY_DSN }}
             EOF
 
-            # Re-attach the production DATABASE_URL, re-check it, then swap the file in atomically.
+            # Re-attach the production DATABASE_URL and the R2 credentials, re-check the DB line,
+            # then swap the file in atomically.
             printf '%s\n' "$OLD_DB_LINE" >> .env.new
+            printf '%s\n' "$OLD_R2_LINES" >> .env.new
             grep -Eq "$DB_RE" .env.new || { echo "FAIL: assembled .env lost the Postgres DATABASE_URL - keeping the old .env"; rm -f .env.new; exit 1; }
             chmod --reference=.env .env.new
             mv .env.new .env
