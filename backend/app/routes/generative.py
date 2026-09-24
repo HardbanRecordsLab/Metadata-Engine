@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 import httpx
 import asyncio
 from urllib.parse import quote
+from app.services.groq_models import groq_create
 
 from app.config import settings
 from app.dependencies import get_user_and_check_quota
@@ -36,12 +37,12 @@ class RefineFieldRequest(BaseModel):
 
 # --- Helper for Groq JSON response ---
 async def call_groq_json(
-    prompt: str, model_name: str = "llama-3.3-70b-versatile"
+    prompt: str, model_name: str = None
 ) -> Dict[str, Any]:
     try:
         client = get_groq_client()
-        response = client.chat.completions.create(
-            model=model_name,
+        response = groq_create(
+            client, "pro", model=model_name,
             messages=[
                 {
                     "role": "system",

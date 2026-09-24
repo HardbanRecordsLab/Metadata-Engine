@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+# Never run two deploys at once (a second push while a build is running would race on the VPS).
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
 jobs:
   # Fast gate — a broken push must not reach the VPS. Full test suites
   # (vitest, pytest) run separately in ci.yml and don't block the deploy.
@@ -54,24 +59,34 @@ jobs:
           # trimming the CUDA wheels from requirements.txt. Headroom, not tight.
           command_timeout: 30m
           script: |
-            set -e
+            set -euo pipefail
             cd /srv/hbrl/Metadata-Engine
             # Plain progress: BuildKit's default TTY renderer streams
             # carriage-return redraws that break the SSH action mid-build.
             export BUILDKIT_PROGRESS=plain
             export DOCKER_BUILDKIT=1
 
-            # Backup existing env if present (docker-compose reads root .env)
-            if [ -f .env ]; then
-              cp .env .env.backup.$(date +%F-%H%M%S)
-            fi
+            # Production compose file: Postgres (hbrl-postgres / metadata_engine) over the
+            # external hbrl-db network. vps.docker-compose.yml is only a deprecated alias now.
+            COMPOSE_FILE="docker-compose.yml"
+            DB_RE='^DATABASE_URL=postgres(ql)?(\+[a-z0-9]+)?://[^@[:space:]]+@hbrl-postgres:5432/metadata_engine'
 
-            # Write root .env from GitHub Secrets (no secrets in repo)
+            # Guard 1 (fail closed, before anything is touched): the VPS .env OWNS DATABASE_URL and
+            # must already point at production Postgres. The GitHub secret of the same name is stale
+            # (SQLite) and is deliberately NOT written below - on 2026-09-21 it switched prod to SQLite.
+            test -f .env || { echo "FAIL: .env is missing on the VPS - refusing to deploy"; exit 1; }
+            OLD_DB_LINE="$(grep -m1 '^DATABASE_URL=' .env || true)"
+            printf '%s\n' "$OLD_DB_LINE" | grep -Eq "$DB_RE" || { echo "FAIL: DATABASE_URL in the VPS .env is not production Postgres (hbrl-postgres/metadata_engine) - refusing to deploy"; exit 1; }
+
+            # Backup existing env (docker-compose reads root .env)
+            cp -p .env ".env.backup.$(date +%F-%H%M%S)"
+
+            # Write the env from GitHub Secrets into .env.new (no secrets in repo).
             # NOTE: every heredoc body line below must stay indented to match
             # this YAML block scalar (12 spaces) or the workflow file fails
             # to parse entirely (GitHub reports it as a run with zero jobs).
-            # The sed strips that indentation back out before it reaches .env.
-            cat <<'EOF' | sed -e 's/^[[:space:]]*//' > .env
+            # The sed strips that indentation back out before it reaches .env.new.
+            cat <<'EOF' | sed -e 's/^[[:space:]]*//' > .env.new
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
             MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
@@ -104,8 +119,6 @@ jobs:
             API_CLIENT_ID=${{ secrets.API_CLIENT_ID }}
             API_CLIENT_SECRET=${{ secrets.API_CLIENT_SECRET }}
 
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-
             APP_BASE_URL=https://app-metadata.hardbanrecordslab.online
             SMTP_HOST=${{ secrets.SMTP_HOST }}
             SMTP_PORT=${{ secrets.SMTP_PORT }}
@@ -115,18 +128,39 @@ jobs:
             SENTRY_DSN=${{ secrets.SENTRY_DSN }}
             EOF
 
-            # Pull latest code and rebuild containers
-            git pull origin main
+            # Re-attach the production DATABASE_URL, re-check it, then swap the file in atomically.
+            printf '%s\n' "$OLD_DB_LINE" >> .env.new
+            grep -Eq "$DB_RE" .env.new || { echo "FAIL: assembled .env lost the Postgres DATABASE_URL - keeping the old .env"; rm -f .env.new; exit 1; }
+            chmod --reference=.env .env.new
+            mv .env.new .env
 
-            # Use VPS compose file (binds 127.0.0.1:8888, mounts .env)
-            COMPOSE_FILE="vps.docker-compose.yml"
-            if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-              docker compose -f "$COMPOSE_FILE" down
-              docker compose -f "$COMPOSE_FILE" up -d --build
-            elif command -v docker-compose >/dev/null 2>&1; then
-              docker-compose -f "$COMPOSE_FILE" down
-              docker-compose -f "$COMPOSE_FILE" up -d --build
-            else
-              echo "Docker Compose not found on VPS" >&2
+            # Code: fast-forward only. Fails (instead of silently losing or mixing commits) if the
+            # VPS checkout ever diverges from origin/main again.
+            git fetch origin main
+            git checkout main
+            git merge --ff-only origin/main
+
+            # Keep the running image as a rollback target, then build + swap. No `compose down`:
+            # `up -d --build` builds first and only then replaces the container, so a failed build
+            # leaves the old container serving.
+            docker tag music-metadata-engine:latest music-metadata-engine:previous 2>/dev/null || true
+            docker compose -f "$COMPOSE_FILE" up -d --build
+
+            # Health-gated: container healthy AND still on production Postgres, else roll back.
+            healthy=0
+            status=unknown
+            for i in $(seq 1 30); do
+              status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' metadata-backend 2>/dev/null || echo missing)"
+              if [ "$status" = "healthy" ]; then healthy=1; break; fi
+              sleep 10
+            done
+            CONTAINER_DB="$( (docker exec metadata-backend printenv DATABASE_URL 2>/dev/null | sed -E 's#(://[^:]+:)[^@]+@#\1***@#') || true )"
+            echo "container health: $status | DATABASE_URL: ${CONTAINER_DB:-<none>}"
+            if [ "$healthy" != "1" ] || ! printf '%s' "$CONTAINER_DB" | grep -Eq '@hbrl-postgres:5432/metadata_engine'; then
+              echo "FAIL: post-deploy verification failed - rolling back to the previous image"
+              docker tag music-metadata-engine:previous music-metadata-engine:latest
+              docker compose -f "$COMPOSE_FILE" up -d --no-build
               exit 1
             fi
+            curl -fsS http://127.0.0.1:8888/api/health/diagnose | grep -q '"llm"' || echo "WARN: /api/health/diagnose has no llm block"
+            echo "Deploy OK"

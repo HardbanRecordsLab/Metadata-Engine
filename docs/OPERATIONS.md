@@ -9,18 +9,20 @@ Everything needed to run, deploy and maintain the Service.
 | Frontend (React SPA) | Vercel — `app-metadata.hardbanrecordslab.online` |
 | Backend (FastAPI) | VPS `84.247.162.167`, Docker container `metadata-backend`, host `127.0.0.1:8888` → container `7860` |
 | Public API | `metadata.hardbanrecordslab.online/api` (Nginx → the container) |
-| Database | **SQLite** at `/data/music_metadata.db` inside the container, bind-mounted from `/srv/hbrl/Metadata-Engine/data/` |
+| Database | **PostgreSQL** `metadata_engine` in the shared `hbrl-postgres` container (external Docker network `hbrl-db`); `DATABASE_URL` lives only in the VPS `.env` |
 | Repo path on VPS | `/srv/hbrl/Metadata-Engine` |
 
 Vercel's `frontend/vercel.json` proxies `/api/*` to the VPS and rewrites
 everything else to `index.html`.
 
 > The container also lives among other services on that box (WordPress,
-> AzuraCast, a CMLP platform, Vault, Postgres instances). Those Postgres
-> databases belong to other services — **this app uses SQLite**, despite any
-> Postgres URL a `.env` example might show. `vps.docker-compose.yml` pins
-> `DATABASE_URL=sqlite:////data/music_metadata.db` via `environment:`, which
-> overrides `env_file`.
+> AzuraCast, a CMLP platform, Vault, Postgres instances). This app uses the
+> `metadata_engine` database of the shared `hbrl-postgres` instance (migrated from
+> SQLite on 2026-09-17; the old `data/music_metadata.db` is a stale leftover).
+> Production runs from **`docker-compose.yml`**. The former
+> `vps.docker-compose.yml` pinned `DATABASE_URL` to SQLite, which switched
+> production to an empty database on 2026-09-21 — it is now only a deprecated
+> alias of `docker-compose.yml`.
 
 ## Deploy pipeline
 
@@ -28,14 +30,21 @@ everything else to `index.html`.
 
 1. `appleboy/ssh-action@v1.2.2` SSHes to the VPS (`VPS_HOST` / `VPS_USER` /
    `VPS_PORT` / `VPS_SSH_KEY` secrets).
-2. Backs up the current `.env`, then rewrites `/srv/hbrl/Metadata-Engine/.env`
-   from **GitHub repo Secrets** (heredoc — keep its 12-space indentation or
-   the workflow fails to parse).
-3. `git pull origin main`.
-4. `export BUILDKIT_PROGRESS=plain` (the old TTY progress renderer broke the
-   SSH action), then
-   `docker compose -f vps.docker-compose.yml up -d --build`
-   (`command_timeout: 30m`).
+2. **Guard:** refuses to run unless the VPS `.env` has a `DATABASE_URL` pointing
+   at `hbrl-postgres:5432/metadata_engine`.
+3. Backs up the current `.env`, then rewrites it from **GitHub repo Secrets**
+   (heredoc — keep its 12-space indentation or the workflow fails to parse).
+   `DATABASE_URL` is **not** taken from the secrets: the value from the old
+   `.env` is carried over and re-checked.
+4. `git fetch` + `git checkout main` + `git merge --ff-only origin/main` (fails
+   instead of mixing commits if the VPS checkout diverged).
+5. Tags the running image as `music-metadata-engine:previous`, then
+   `export BUILDKIT_PROGRESS=plain` (the old TTY progress renderer broke the
+   SSH action) and `docker compose -f docker-compose.yml up -d --build`
+   (`command_timeout: 30m`; no `down` — a failed build leaves the old container up).
+6. **Verify:** waits up to 5 min for `healthy` and checks that the container's
+   `DATABASE_URL` is still `hbrl-postgres/metadata_engine`; otherwise it restores
+   `music-metadata-engine:previous` and fails the run.
 
 Check runs at **GitHub → Actions → "Deploy to VPS"**. "Re-run jobs" replays
 the *old* workflow file — to pick up a workflow change, push a fresh commit.
@@ -44,8 +53,8 @@ Manual deploy (when the pipeline is down):
 ```bash
 ssh root@84.247.162.167
 cd /srv/hbrl/Metadata-Engine
-git pull origin main
-docker compose -f vps.docker-compose.yml up -d --build
+git fetch origin main && git checkout main && git merge --ff-only origin/main
+docker compose -f docker-compose.yml up -d --build
 ```
 
 ## Environment variables
@@ -55,7 +64,7 @@ Full annotated list: **`backend/.env.example`**. Summary:
 | Variable | Used by | Notes |
 |---|---|---|
 | `SECRET_KEY` | `security.py` | JWT signing — **app won't start without it**. `openssl rand -hex 32`. Also accepts `JWT_SECRET`. |
-| `DATABASE_URL` | `db.py` | Overridden to SQLite by compose in prod. |
+| `DATABASE_URL` | `db.py` | Prod: `postgresql://…@hbrl-postgres:5432/metadata_engine`, set **only** in the VPS `.env` (not from GitHub Secrets). Unset → local SQLite. |
 | `CORS_ORIGINS` | `config.py` | Explicit origin list. |
 | `GROQ_API_KEY` | ensemble, Whisper | Required for analysis. |
 | `GEMINI_API_KEY` | ensemble, proxy | Required for analysis. |
@@ -120,27 +129,26 @@ Idempotency: the webhook keys on `credit_purchases.stripe_session_id`.
 
 ## Backups
 
-The whole state is `/srv/hbrl/Metadata-Engine/data/` (the SQLite DB + uploads).
+State = the `metadata_engine` database in `hbrl-postgres` + `/srv/hbrl/Metadata-Engine/data/`
+(uploaded certificates, stale SQLite leftover).
 
 **Automated:** `.github/workflows/backup.yml` runs daily at 03:00 UTC (and on
-manual dispatch). It takes a consistent `sqlite3 .backup` snapshot into
-`data/backups/mme-<stamp>.db.gz` on the VPS (keeps the last 14), then pulls the
-latest to GitHub as a workflow **artifact** with 90-day retention — an
-off-site copy. It reuses the `VPS_*` secrets.
+manual dispatch). It runs `pg_dump -Fc metadata_engine` inside `hbrl-postgres`,
+verifies the dump (size + `pg_restore --list`), stores it as
+`data/backups/mme-pg-<stamp>.dump` on the VPS (mode 600, keeps the last 14 of
+these, `latest-pg.dump` points at the newest). It is **not** uploaded to GitHub:
+the repo is public and the dump holds user data. There is no off-site copy yet
+(restic — handbook decision D-1). Before 2026-09-21 this job snapshotted the
+retired SQLite file with a `sqlite3` CLI that is not installed on the VPS, so it
+failed daily and no backup existed.
 
-**Ad-hoc full copy:**
-```bash
-ssh root@84.247.162.167 \
-  "tar czf /root/mme-backup-$(date +%F).tar.gz -C /srv/hbrl/Metadata-Engine data"
-```
-
-**Restore:** stop the container, replace `data/music_metadata.db` with a
-`gunzip`-ed snapshot, start it again.
+**Restore** (try it on a scratch database first if unsure):
 ```bash
 cd /srv/hbrl/Metadata-Engine
-docker compose -f vps.docker-compose.yml down
-gunzip -c data/backups/latest.db.gz > data/music_metadata.db
-docker compose -f vps.docker-compose.yml up -d
+docker compose -f docker-compose.yml stop backend
+docker exec -i hbrl-postgres pg_restore -U hbrl_admin -d metadata_engine --clean --if-exists \
+  < data/backups/latest-pg.dump
+docker compose -f docker-compose.yml start backend
 ```
 
 The deploy also drops timestamped `.env.backup.*` files in the repo dir — prune

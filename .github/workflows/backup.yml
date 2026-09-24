@@ -1,49 +1,55 @@
 name: Backup database
 
+# Production database = PostgreSQL `metadata_engine` in the shared `hbrl-postgres` container
+# (moved off SQLite on 2026-09-17). The previous version of this job snapshotted the retired
+# SQLite file with the `sqlite3` CLI, which is not installed on the VPS: it failed every day
+# (2026-09-14 .. 2026-09-21) and no backup was ever written.
+#
+# The dump stays ON THE VPS. It is deliberately NOT uploaded as a GitHub artifact: this repository
+# is public and a dump holds user data (emails, password hashes, credits). An off-site copy has to
+# go to private, encrypted storage (restic - see the HRL handbook, decision D-1).
+
 on:
   schedule:
     - cron: "0 3 * * *"   # daily 03:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: backup-db
+  cancel-in-progress: false
+
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Snapshot + rotate on the VPS
+      - name: pg_dump on the VPS + verify + rotate
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 5m
+          command_timeout: 10m
           script: |
-            set -e
+            set -euo pipefail
             cd /srv/hbrl/Metadata-Engine
             mkdir -p data/backups
             STAMP=$(date -u +%Y%m%d-%H%M%S)
-            # consistent copy even while the app is running
-            sqlite3 data/music_metadata.db ".backup 'data/backups/mme-$STAMP.db'"
-            gzip -f "data/backups/mme-$STAMP.db"
-            # keep the 14 most recent
-            ls -1t data/backups/mme-*.db.gz | tail -n +15 | xargs -r rm --
-            ln -sf "mme-$STAMP.db.gz" data/backups/latest.db.gz
-            ls -lh data/backups/ | tail -5
+            OUT="data/backups/mme-pg-$STAMP.dump"
 
-      - name: Pull latest snapshot to the runner
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: /srv/hbrl/Metadata-Engine/data/backups/latest.db.gz
-          target: ./_backup
-          strip_components: 5
+            # Custom format (compressed, restorable with pg_restore). No -t on docker exec:
+            # a TTY would corrupt the binary stream. Written to a .partial file first.
+            docker exec hbrl-postgres pg_dump -U hbrl_admin -d metadata_engine -Fc > "$OUT.partial"
 
-      - name: Keep an off-site copy as an artifact (90-day retention)
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-backup-${{ github.run_id }}
-          path: ./_backup/latest.db.gz
-          retention-days: 90
+            # Verify before it counts as a backup: non-trivial size and a readable table of contents
+            SIZE=$(stat -c %s "$OUT.partial")
+            if [ "$SIZE" -lt 10000 ]; then echo "FAIL: dump is only $SIZE bytes"; rm -f "$OUT.partial"; exit 1; fi
+            docker exec -i hbrl-postgres pg_restore --list < "$OUT.partial" | grep -q 'TABLE DATA' || { echo "FAIL: dump has no table data"; rm -f "$OUT.partial"; exit 1; }
+            mv "$OUT.partial" "$OUT"
+            chmod 600 "$OUT"
+            ln -sf "mme-pg-$STAMP.dump" data/backups/latest-pg.dump
+
+            # Rotation: keep the 14 most recent dumps of THIS job (mme-pg-*); nothing else is touched.
+            ls -1t data/backups/mme-pg-*.dump | tail -n +15 | xargs -r rm --
+            echo "backup OK: $OUT ($SIZE bytes)"
+            ls -lh data/backups/ | tail -6
