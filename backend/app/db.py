@@ -133,6 +133,7 @@ class Certificate(Base):
     view_token = Column(String, nullable=True)
     ipfs_hash = Column(String, nullable=True)
     ipfs_url = Column(String, nullable=True)
+    r2_url = Column(String, nullable=True)
 
 class VerificationEvent(Base):
     __tablename__ = "verification_events"
@@ -184,6 +185,13 @@ def run_migrations():
                 pass  # Column already exists
             try:
                 conn.execute(text("ALTER TABLE certificates ADD COLUMN ipfs_url TEXT"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
+            # Safely add R2 durable-storage column to certificates if missing
+            try:
+                conn.execute(text("ALTER TABLE certificates ADD COLUMN r2_url TEXT"))
                 conn.commit()
             except Exception:
                 pass  # Column already exists

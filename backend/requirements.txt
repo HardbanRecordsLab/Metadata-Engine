@@ -16,6 +16,9 @@ sqlalchemy>=2.0.0
 psycopg2-binary
 email-validator
 
+# === Object Storage ===
+boto3
+
 # === AI / LLM ===
 groq
 # CPU-only torch build for openai-whisper: the deploy VPS has no GPU, and

@@ -137,6 +137,17 @@ async def generate_certificate(
     db.commit()
     db.refresh(certificate)
 
+    # Durable off-VPS copy: a QR-linked certificate is meant to keep working
+    # long after any given server does, so this runs automatically rather
+    # than waiting for someone to click an opt-in "pin" button. Non-fatal -
+    # the certificate is already saved and servable from local disk either way.
+    try:
+        from app.services.r2_storage import upload_certificate_pdf
+        certificate.r2_url = await upload_certificate_pdf(pdf_path, certificate_human_id)
+        db.commit()
+    except Exception as e:
+        logger.error(f"R2 upload failed for certificate {certificate_human_id}: {e}")
+
     # Monetization: Subtract 1 credit for certificate generation if not superuser
     try:
         if current_user and not current_user.is_superuser:
@@ -153,6 +164,7 @@ async def generate_certificate(
         "file_name": certificate.file_name,
         "HardBand Records Authenticity DNA": certificate.sha256,
         "pdf_url": f"https://metadata.hardbanrecordslab.online/api/certificate/pdf/{certificate.certificate_id}",
+        "r2_url": certificate.r2_url,
         "verify_url": verify_url,
     }
 
@@ -199,6 +211,7 @@ async def verify_certificate(identifier: str, request: Request, token: str | Non
         "sha256": certificate.sha256,
         "verification_status": certificate.verification_status,
         "metadata": certificate.certificate_metadata or {},
+        "r2_url": certificate.r2_url,
     }
 
     return data

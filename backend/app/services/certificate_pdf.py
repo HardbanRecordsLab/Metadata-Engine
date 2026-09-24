@@ -1,3 +1,5 @@
+import base64
+import io
 import os
 import json
 import logging
@@ -5,11 +7,20 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
 from weasyprint import HTML
+import qrcode
 
 logger = logging.getLogger(__name__)
 
 CERT_DIR = os.getenv("CERT_DIR", "/data/certificates")
 os.makedirs(CERT_DIR, exist_ok=True)
+
+
+def _qr_data_uri(url: str) -> str:
+    img = qrcode.make(url, border=2)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
 
 def generate_certificate_pdf(certificate_id, file_name, sha256, metadata, verify_url):
     """
@@ -82,20 +93,22 @@ def generate_certificate_pdf(certificate_id, file_name, sha256, metadata, verify
             "SHA256": sha256,
             "ANALYSIS_REASONING": get_meta("analysisReasoning", "Verified via HardbanRecords Lab DSP Engine."),
             "VERIFY_URL": verify_url,
+            "QR_CODE_DATA_URI": _qr_data_uri(verify_url),
             "LEGAL_NOTE": "This digital record constitutes cryptographic proof of the audio file's state and metadata as of its registration date. Under the Berne Convention and international 'prior art' standards, this timestamped fingerprint serves as essential evidentiary support for ownership claims and creative attribution."
         }
 
         # 2. Render Template
         current_dir = os.path.dirname(os.path.abspath(__file__))
         template_dir = os.path.join(os.path.dirname(current_dir), "templates")
-        
+
         env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
         template = env.get_template("certyficat.html")
-        
+
         html_content = template.render(**data)
-        
-        # 3. Generate PDF
-        HTML(string=html_content).write_pdf(output_path)
+
+        # 3. Generate PDF (base_url lets the template's relative asset paths,
+        # e.g. assets/hrl-logo.png, resolve against templates/ on disk)
+        HTML(string=html_content, base_url=template_dir + os.sep).write_pdf(output_path)
         
         logger.info(f"Certificate PDF generated successfully at {output_path}")
         return output_path
