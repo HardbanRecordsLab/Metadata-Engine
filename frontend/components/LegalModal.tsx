@@ -16,7 +16,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
   const ownerData = {
     name: "Kamil Skomra",
     company: "HardbanRecords Lab",
-    address: "Poland (correspondence address on request: legal@hardbanrecordslab.online)",
+    address: "Wiercień 50, 59-307 Wiercień, Poland",
     email: "contact@hardbanrecordslab.online",
     website: "https://hardbanrecordslab.online",
     app: "https://app-metadata.hardbanrecordslab.online/",
@@ -36,7 +36,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
 
   const summaries: Record<LegalDocType, string[]> = {
     privacy: [
-      'Controller: Kamil Skomra, trading as HardbanRecords Lab (Poland). Data-protection contact: legal@hardbanrecordslab.online.',
+      'Controller: Kamil Skomra, trading as HardbanRecords Lab (unregistered activity), Wiercień 50, 59-307 Wiercień, Poland. Data-protection contact: legal@hardbanrecordslab.online.',
       'Your browser runs a quick local preview. For the full analysis the file is uploaded to our server in Germany (Contabo) and deleted promptly after the analysis; only the resulting metadata and, if you save it, your analysis history are kept.',
       'AI classification (Google Gemini, Groq, OpenRouter) receives the audio and/or a compact feature representation. Identification (ACRCloud, AcoustID, MusicBrainz) receives a fingerprint or a short snippet; enrichment (Spotify, Last.fm, Discogs) receives only title, artist or an identifier.',
       'Payments are handled by Stripe; we never receive card data. Billing records are kept 5 years from the end of the tax year.',
