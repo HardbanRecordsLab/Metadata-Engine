@@ -15,6 +15,9 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [packs, setPacks] = useState<CreditPackInfo[]>([]);
   const [loadingPacks, setLoadingPacks] = useState(true);
+  // Art. 38 ust. 1 pkt 13 ustawy o prawach konsumenta: kredyty to treść cyfrowa dostarczana od razu —
+  // prawo odstąpienia wygasa tylko za wyraźną, uprzednią zgodą konsumenta. Bez zaznaczenia nie ma zakupu.
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -34,6 +37,10 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose }) => {
 
   const handleCheckout = async () => {
     setError(null);
+    if (!waiverAccepted) {
+      setError('Zaznacz zgodę na natychmiastowe dostarczenie kredytów.');
+      return;
+    }
     setIsProcessing(true);
 
     if (!user) {
@@ -194,11 +201,27 @@ const PricingModal: React.FC<PricingModalProps> = ({ onClose }) => {
             </p>
           )}
 
+          <label className="flex items-start gap-2 mb-4 text-xs text-slate-500 dark:text-slate-400 leading-relaxed cursor-pointer">
+            <input
+              type="checkbox"
+              checked={waiverAccepted}
+              onChange={(e) => setWaiverAccepted(e.target.checked)}
+              className="mt-0.5 shrink-0"
+            />
+            <span>
+              Żądam dostarczenia kredytów od razu po zapłacie i przyjmuję do wiadomości, że wtedy tracę prawo odstąpienia
+              od umowy. Akceptuję{' '}
+              <a href="https://hardbanrecordslab.online/terms/" target="_blank" rel="noopener noreferrer" className="underline">Regulamin</a>
+              {' '}i{' '}
+              <a href="https://hardbanrecordslab.online/privacy/" target="_blank" rel="noopener noreferrer" className="underline">Politykę prywatności</a>.
+            </span>
+          </label>
+
           <Button
             variant="primary"
             className="w-full py-4 text-lg rounded-xl shadow-xl shadow-accent-violet/20 hover:scale-[1.01] transition-transform"
             onClick={handleCheckout}
-            disabled={isProcessing || !current || current.available === false}
+            disabled={isProcessing || !waiverAccepted || !current || current.available === false}
           >
             {isProcessing ? (
               <div className="flex items-center gap-2 justify-center">
