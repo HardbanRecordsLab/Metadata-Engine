@@ -29,7 +29,11 @@ def plan_update(stored: Dict[str, Any], prof: Dict[str, Any]) -> Dict[str, Any]:
     # tempo
     new_bpm, old_bpm = t.get("bpm"), stored.get("bpm")
     if new_bpm and (t.get("agreement") or 0) >= TEMPO_MIN_AGREEMENT:
-        if not old_bpm or abs(new_bpm - old_bpm) / max(old_bpm, 1) > TEMPO_MIN_CHANGE:
+        ratio = (new_bpm / old_bpm) if old_bpm else None
+        if ratio and (abs(ratio - 2.0) < 0.15 or abs(ratio - 0.5) < 0.08):
+            # half/double of the stored value: a felt-tempo ambiguity (typical for ambient / cinematic), not an error
+            out["notes"].append(f"bpm kept {old_bpm}: engine reads {new_bpm} (octave variant)")
+        elif not old_bpm or abs(new_bpm - old_bpm) / max(old_bpm, 1) > TEMPO_MIN_CHANGE:
             out["set"]["bpm"] = int(round(new_bpm))
             out["notes"].append(f"bpm {old_bpm} -> {new_bpm} (agreement {t.get('agreement')})")
     elif new_bpm:

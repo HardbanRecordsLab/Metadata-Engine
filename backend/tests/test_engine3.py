@@ -300,3 +300,12 @@ def test_semantic_rank_orders_by_cosine():
     items = [{"id": "far", "vector": hearing.pack_vector(far)}, {"id": "near", "vector": hearing.pack_vector(near)}, {"id": "bad"}]
     ranked = hearing.semantic_rank(q, items)
     assert [r["id"] for r in ranked] == ["near", "far"] and ranked[0]["score"] > 0.9
+
+
+def test_catalog_plan_does_not_flip_octaves():
+    t = {"hearing": None, "tempo": {"bpm": 160.2, "agreement": 1.0, "estimates": {}}}
+    out = cp.plan_update({"bpm": 81, "genre": "Ambient"}, t)
+    assert "bpm" not in out["set"] and any("octave" in n for n in out["notes"])
+    out = cp.plan_update({"bpm": 172, "genre": "Ambient"}, {"hearing": None, "tempo": {"bpm": 90.7, "agreement": 0.75, "estimates": {}}})
+    assert "bpm" not in out["set"]
+    assert cp.plan_update({"bpm": 117, "genre": "Techno"}, {"hearing": None, "tempo": {"bpm": 120.0, "agreement": 1.0, "estimates": {}}})["set"]["bpm"] == 120
