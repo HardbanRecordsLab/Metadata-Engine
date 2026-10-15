@@ -100,7 +100,8 @@ def _best_electronic_hint(hints: Iterable[str]) -> Optional[str]:
 def _descriptor(label: str) -> str:
     """One non-organic word from the original label to keep as descriptor ('Cinematic Neo-Soul' -> 'Cinematic')."""
     cleaned = _ORGANIC_TOKENS.sub(" ", label or "")
-    words = [w for w in re.split(r"[\s/,-]+", cleaned) if w and w.lower() not in {"and", "&", "the"}]
+    skip = {"and", "&", "the", "hip", "hop", "pop", "rock", "metal", "house", "techno", "trance", "dance", "electro", "bass", "club", "punk"}
+    words = [w for w in re.split(r"[\s/,-]+", cleaned) if w and w.lower() not in skip]
     return words[0].title() if words else "Melodic"
 
 

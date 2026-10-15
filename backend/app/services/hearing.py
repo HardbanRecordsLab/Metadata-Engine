@@ -72,6 +72,7 @@ P_INSTRUMENTAL = 0.80      # >= this: confidently instrumental
 P_VOCAL = 0.50             # <= this: a singer is present; in between = unclear
 
 _lock = threading.Lock()
+_text_lock = threading.Lock()      # text queries must not wait behind a running audio analysis
 _state: Dict[str, Any] = {"model": None, "proc": None, "text": None, "failed": None}
 
 
@@ -228,7 +229,7 @@ def embed_text(queries: Sequence[str]) -> Optional[List[np.ndarray]]:
     if todo:
         import torch
 
-        with _lock, torch.no_grad():
+        with _text_lock, torch.no_grad():
             ti = _state["proc"](text=todo, return_tensors="pt", padding=True, truncation=True)
             t = _state["model"].get_text_features(**ti)
         t = (t / t.norm(dim=-1, keepdim=True)).numpy()

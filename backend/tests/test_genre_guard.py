@@ -76,3 +76,8 @@ def test_heuristics_no_longer_call_every_tonal_track_jazz():
 def test_grounding_block_mentions_instrumental_and_rules():
     block = gg.grounding_block("Club night.wav", "Instrumental DJ's Vol. 3", ["dance/club"], True)
     assert "INSTRUMENTAL" in block and "Club night.wav" in block and "neo-soul" in block
+
+
+def test_descriptor_never_is_itself_a_genre_word():
+    assert gg._descriptor("Hip-Hop Soul") == "Melodic"
+    assert gg._descriptor("Cinematic Neo-Soul") == "Cinematic"
