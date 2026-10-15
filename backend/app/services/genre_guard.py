@@ -171,7 +171,7 @@ def grounding_block(file_name: str, context: str, hints: List[str], instrumental
     return "\n".join(lines) + "\n"
 
 
-def apply_hearing_guard(result: Dict[str, Any], hearing: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def apply_hearing_guard(result: Dict[str, Any], hearing: Optional[Dict[str, Any]], min_mass: float = 0.45) -> Dict[str, Any]:
     """The audio model hears a different genre family than the LLM named: what is audible wins.
 
     Only acts when the hearing model's dominant family holds >= 45% of the probability mass and the LLM label belongs to
@@ -183,7 +183,7 @@ def apply_hearing_guard(result: Dict[str, Any], hearing: Optional[Dict[str, Any]
         return result
     label = str(result.get("mainGenre") or "")
     llm_fam = trust.genre_family(label)
-    heard = trust.dominant_family(hearing)
+    heard = trust.dominant_family(hearing, min_mass)
     if not heard or not llm_fam or trust.compatible(llm_fam, heard):
         return result
     best = trust.best_label_in_family(hearing, heard)

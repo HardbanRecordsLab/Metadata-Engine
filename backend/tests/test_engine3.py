@@ -268,3 +268,35 @@ def test_trust_uses_tempo_agreement():
                             tempo_info={"bpm": 147, "agreement": 0.5, "octaveAmbiguous": True, "alternatives": [98.3], "estimates": {}})
     assert good["fields"]["tempo"]["flags"] == [] and good["fields"]["tempo"]["confidence"] > 0.9
     assert "tempo:estimators_disagree" in bad["flags"] and bad["fields"]["tempo"]["alternative"] == 98.3
+
+
+# ───────────────────────────── catalogue profile / semantic ─────────────────────────────
+from app.services import catalog_profile as cp  # noqa: E402
+
+
+def test_catalog_plan_fixes_tempo_only_when_estimators_agree():
+    prof = {"hearing": None, "tempo": {"bpm": 120.0, "agreement": 1.0, "estimates": {}}}
+    assert cp.plan_update({"bpm": 117, "genre": "Techno"}, prof)["set"]["bpm"] == 120
+    assert "bpm" not in cp.plan_update({"bpm": 120, "genre": "Techno"}, prof)["set"]              # already right
+    shaky = {"hearing": None, "tempo": {"bpm": 147.0, "agreement": 0.5, "estimates": {"a": 147}}}
+    out = cp.plan_update({"bpm": 98, "genre": "Techno"}, shaky)
+    assert "bpm" not in out["set"] and any("disagree" in n for n in out["notes"])
+
+
+def test_catalog_plan_rewrites_genre_only_on_strong_audio_evidence():
+    strong = {"genre": [{"label": "techno", "p": 0.45}, {"label": "trance", "p": 0.2}, {"label": "house", "p": 0.1}]}
+    out = cp.plan_update({"bpm": 124, "genre": "Cinematic Neo-Soul"}, {"hearing": strong, "tempo": {}})
+    assert out["set"]["genre"] == "Cinematic Techno" and any("audio model" in n for n in out["notes"])
+    thin = {"genre": [{"label": "techno", "p": 0.2}, {"label": "jazz", "p": 0.2}, {"label": "pop", "p": 0.2}, {"label": "house", "p": 0.05}]}
+    assert "genre" not in cp.plan_update({"bpm": 124, "genre": "Cinematic Neo-Soul"}, {"hearing": thin, "tempo": {}})["set"]
+    assert "genre" not in cp.plan_update({"bpm": 124, "genre": "Deep House"}, {"hearing": strong, "tempo": {}})["set"]
+
+
+def test_semantic_rank_orders_by_cosine():
+    rs = np.random.RandomState(3)
+    q = rs.randn(512)
+    near = q + rs.randn(512) * 0.2
+    far = rs.randn(512)
+    items = [{"id": "far", "vector": hearing.pack_vector(far)}, {"id": "near", "vector": hearing.pack_vector(near)}, {"id": "bad"}]
+    ranked = hearing.semantic_rank(q, items)
+    assert [r["id"] for r in ranked] == ["near", "far"] and ranked[0]["score"] > 0.9

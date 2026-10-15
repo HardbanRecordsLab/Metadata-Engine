@@ -9,11 +9,12 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
 from app.dependencies import get_user_and_check_quota
+from app.rate_limit import limiter
 from app.services import cutdowns, hearing, passport, qc
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
@@ -134,3 +135,41 @@ async def passport_verify(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]
     if not isinstance(p, dict) or "payload" not in p:
         raise HTTPException(400, "passport object expected")
     return passport.verify_passport(p, payload.get("publicKey"))
+
+
+@router.post("/embed-text")
+@limiter.limit("120/minute")
+async def embed_text(request: Request, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Free text -> CLAP vectors in the same space as a track's ``sonicVector``: cosine ranks tracks by how they SOUND.
+    Body: {"queries": ["dark driving techno for a chase scene", ...]} (max 8, 300 chars each). Public + rate-limited:
+    it carries no user data and costs ~50 ms."""
+    qs = payload.get("queries")
+    if not isinstance(qs, list) or not qs or len(qs) > 8 or not all(isinstance(q, str) and q.strip() for q in qs):
+        raise HTTPException(400, "queries: 1-8 non-empty strings")
+    vecs = await _off_loop(hearing.embed_text, qs)
+    if vecs is None:
+        raise HTTPException(503, "Hearing model unavailable")
+    return {"model": hearing.MODEL_NAME, "vectors": [hearing.pack_vector(v) for v in vecs]}
+
+
+@router.post("/semantic-search")
+@limiter.limit("60/minute")
+async def semantic_search(request: Request, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Body: {"query": "...", "candidates": [{"id", "vector"}], "top": 20}. Convenience wrapper: embed + cosine rank."""
+    q = payload.get("query")
+    cands = payload.get("candidates")
+    if not isinstance(q, str) or not q.strip() or not isinstance(cands, list) or len(cands) > 20000:
+        raise HTTPException(400, "query and candidates (<= 20000) are required")
+    vecs = await _off_loop(hearing.embed_text, [q])
+    if vecs is None:
+        raise HTTPException(503, "Hearing model unavailable")
+    return {"results": hearing.semantic_rank(vecs[0], cands, int(payload.get("top", 20)))}
+
+
+@router.post("/profile")
+async def catalog_profile(file: UploadFile = File(...), user=Depends(get_user_and_check_quota)) -> Dict[str, Any]:
+    """Fast profile (hearing + tempo consensus, no LLM): seconds per track - for catalogue back-fills."""
+    from app.services import catalog_profile as cp
+
+    with _spooled(file) as path:
+        return await _off_loop(cp.profile_file, path)

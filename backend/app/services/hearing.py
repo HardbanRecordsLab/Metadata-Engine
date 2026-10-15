@@ -206,3 +206,43 @@ def listen(file_path: str) -> Optional[Dict[str, Any]]:
     tops = [TAXONOMY["genre"]["labels"][int(np.argmax(_state["text"]["genre"] @ c))] for c in a]
     out["genre_agreement"] = round(tops.count(max(set(tops), key=tops.count)) / len(tops), 2)
     return out
+
+
+# ───────────────────────── text -> audio space (semantic search) ─────────────────────────
+from collections import OrderedDict  # noqa: E402
+
+_TEXT_CACHE: "OrderedDict[str, np.ndarray]" = OrderedDict()
+_TEXT_CACHE_MAX = 1024
+
+
+def embed_text(queries: Sequence[str]) -> Optional[List[np.ndarray]]:
+    """Unit-length CLAP text embeddings for free-text queries (same space as the track ``sonicVector``).
+    ``cosine(embed_text(q)[0], unpack_vector(track_vector))`` ranks tracks by how well they *sound* like the query."""
+    if not available():
+        return None
+    queries = [str(q).strip()[:300] for q in queries]
+    todo = [q for q in dict.fromkeys(queries) if q and q not in _TEXT_CACHE]
+    if todo:
+        import torch
+
+        with _lock, torch.no_grad():
+            ti = _state["proc"](text=todo, return_tensors="pt", padding=True, truncation=True)
+            t = _state["model"].get_text_features(**ti)
+        t = (t / t.norm(dim=-1, keepdim=True)).numpy()
+        for q, v in zip(todo, t):
+            _TEXT_CACHE[q] = v
+            while len(_TEXT_CACHE) > _TEXT_CACHE_MAX:
+                _TEXT_CACHE.popitem(last=False)
+    return [_TEXT_CACHE.get(q, np.zeros(512, dtype=np.float32)) for q in queries]
+
+
+def semantic_rank(query_vec: np.ndarray, items: Sequence[Dict[str, Any]], top: int = 20) -> List[Dict[str, Any]]:
+    """items: [{'id', 'vector': b64}] -> best first with cosine score."""
+    scored = []
+    for it in items:
+        try:
+            scored.append({"id": it.get("id"), "score": round(cosine(query_vec, unpack_vector(it["vector"])), 4)})
+        except (KeyError, ValueError, TypeError):
+            continue
+    scored.sort(key=lambda x: -x["score"])
+    return scored[:top]
