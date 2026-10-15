@@ -33,6 +33,26 @@ New endpoints (`/api/intelligence/…`):
 | `POST /hear` (`vector=true` optional) | what the audio model hears |
 | `POST /similar` | rank sonic vectors by cosine (≥ 0.97 ≈ same recording / another master) |
 | `GET /passport/public-key`, `POST /passport/verify` | verify a passport offline-style |
+| `POST /embed-text` (public, 120/min) | free text -> CLAP vector in the same space as a track's `sonicVector` |
+| `POST /semantic-search` | embed a query and cosine-rank candidate vectors (`{query, candidates:[{id,vector}], top}`) |
+| `POST /profile` | fast catalogue profile: hearing + tempo consensus, no LLM (seconds per track) |
+
+## Search by sound (Sync Hub)
+
+`/embed-text` turns a scene description ("dark driving techno for a chase scene") into a vector in the audio model's space. The Sync Hub
+public library (`GET /api/tracks/public/semantic`) scores every public track's stored `sonicVector` against it and blends the cosine
+(80 %) with the old tag/keyword score (20 %). Tracks gain a vector from an Engine 3.0 analysis or from the catalogue back-fill below;
+until enough tracks have vectors the endpoint answers 204 and the library behaves as before.
+
+## Catalogue back-fill (bringing an older catalogue to 3.0)
+
+`app/services/catalog_profile.py` profiles a track in seconds (hearing + tempo, no LLM) and `plan_update` decides what to change:
+* BPM only when the estimators agree (>= 75 %) and the new value differs by > 1.5 % - and never by an octave (a half/double reading is
+  a felt-tempo ambiguity, not an error);
+* genre only when the audio model's dominant family holds >= 55 % of the probability and is incompatible with the stored label
+  ("Cinematic Neo-Soul" on a 124 BPM techno track becomes "Cinematic Techno");
+* `hasVocals` / vocal gender from the calibrated singer detector when it is confident;
+* always adds `sonicVector`, the hearing summary and tempo analysis, and keeps the previous genre/BPM in `metadata.engine3.previous`.
 
 ## Operations
 
