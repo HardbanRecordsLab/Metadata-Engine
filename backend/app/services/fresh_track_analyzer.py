@@ -122,6 +122,7 @@ class FreshTrackAnalyzer:
             except Exception as e:  # noqa: BLE001
                 logger.warning("Hearing skipped: %s", e)
                 hearing_res = None
+            hearing_res = genre_guard.restrict_hearing_to_context(hearing_res, ctx_hints)
             try:
                 tempo_res = await asyncio.wait_for(tempo_task, timeout=float(os.getenv("TEMPO_TIMEOUT", "120")))
             except Exception as e:  # noqa: BLE001
@@ -308,7 +309,7 @@ class FreshTrackAnalyzer:
                 final_result["language"] = "Unknown"       # the LLM could not know the language (no lyrics pass) but there is a singer
             dsp_vocal = audio_features.get("pitch", {}).get("is_vocal")
             if hearing_res:
-                final_result["hearing"] = {k: hearing_res.get(k) for k in ("model", "clips", "genre", "mood", "instrument", "vocal_verdict", "genre_agreement")}
+                final_result["hearing"] = {k: hearing_res.get(k) for k in ("model", "clips", "genre", "genre_unrestricted", "mood", "instrument", "vocal_verdict", "genre_agreement") if hearing_res.get(k) is not None}
                 final_result["sonicVector"] = hearing_res.get("sonicVector")
             if tempo_res:
                 final_result["tempoAnalysis"] = {k: tempo_res.get(k) for k in ("bpm", "agreement", "estimates", "alternatives", "octaveAmbiguous")}

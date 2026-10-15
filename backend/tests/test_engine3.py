@@ -309,3 +309,17 @@ def test_catalog_plan_does_not_flip_octaves():
     out = cp.plan_update({"bpm": 172, "genre": "Ambient"}, {"hearing": None, "tempo": {"bpm": 90.7, "agreement": 0.75, "estimates": {}}})
     assert "bpm" not in out["set"]
     assert cp.plan_update({"bpm": 117, "genre": "Techno"}, {"hearing": None, "tempo": {"bpm": 120.0, "agreement": 1.0, "estimates": {}}})["set"]["bpm"] == 120
+
+
+def test_context_restricts_the_heard_genres_to_the_owners_family():
+    labels = ["metal", "hard techno", "techno", "trance", "house", "jazz"]
+    cos = [0.60, 0.55, 0.50, 0.40, 0.35, 0.20]
+    heard = {"scale": 18.0, "genre": hearing.rank(labels, np.array(cos), 18.0), "genre_all": [{"label": l, "cos": c} for l, c in zip(labels, cos)]}
+    # no context -> the audio model alone says 'metal'
+    assert gg.restrict_hearing_to_context(heard, [])["genre"][0]["label"] == "metal"
+    out = gg.restrict_hearing_to_context(heard, ["dance/club"])
+    assert out["genre"][0]["label"] == "hard techno" and out["genre_unrestricted"][0]["label"] == "metal"
+    assert all(trust.genre_family(g["label"]) == "electronic" for g in out["genre"])
+    # the guard now keeps an electronic label instead of rewriting it to metal
+    r = gg.apply_hearing_guard({"mainGenre": "Cinematic Neo-Soul"}, out)
+    assert r["mainGenre"] == "Cinematic Hard Techno"

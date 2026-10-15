@@ -199,6 +199,9 @@ def listen(file_path: str) -> Optional[Dict[str, Any]]:
     for cat, spec in TAXONOMY.items():
         cos = _state["text"][cat] @ mean
         out[cat] = rank(spec["labels"], cos, scale, top=6 if cat != "vocal" else 3)
+    gcos = _state["text"]["genre"] @ mean
+    out["scale"] = round(float(scale), 3)
+    out["genre_all"] = [{"label": lbl, "cos": round(float(c), 4)} for lbl, c in zip(TAXONOMY["genre"]["labels"], gcos)]
     vprobs = softmax(_state["text"]["vocal"] @ mean, scale)
     out["vocal_verdict"] = vocal_verdict({lbl: float(p) for lbl, p in zip(TAXONOMY["vocal"]["labels"], vprobs)})
     out["sonicVector"] = pack_vector(mean)

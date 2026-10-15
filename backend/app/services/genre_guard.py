@@ -202,3 +202,32 @@ def apply_hearing_guard(result: Dict[str, Any], hearing: Optional[Dict[str, Any]
             extra.append(item["label"].title())
     result["additionalGenres"] = extra[:4]
     return result
+
+
+_CONTEXT_FAMILIES = {"electronic": {"electronic", "chill"}}
+
+
+def restrict_hearing_to_context(hearing: Optional[Dict[str, Any]], hints: Iterable[str]) -> Optional[Dict[str, Any]]:
+    """The owner told us the family (file name / context says techno, club, DJ set ...): the audio model may rank genres only
+    inside it. Otherwise distorted-but-electronic sounds (industrial, hard techno) get read as 'metal' and drag the label away.
+    The unrestricted ranking is kept as ``genre_unrestricted``."""
+    from . import hearing as hearing_mod
+    from . import trust
+
+    if not hearing or not hearing.get("genre_all"):
+        return hearing
+    base = _best_electronic_hint(hints or [])
+    if not base:
+        return hearing
+    allowed = _CONTEXT_FAMILIES["electronic"]
+    kept = [g for g in hearing["genre_all"] if trust.genre_family(g["label"]) in allowed]
+    if len(kept) < 3:
+        return hearing
+    import numpy as np
+    labels = [g["label"] for g in kept]
+    cos = np.array([g["cos"] for g in kept], dtype=float)
+    out = dict(hearing)
+    out["genre_unrestricted"] = hearing.get("genre")
+    out["genre"] = hearing_mod.rank(labels, cos, float(hearing.get("scale") or 18.0), top=6)
+    out["genre_restricted_to"] = sorted(allowed)
+    return out
