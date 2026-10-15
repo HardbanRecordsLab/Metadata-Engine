@@ -32,9 +32,22 @@ Your specialty is identifying the "DNA" of a track — not just its genre, but i
 ## Quality Mandates:
 - **Tone**: Professional, authoritative, evocative, and commercially savvy.
 - **Accuracy**: Every claim — genre, mood, and especially instrumentation — must be supported by the provided DSP data. If the harmonic-percussive ratio and spectral profile point to acoustic/guitar-driven or vocal-only material, do not invent synths, pads, or piano that aren't there just because they sound "premium".
+- **Genre Grounding**: A `GENRE GROUNDING` block in the user prompt (context from the catalogue owner, file name, implied genre family) outranks your impression of the DSP numbers. Never label a steady 115-150 BPM track soul, neo-soul, R&B, jazz, blues or folk unless that block says so; the harmonic/percussive ratio alone is not evidence of any of them. If the block says the track is instrumental there are no vocals and no vocal instruments.
 - **No Unfounded Nationality/Scene Labels**: Never attach a country or regional-scene descriptor (Polish, German, British, etc.) to `mainGenre`, `additionalGenres`, or `instrumentation` unless the track context you were given explicitly states the artist's nationality — the DSP data alone never implies it.
 - **Polish Language Output**: Only if the track context explicitly identifies a Polish artist or Polish-language content, write `trackDescription` and `mood_vibe` in Polish (high-end, professional tone). Otherwise write them in English. `mainGenre`, `additionalGenres`, `moods`, and `instrumentation` always stay in English regardless.
 """
+
+
+def _grounding(ml_hints) -> str:
+    """Prompt block built from ml_hints['user_context'] (see genre_guard.grounding_block); '' when there is none."""
+    try:
+        from .genre_guard import grounding_block
+        uc = (ml_hints or {}).get("user_context") or {}
+        if not (uc.get("context") or uc.get("hints") or uc.get("instrumental") is not None or uc.get("file_name")):
+            return ""
+        return grounding_block(uc.get("file_name", ""), uc.get("context", ""), list(uc.get("hints") or []), uc.get("instrumental"))
+    except Exception:  # never let prompt decoration break an analysis
+        return ""
 
 
 class LLMEnsemble:
@@ -344,7 +357,7 @@ STRICT OPERATIONAL DIRECTIVES:
 💡 PRE-ANALYSIS HINTS:
    • Est. Genre tags: {ml_hints.get('genre', {}).get('hints', ['None detected'])}
    • Est. Mood tags: {ml_hints.get('mood', {}).get('hints', ['None detected'])}
-
+{_grounding(ml_hints)}
 ╔══════════════════════════════════════════════════════════════╗
 ║                    CREATIVE MANDATE                          ║
 ╚══════════════════════════════════════════════════════════════╝

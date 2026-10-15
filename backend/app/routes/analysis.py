@@ -70,6 +70,7 @@ ALLOWED_METADATA_KEYS = {
     "spectralRolloff",
     "acousticScore",
     "hasVocals",
+    "genreCorrected",
     # Misc
     "analysisReasoning",
     "similar_artists",
@@ -211,6 +212,8 @@ async def process_analysis(
 
     time_budget_sec: int | None = None,
     force_refresh: bool = False,
+    context: str = "",
+    instrumental: bool | None = None,
 ):
     db = SessionLocal()
     try:
@@ -264,6 +267,8 @@ async def process_analysis(
             model_preference=model_preference,
             time_budget=analyzer_budget,
             job_id=job_id,
+            context=context,
+            instrumental=instrumental,
         )
 
         try:
@@ -395,6 +400,8 @@ async def generate_analysis(
     is_fresh: str = Form("false"),
     model_preference: str = Form("flash"),
     force_refresh: str = Form("false"),
+    context: str = Form(""),
+    instrumental: str = Form("auto"),
     current_user: User | None = Depends(get_user_and_check_quota),
     db: Session = Depends(get_db),
 ):
@@ -440,6 +447,8 @@ async def generate_analysis(
         model_preference=model_preference,
         time_budget_sec=time_budget,
         force_refresh=force_refresh.lower() == "true",
+        context=context[:600],
+        instrumental={"true": True, "false": False}.get(instrumental.lower()),
     )
 
     return {"job_id": job_id, "status": "pending"}

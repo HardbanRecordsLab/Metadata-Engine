@@ -18,6 +18,7 @@ import logging
 from .deep_audio_analyzer import DeepAudioAnalyzer
 from .llm_ensemble import LLMEnsemble
 from .groq_models import groq_create
+from . import genre_guard
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,9 @@ class FreshTrackAnalyzer:
         include_lyrics: bool = False,
         model_preference: str = "pro",
         time_budget: int = 120,
-        job_id: str = None
+        job_id: str = None,
+        context: str = "",
+        instrumental: "bool | None" = None,
     ) -> Dict[str, Any]:
 
         """
@@ -68,6 +71,10 @@ class FreshTrackAnalyzer:
         logger.info(f"Analyzing fresh track: {file_path} (Budget: {time_budget}s)")
         
         try:
+            # Genre grounding from the caller: file name + free-text context (album, folder, "instrumental DJ set")
+            ctx_hints = genre_guard.context_genre_hints(os.path.basename(file_path), context)
+            ml_hints = None
+
             # === LAYER 0: Identity & Integrity ===
             from ..utils.hash_generator import generate_file_hash
             file_hash = generate_file_hash(file_path)
@@ -109,6 +116,15 @@ class FreshTrackAnalyzer:
                 
                 # Dodaj szybkie heurystyki jako hint dla LLM
                 ml_hints = self._quick_heuristics(audio_features)
+                # Context hints go first and carry the user's context into the prompt (see llm_ensemble)
+                merged = ctx_hints + [h for h in ml_hints["genre"]["hints"] if h not in ctx_hints]
+                ml_hints["genre"]["hints"] = merged[:5]
+                if ctx_hints:
+                    ml_hints["genre"]["primary_genre"] = ctx_hints[0]
+                ml_hints["user_context"] = {
+                    "file_name": os.path.basename(file_path), "context": context,
+                    "hints": ctx_hints, "instrumental": instrumental,
+                }
                 
                 # Dynamiczny timeout dla LLM
                 llm_timeout = max(5, remaining - 1) # Zostaw 1s na merge
@@ -216,6 +232,12 @@ class FreshTrackAnalyzer:
                     if include_lyrics:
                         logger.info(f"Skipping lyrics due to low time budget ({remaining:.1f}s < 10s)")
             
+            # === GUARD: keep organic genres (soul/jazz/...) off dance tracks, honour "instrumental" ===
+            all_hints = ctx_hints + (ml_hints["genre"]["hints"] if ml_hints else [])
+            llm_consensus = genre_guard.apply_genre_guard(llm_consensus, audio_features, all_hints)
+            if instrumental is True:
+                llm_consensus = genre_guard.apply_instrumental(llm_consensus)
+
             # === ENSEMBLE: Merge Results ===
             final_result = self._merge_results(
                 audio_features,
@@ -223,6 +245,15 @@ class FreshTrackAnalyzer:
                 lyrics_analysis
             )
             
+            # hasVocals in the merged result comes from DSP; the caller's "instrumental" flag wins
+            if instrumental is True:
+                final_result["hasVocals"] = False
+                final_result["vocalStyle"] = llm_consensus.get("vocalStyle", {"gender": "none"})
+            elif instrumental is False and "hasVocals" not in final_result:
+                final_result["hasVocals"] = True
+            if llm_consensus.get("genreCorrected"):
+                final_result["genreCorrected"] = llm_consensus["genreCorrected"]
+
             total_time = time.time() - start_time
             
             # Use _tech_meta instead of meta to avoid conflicts with Metadata schema
@@ -302,12 +333,17 @@ class FreshTrackAnalyzer:
         # Lo-Fi / Chillhop
         if 70 <= tempo <= 100 and flatness < 0.3 and rms < 0.12:
             genre_hints.append('lo-fi/chillhop')
-        # R&B / Neo-Soul
-        if 70 <= tempo <= 110 and hp_ratio > 1.5 and centroid < 2500 and rms > 0.08:
+        # R&B / Neo-Soul - slow/mid tempo only; a club tempo (115+) is never a soul hint
+        if 70 <= tempo <= 105 and 1.5 < hp_ratio < 8 and centroid < 2500 and rms > 0.08:
             genre_hints.append('r&b/soul')
-        # Jazz
-        if tempo < 180 and hp_ratio > 2.5 and flatness < 0.35:
+        # Jazz - the harmonic/percussive ratio alone says nothing (it reads 20+ on quiet-kick club tracks):
+        # require a modest ratio, low brightness, soft dynamics and a non-dance tempo
+        if tempo < 115 and 2.5 < hp_ratio < 8 and flatness < 0.35 and centroid < 2800 and rms < 0.14:
             genre_hints.append('jazz/neo-soul')
+        # Steady dance pulse without a more specific match -> say so, so the LLM does not guess soul
+        if 115 <= tempo <= 150 and rms >= 0.10 and not any(h in genre_hints for h in (
+                'techno', 'trance/progressive', 'deep house', 'tech house/electro house', 'dubstep/bass music', 'drum and bass')):
+            genre_hints.append('electronic dance')
         # Classical / Orchestral
         if hp_ratio > 3.5 and centroid < 2000 and flatness < 0.25:
             genre_hints.append('classical/orchestral')
