@@ -97,12 +97,13 @@ def setup_app():
     from app.routes.fresh_analysis import router as fresh_router
     from app.routes.export import router as export_router
     from app.routes.tools import router as tools_router
+    from app.routes.intelligence import router as intelligence_router
     from app.startup import ensure_admin_user
     
     app = FastAPI(
         title="Music Metadata Engine",
         description="AI-Powered Audio Analysis",
-        version="2.1.0"
+        version="3.0.0"
     )
     
     # Global Exception Handler
@@ -160,6 +161,7 @@ def setup_app():
 
     app.include_router(export_router, prefix="/api")
     app.include_router(tools_router, prefix="/api")
+    app.include_router(intelligence_router, prefix="/api")
     app.include_router(ddex_router, prefix="/api")
     app.include_router(cwr_router, prefix="/api")
     app.include_router(ai_proxy_router, prefix="/api")
@@ -178,7 +180,13 @@ def setup_app():
     async def startup_event_handler():
         logger.info("🚀 Starting application...")
         ensure_admin_user()
-        
+
+        # Load the CLAP hearing model in the background so the first analysis does not pay for it
+        # (first start downloads ~600 MB into /data/hf - the persistent volume)
+        import threading
+        from app.services import hearing as _hearing
+        threading.Thread(target=_hearing.available, name="hearing-preload", daemon=True).start()
+
         # Start cleanup task
         asyncio.create_task(cleanup_temp_files())
         

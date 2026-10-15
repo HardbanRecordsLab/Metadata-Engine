@@ -50,6 +50,24 @@ def _grounding(ml_hints) -> str:
         return ""
 
 
+def _hearing_block(ml_hints) -> str:
+    """What the CLAP audio model heard (genre / mood / instruments / singer). Outranks DSP-only guesses."""
+    h = (ml_hints or {}).get("hearing")
+    if not h:
+        return ""
+
+    def top(cat, n=3):
+        return ", ".join(f"{x['label']} ({x['p']:.0%})" for x in (h.get(cat) or [])[:n]) or "n/a"
+
+    vv = h.get("vocal_verdict") or {}
+    singer = {True: "a singer/voice is present", False: "NO vocals (instrumental)", None: "unclear"}[vv.get("hasVocals")]
+    return (
+        "\n🎧 AUDIO MODEL (listened to the actual sound - trust it over numbers when they disagree):\n"
+        f"   • Heard genre: {top('genre')}\n   • Heard mood: {top('mood')}\n   • Heard instruments: {top('instrument')}\n"
+        f"   • Vocals: {singer} (p_instrumental={vv.get('pInstrumental')})\n"
+    )
+
+
 class LLMEnsemble:
     """
     Consensus voting z 5 LLMs:
@@ -357,7 +375,7 @@ STRICT OPERATIONAL DIRECTIVES:
 💡 PRE-ANALYSIS HINTS:
    • Est. Genre tags: {ml_hints.get('genre', {}).get('hints', ['None detected'])}
    • Est. Mood tags: {ml_hints.get('mood', {}).get('hints', ['None detected'])}
-{_grounding(ml_hints)}
+{_grounding(ml_hints)}{_hearing_block(ml_hints)}
 ╔══════════════════════════════════════════════════════════════╗
 ║                    CREATIVE MANDATE                          ║
 ╚══════════════════════════════════════════════════════════════╝

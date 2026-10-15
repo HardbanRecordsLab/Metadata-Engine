@@ -43,6 +43,8 @@ cffi
 numpy
 scipy
 scikit-learn
+# Engine 3.0 hearing (CLAP audio-language model); torch (CPU) is pinned above
+transformers==4.46.3
 aiohttp
 
 # === Metadata & Tags ===

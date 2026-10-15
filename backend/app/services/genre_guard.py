@@ -169,3 +169,36 @@ def grounding_block(file_name: str, context: str, hints: List[str], instrumental
                  "classical for a track with a steady 115-150 BPM pulse unless the context says so; a harmonic/percussive ratio "
                  "alone is NOT evidence of jazz or soul.")
     return "\n".join(lines) + "\n"
+
+
+def apply_hearing_guard(result: Dict[str, Any], hearing: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """The audio model hears a different genre family than the LLM named: what is audible wins.
+
+    Only acts when the hearing model's dominant family holds >= 45% of the probability mass and the LLM label belongs to
+    a family that is not compatible with it. The descriptor word of the LLM label is kept ('Cinematic Neo-Soul' ->
+    'Cinematic Techno')."""
+    from . import trust
+
+    if not isinstance(result, dict) or not hearing:
+        return result
+    label = str(result.get("mainGenre") or "")
+    llm_fam = trust.genre_family(label)
+    heard = trust.dominant_family(hearing)
+    if not heard or not llm_fam or trust.compatible(llm_fam, heard):
+        return result
+    best = trust.best_label_in_family(hearing, heard)
+    if not best:
+        return result
+    new_label = f"{_descriptor(label)} {best.title()}"
+    if result.get("genreCorrected"):                       # keep the first correction's origin
+        result["genreCorrected"]["to"] = new_label
+        result["genreCorrected"]["reason"] += "+hearing"
+    else:
+        result["genreCorrected"] = {"from": label, "to": new_label, "reason": "hearing"}
+    result["mainGenre"] = new_label
+    extra = [g for g in (result.get("additionalGenres") or []) if trust.compatible(trust.genre_family(str(g)), heard)]
+    for item in (hearing.get("genre") or [])[:4]:
+        if trust.genre_family(item["label"]) == heard and item["label"].title() not in extra and item["label"].title() != best.title():
+            extra.append(item["label"].title())
+    result["additionalGenres"] = extra[:4]
+    return result

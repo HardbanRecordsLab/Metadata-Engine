@@ -19,6 +19,9 @@ from .deep_audio_analyzer import DeepAudioAnalyzer
 from .llm_ensemble import LLMEnsemble
 from .groq_models import groq_create
 from . import genre_guard
+from . import hearing as hearing_mod
+from . import trust as trust_mod
+from . import tempo as tempo_mod
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,24 @@ class FreshTrackAnalyzer:
         
         logger.info("Fresh Track Analyzer initialized (lean Docker mode)")
     
+    @staticmethod
+    def _safe_listen(path: str):
+        """CLAP hearing in a worker thread; any failure just means 'no hearing' (the engine still works)."""
+        try:
+            return hearing_mod.listen(path)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Hearing failed: %s", e)
+            return None
+
+    @staticmethod
+    def _safe_tempo(path: str):
+        """Consensus tempo (Essentia + Percival + refined librosa) in a worker thread; None on failure."""
+        try:
+            return tempo_mod.estimate_file(path)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Tempo consensus failed: %s", e)
+            return None
+
     async def analyze_fresh_track(
         self,
         file_path: str,
@@ -74,6 +95,11 @@ class FreshTrackAnalyzer:
             # Genre grounding from the caller: file name + free-text context (album, folder, "instrumental DJ set")
             ctx_hints = genre_guard.context_genre_hints(os.path.basename(file_path), context)
             ml_hints = None
+            # The audio model listens in parallel with the DSP layer
+            hear_task = asyncio.get_running_loop().run_in_executor(None, self._safe_listen, file_path)
+            hearing_res = None
+            tempo_task = asyncio.get_running_loop().run_in_executor(None, self._safe_tempo, file_path)
+            tempo_res = None
 
             # === LAYER 0: Identity & Integrity ===
             from ..utils.hash_generator import generate_file_hash
@@ -87,6 +113,19 @@ class FreshTrackAnalyzer:
             audio_features['meta']['sha256'] = file_hash
             
             layer1_time = time.time() - start_time
+            try:
+                hearing_res = await asyncio.wait_for(hear_task, timeout=float(os.getenv("HEARING_TIMEOUT", "120")))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Hearing skipped: %s", e)
+                hearing_res = None
+            try:
+                tempo_res = await asyncio.wait_for(tempo_task, timeout=float(os.getenv("TEMPO_TIMEOUT", "120")))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Tempo consensus skipped: %s", e)
+            if tempo_res and tempo_res.get("bpm"):
+                rhythm_feat = audio_features.setdefault("rhythm", {})
+                rhythm_feat["tempo_librosa"] = rhythm_feat.get("tempo")      # the old quantised single guess, kept for reference
+                rhythm_feat["tempo"] = float(tempo_res["bpm"])
 
             logger.info(f"Layer 1 completed in {layer1_time:.1f}s")
             
@@ -121,6 +160,7 @@ class FreshTrackAnalyzer:
                 ml_hints["genre"]["hints"] = merged[:5]
                 if ctx_hints:
                     ml_hints["genre"]["primary_genre"] = ctx_hints[0]
+                ml_hints["hearing"] = hearing_res
                 ml_hints["user_context"] = {
                     "file_name": os.path.basename(file_path), "context": context,
                     "hints": ctx_hints, "instrumental": instrumental,
@@ -234,8 +274,15 @@ class FreshTrackAnalyzer:
             
             # === GUARD: keep organic genres (soul/jazz/...) off dance tracks, honour "instrumental" ===
             all_hints = ctx_hints + (ml_hints["genre"]["hints"] if ml_hints else [])
-            llm_consensus = genre_guard.apply_genre_guard(llm_consensus, audio_features, all_hints)
-            if instrumental is True:
+            heard_vocal = ((hearing_res or {}).get("vocal_verdict") or {})
+            llm_consensus = genre_guard.apply_genre_guard(llm_consensus, audio_features, all_hints,
+                                                          user_vocal_evidence=heard_vocal.get("hasVocals") is True)
+            llm_consensus = genre_guard.apply_hearing_guard(llm_consensus, hearing_res)
+            # Caller's flag wins; otherwise a confident "no singer" from the audio model makes it instrumental
+            eff_instrumental = instrumental
+            if eff_instrumental is None and heard_vocal.get("pInstrumental", 0) >= hearing_mod.P_INSTRUMENTAL:
+                eff_instrumental = True
+            if eff_instrumental is True:
                 llm_consensus = genre_guard.apply_instrumental(llm_consensus)
 
             # === ENSEMBLE: Merge Results ===
@@ -246,11 +293,23 @@ class FreshTrackAnalyzer:
             )
             
             # hasVocals in the merged result comes from DSP; the caller's "instrumental" flag wins
-            if instrumental is True:
+            if eff_instrumental is True:
                 final_result["hasVocals"] = False
                 final_result["vocalStyle"] = llm_consensus.get("vocalStyle", {"gender": "none"})
             elif instrumental is False and "hasVocals" not in final_result:
                 final_result["hasVocals"] = True
+            elif instrumental is None and heard_vocal.get("hasVocals") is True:
+                final_result["hasVocals"] = True
+            if final_result.get("hasVocals") is True and str(final_result.get("language", "")).lower() == "instrumental":
+                final_result["language"] = "Unknown"       # the LLM could not know the language (no lyrics pass) but there is a singer
+            dsp_vocal = audio_features.get("pitch", {}).get("is_vocal")
+            if hearing_res:
+                final_result["hearing"] = {k: hearing_res.get(k) for k in ("model", "clips", "genre", "mood", "instrument", "vocal_verdict", "genre_agreement")}
+                final_result["sonicVector"] = hearing_res.get("sonicVector")
+            if tempo_res:
+                final_result["tempoAnalysis"] = {k: tempo_res.get(k) for k in ("bpm", "agreement", "estimates", "alternatives", "octaveAmbiguous")}
+            final_result["trust"] = trust_mod.build_trust(final_result, audio_features, hearing_res, ctx_hints, instrumental,
+                                                          dsp_vocal if isinstance(dsp_vocal, bool) else None, tempo_info=tempo_res)
             if llm_consensus.get("genreCorrected"):
                 final_result["genreCorrected"] = llm_consensus["genreCorrected"]
 
@@ -264,7 +323,7 @@ class FreshTrackAnalyzer:
                 ts = datetime.utcnow().isoformat() + "Z"
             except Exception:
                 ts = ""
-            final_result["analysisVersion"] = "2.1.0"
+            final_result["analysisVersion"] = "3.0.0"
             final_result["analysisTimestamp"] = ts
             final_result["pipelineParams"] = {
                 "includeLyrics": bool(include_lyrics),

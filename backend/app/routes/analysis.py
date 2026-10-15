@@ -71,6 +71,8 @@ ALLOWED_METADATA_KEYS = {
     "acousticScore",
     "hasVocals",
     "genreCorrected",
+    # Engine 3.0
+    "hearing", "trust", "passport", "syncReadiness", "technical", "sonicVector", "tempoAnalysis",
     # Misc
     "analysisReasoning",
     "similar_artists",
@@ -256,6 +258,16 @@ async def process_analysis(
         await ws_manager.send_progress(job_id, job.message, progress=20)
 
         from app.services.fresh_track_analyzer import FreshTrackAnalyzer
+        from app.services import qc as qc_mod
+
+        def _safe_qc(path):
+            try:
+                return qc_mod.analyze_file(path)
+            except Exception as qe:  # noqa: BLE001 - QC is an extra, never fail the analysis for it
+                logger.warning(f"Job {job_id}: QC failed: {qe}")
+                return None
+
+        qc_task = asyncio.get_running_loop().run_in_executor(None, _safe_qc, file_path)
         analyzer = FreshTrackAnalyzer()
         analyzer_budget = max(15, int(remaining() - 2.0))
 
@@ -313,6 +325,22 @@ async def process_analysis(
                     file_tag_fields.add(field)
         except Exception as e:
             logger.warning(f"Could not read existing file tags: {e}")
+
+        # Technical QC (ran in parallel) + signed passport
+        try:
+            qc_report = await asyncio.wait_for(qc_task, timeout=120)
+        except Exception as qe:  # noqa: BLE001
+            logger.warning(f"Job {job_id}: QC unavailable: {qe}")
+            qc_report = None
+        if qc_report:
+            metadata["syncReadiness"] = qc_report.pop("syncReadiness", None)
+            metadata["technical"] = qc_report
+        try:
+            from app.services import passport as passport_mod
+            metadata["passport"] = passport_mod.build_passport(
+                metadata, metadata.get("trust"), (metadata.get("hearing") or {}).get("model"))
+        except Exception as pe:  # noqa: BLE001
+            logger.warning(f"Job {job_id}: passport not issued: {pe}")
 
         job.message = "Sanitizing and validating metadata..."
         db.commit()
