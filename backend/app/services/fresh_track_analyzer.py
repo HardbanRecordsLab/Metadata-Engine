@@ -49,6 +49,8 @@ class FreshTrackAnalyzer:
     @staticmethod
     def _safe_listen(path: str):
         """CLAP hearing in a worker thread; any failure just means 'no hearing' (the engine still works)."""
+        if not os.path.isfile(path):
+            return None
         try:
             return hearing_mod.listen(path)
         except Exception as e:  # noqa: BLE001
@@ -58,6 +60,8 @@ class FreshTrackAnalyzer:
     @staticmethod
     def _safe_tempo(path: str):
         """Consensus tempo (Essentia + Percival + refined librosa) in a worker thread; None on failure."""
+        if not os.path.isfile(path):
+            return None
         try:
             return tempo_mod.estimate_file(path)
         except Exception as e:  # noqa: BLE001
