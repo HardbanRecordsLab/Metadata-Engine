@@ -97,6 +97,14 @@ export interface Metadata {
     };
     // AI confidence (0.0–1.0)
     confidence?: number;
+
+    // Engine 3.0 (hearing, trust layer, tempo consensus, QC, signed passport)
+    trust?: { score: number; grade: string; needsReview: boolean; flags: string[]; fields?: Record<string, unknown> };
+    hearing?: { genre?: { label: string; p: number }[]; mood?: { label: string; p: number }[]; instrument?: { label: string; p: number }[]; vocal_verdict?: { hasVocals: boolean | null; gender?: string | null } };
+    tempoAnalysis?: { bpm: number; agreement: number; alternatives?: number[]; estimates?: Record<string, number> };
+    syncReadiness?: { score: number; grade: string; ready: boolean; checks: { id: string; ok: boolean | null; value?: unknown; note?: string }[] };
+    passport?: { alg: string; keyId: string; payload: unknown; signature: string };
+    genreCorrected?: { from: string; to: string; reason: string };
 }
 
 export interface AnalysisRecord {

@@ -15,6 +15,7 @@ import ClassificationStyleCard from './ClassificationStyleCard';
 import StructureCard from './StructureCard';
 import MarketingCard from './MarketingCard';
 import ProAnalysisCard from './ProAnalysisCard';
+import Engine3Card from './Engine3Card';
 import CommercialLegalCard from './CommercialLegalCard';
 import AudioPlayer from '../AudioPlayer';
 import AnimatedSection from '../AnimatedSection';
@@ -399,6 +400,9 @@ const ResultsSection: React.FC<ResultsSectionProps> = ({ isLoading, error, resul
                             metadata={editedResults!}
                             audioFeatures={audioFeatures}
                         />
+                    </AnimatedSection>
+                    <AnimatedSection delay="187ms">
+                        <Engine3Card metadata={editedResults!} />
                     </AnimatedSection>
                     <TranscriptionViewer transcript={(editedResults as any)?.lyrics || (results as any)?.lyrics} />
                     <AnimatedSection delay="190ms">
