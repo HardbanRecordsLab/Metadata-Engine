@@ -24,6 +24,13 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel
           </a>
 
       <div className="flex items-center gap-2">
+        <a
+          href="https://hardbanrecordslab.online/"
+          className="hidden sm:inline text-xs font-semibold text-white/60 hover:text-white transition-colors mr-2"
+          title="hardbanrecordslab.online"
+        >
+          ← HardbanRecords Lab
+        </a>
         <button
         onClick={toggleTheme}
         className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
