@@ -602,6 +602,37 @@ STRICT OPERATIONAL DIRECTIVES:
         except ValueError:
             return float(self.OPENROUTER_VOTE_TIMEOUT_SEC)
 
+    # Once ONE model has answered, the others get only this long to follow (instead of the full vote timeout).
+    # A slow provider used to hold every analysis for the whole 75 s although a usable answer was already in.
+    OPENROUTER_VOTE_GRACE_SEC = 15.0
+
+    def _openrouter_vote_grace(self) -> float:
+        import os
+        try:
+            return float(os.getenv("OPENROUTER_VOTE_GRACE_SEC", "").strip() or self.OPENROUTER_VOTE_GRACE_SEC)
+        except ValueError:
+            return float(self.OPENROUTER_VOTE_GRACE_SEC)
+
+    @staticmethod
+    async def _wait_vote(tasks, hard_timeout: float, grace: float):
+        """Wait for the vote tasks: at most ``hard_timeout`` overall, and at most ``grace`` seconds after the first
+        usable answer arrives. Returns (done, pending) like asyncio.wait."""
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + hard_timeout
+        grace_deadline = None
+        done: set = set()
+        pending = set(tasks)
+        while pending:
+            limit = deadline if grace_deadline is None else min(deadline, grace_deadline)
+            remaining = limit - loop.time()
+            if remaining <= 0:
+                break
+            just_done, pending = await asyncio.wait(pending, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+            done |= just_done
+            if grace_deadline is None and any((not t.cancelled()) and t.exception() is None and t.result() for t in just_done):
+                grace_deadline = loop.time() + grace
+        return done, pending
+
     @staticmethod
     def _openrouter_paid_allowed() -> bool:
         """Paid cheap models are ON by default; set OPENROUTER_ALLOW_PAID=false/0/no/off to disable.
@@ -624,11 +655,12 @@ STRICT OPERATIONAL DIRECTIVES:
             for m in models
         ]
         vote_timeout = self._openrouter_vote_timeout()
-        done, pending = await asyncio.wait(tasks, timeout=vote_timeout)
+        done, pending = await self._wait_vote(tasks, vote_timeout, self._openrouter_vote_grace())
         for t in pending:
             t.cancel()
         if pending:
-            logger.warning("OpenRouter vote: %d/%d models did not answer within %.0fs", len(pending), len(tasks), vote_timeout)
+            logger.warning("OpenRouter vote: %d/%d models did not answer in time (grace %.0fs after the first answer, hard limit %.0fs)",
+                           len(pending), len(tasks), self._openrouter_vote_grace(), vote_timeout)
         results = []
         for t in done:
             try:

@@ -186,6 +186,9 @@ def setup_app():
         import threading
         from app.services import hearing as _hearing
         threading.Thread(target=_hearing.available, name="hearing-preload", daemon=True).start()
+        # ...and run the DSP + tempo stages once on a synthetic clip so librosa/numba are compiled before the first user
+        from app.startup import warm_up_analysis
+        threading.Thread(target=warm_up_analysis, name="analysis-warmup", daemon=True).start()
 
         # Start cleanup task
         asyncio.create_task(cleanup_temp_files())
