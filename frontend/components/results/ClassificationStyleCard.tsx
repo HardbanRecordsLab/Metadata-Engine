@@ -70,6 +70,9 @@ const TagSection: React.FC<{
     </div>
 );
 
+/** The model answers "none" / "n/a" / "-" for fields that do not apply — that is an absence, not a value to show. */
+const isBlank = (v?: string) => !v || /^(none|n\/a|na|null|unknown|-+|—)$/i.test(v.trim());
+
 const EditableVocalStyle: React.FC<{
     isEditing: boolean;
     value: VocalStyle | undefined;
@@ -106,28 +109,28 @@ const EditableVocalStyle: React.FC<{
         );
     }
 
-    if (safeValue.gender === 'None' || (!safeValue.gender && !safeValue.timbre && !safeValue.delivery && !safeValue.emotionalTone)) {
+    if (isBlank(safeValue.gender) || (isBlank(safeValue.timbre) && isBlank(safeValue.delivery) && isBlank(safeValue.emotionalTone))) {
         return <p className="text-sm text-slate-500 dark:text-slate-400 italic">No vocals detected</p>;
     }
 
     return (
         <div className="flex flex-wrap gap-2 text-xs">
-            {safeValue.gender && safeValue.gender !== 'None' && (
+            {!isBlank(safeValue.gender) && (
                 <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 flex items-center gap-1 font-medium">
                     <User className="w-3 h-3" /> {safeValue.gender}
                 </span>
             )}
-            {safeValue.timbre && (
+            {!isBlank(safeValue.timbre) && (
                 <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 font-medium">
                     {safeValue.timbre}
                 </span>
             )}
-            {safeValue.delivery && (
+            {!isBlank(safeValue.delivery) && (
                 <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 font-medium">
                     {safeValue.delivery}
                 </span>
             )}
-            {safeValue.emotionalTone && (
+            {!isBlank(safeValue.emotionalTone) && (
                 <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 font-medium">
                     {safeValue.emotionalTone}
                 </span>

@@ -14,15 +14,25 @@ interface SonicAnalysisDisplayProps {
     audioFeatures?: any;
 }
 
+/** The engine reports energy as a label ("Medium", "Very High") or a 0–100 number; the meter needs a percentage. */
+const ENERGY_LABELS: Array<[RegExp, number]> = [[/very\s*high|extreme/i, 92], [/very\s*low/i, 10], [/high/i, 76], [/low/i, 26], [/med|mid|moderate/i, 52]];
+const energyPercent = (value: number | string): number => {
+    if (typeof value === 'number') return value;
+    const n = parseFloat(String(value));
+    if (Number.isFinite(n)) return n;
+    for (const [re, pct] of ENERGY_LABELS) if (re.test(String(value))) return pct;
+    return 0;
+};
+
 const EnergyMeter: React.FC<{ value: number | string }> = ({ value }) => {
-    const numValue = typeof value === 'number' ? value : parseInt(String(value)) || 0;
-    const percentage = Math.min(Math.max(numValue, 0), 100);
+    const percentage = Math.min(Math.max(Math.round(energyPercent(value)), 0), 100);
+    const label = typeof value === 'string' && Number.isNaN(parseFloat(value)) && value ? value : '';
 
     return (
         <div className="mt-2 space-y-1">
             <div className="flex justify-between items-end">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Energy Level</span>
-                <span className="text-sm font-black text-accent-violet">{percentage}%</span>
+                <span className="text-sm font-black text-accent-violet">{label ? `${label} · ` : ''}{percentage}%</span>
             </div>
             <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-white/5">
                 <motion.div

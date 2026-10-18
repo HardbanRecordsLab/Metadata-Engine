@@ -26,6 +26,14 @@ from . import tempo as tempo_mod
 logger = logging.getLogger(__name__)
 
 
+def vocal_style_is_blank(style) -> bool:
+    """True when a vocalStyle dict describes no singer (every field empty / "none" / "n/a")."""
+    if not isinstance(style, dict) or not style:
+        return False          # no description at all is not evidence of "no singer"
+    blank = {"", "none", "n/a", "na", "null", "unknown", "-"}
+    return all(str(v or "").strip().lower() in blank for v in style.values())
+
+
 class FreshTrackAnalyzer:
     """
     Analiza utworów NIEZNANYCH w bazach
@@ -305,6 +313,12 @@ class FreshTrackAnalyzer:
                 final_result["hasVocals"] = True
             elif instrumental is None and heard_vocal.get("hasVocals") is True:
                 final_result["hasVocals"] = True
+            # The singer evidence has to agree with itself: a DSP "vocals" flag, a "no vocals" voice description from the LLM
+            # and no singer heard by the audio model is a DSP false positive (seen on a synthetic instrumental).
+            if (final_result.get("hasVocals") is True and instrumental is not False
+                    and heard_vocal.get("hasVocals") is not True and vocal_style_is_blank(final_result.get("vocalStyle"))):
+                logger.info("hasVocals overridden to False: LLM and hearing report no singer")
+                final_result["hasVocals"] = False
             if final_result.get("hasVocals") is True and str(final_result.get("language", "")).lower() == "instrumental":
                 final_result["language"] = "Unknown"       # the LLM could not know the language (no lyrics pass) but there is a singer
             dsp_vocal = audio_features.get("pitch", {}).get("is_vocal")
