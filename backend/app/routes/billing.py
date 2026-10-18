@@ -1,6 +1,7 @@
 """Stripe Checkout for credit packs."""
 from __future__ import annotations
 
+import json
 import logging
 from typing import Literal
 
@@ -137,6 +138,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid payload") from e
     except stripe.SignatureVerificationError as e:
         raise HTTPException(status_code=400, detail="Invalid signature") from e
+
+    # stripe-python >= 12 returns StripeObjects (no dict .get) — use the verified raw JSON instead.
+    event = json.loads(payload)
 
     if event["type"] != "checkout.session.completed":
         return {"status": "ignored", "type": event["type"]}
