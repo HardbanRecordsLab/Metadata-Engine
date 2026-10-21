@@ -246,6 +246,8 @@ const AppContent: React.FC = () => {
         }
 
         setIsProcessingBatch(false);
+        // each analysis spends a credit on the server — refresh the balance shown in settings and the badge
+        if (user?.id) { refetchUser().catch(() => undefined); }
 
         if (failedCount > 0) {
             showToast(`Finished. ${processedCount} OK, ${failedCount} failed.`, 'info');

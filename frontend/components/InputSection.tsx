@@ -4,6 +4,7 @@ import Button from './Button';
 import { BatchItem, UserTier } from '../types';
 import BatchQueueItem from './BatchQueueItem';
 import { readMetadataFromFile } from '../services/taggingService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface InputSectionProps {
     batch: BatchItem[];
@@ -23,6 +24,12 @@ interface InputSectionProps {
 const InputSection: React.FC<InputSectionProps> = ({
     batch, setBatch, onAnalyze, isProMode, setIsProMode, isProcessingBatch, onViewResults, onRetry, onExportBatch, showToast, isFresh, setIsFresh
 }) => {
+    const { user } = useAuth();
+    const badgeText = !user
+        ? 'Sign in — 3 free credits'
+        : user.isAdmin
+            ? 'Unlimited Studio Access'
+            : `${user.credits ?? 0} ${user.credits === 1 ? 'credit' : 'credits'} left`;
     const [isDragging, setIsDragging] = useState(false);
     const dragCounter = useRef(0);
 
@@ -94,7 +101,7 @@ const InputSection: React.FC<InputSectionProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full border text-indigo-400 border-indigo-400/30">
-                        Unlimited Studio Access
+                        {badgeText}
                     </span>
                 </div>
             </div>
