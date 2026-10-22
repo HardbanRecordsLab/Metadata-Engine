@@ -115,9 +115,23 @@ EMAIL_VERIFY_PURPOSE = "email_verify"
 VERIFICATION_ENABLED = bool(settings.SMTP_HOST)
 
 
-async def _send_verification_email(user: User) -> None:
+def _lang(request: Request) -> str:
+    """UI language from the hrl_lang cookie shared across *.hardbanrecordslab.online (English by default)."""
+    return "pl" if request.cookies.get("hrl_lang") == "pl" else "en"
+
+
+async def _send_verification_email(user: User, lang: str = "en") -> None:
     token = create_purpose_token(user.id, EMAIL_VERIFY_PURPOSE, expires_minutes=60 * 24)
     link = f"{settings.APP_BASE_URL.rstrip('/')}/?verify_token={token}"
+    if lang == "pl":
+        html = (
+            f"<p>Witaj w Metadata Engine!</p>"
+            f"<p>Potwierdź adres e-mail, aby aktywować konto (link ważny 24 godziny):</p>"
+            f'<p><a href="{link}">Potwierdzam adres e-mail</a></p>'
+            f"<p>Jeśli to nie Ty zakładałeś konto, zignoruj tę wiadomość.</p>"
+        )
+        await send_email(user.email, "Potwierdź adres e-mail w Metadata Engine", html)
+        return
     html = (
         f"<p>Welcome to Metadata Engine!</p>"
         f"<p>Confirm your email address to activate your account (link valid for 24 hours):</p>"
@@ -155,7 +169,7 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
     db.refresh(user)
 
     if VERIFICATION_ENABLED:
-        await _send_verification_email(user)
+        await _send_verification_email(user, _lang(request))
         return {
             "requires_verification": True,
             "detail": "Account created. Check your email to verify your address before signing in.",
@@ -192,7 +206,7 @@ async def resend_verification(request: Request, payload: ForgotPasswordRequest, 
     """Resend the verification email. Always returns 200."""
     user = db.query(User).filter(User.email == payload.email).first()
     if user and not user.is_verified and VERIFICATION_ENABLED:
-        await _send_verification_email(user)
+        await _send_verification_email(user, _lang(request))
     return {"detail": "If that account exists and is unverified, a new link has been sent."}
 
 
@@ -359,15 +373,26 @@ async def forgot_password(request: Request, payload: ForgotPasswordRequest, db: 
     if user:
         token = create_purpose_token(user.id, PWD_RESET_PURPOSE, expires_minutes=30)
         link = f"{settings.APP_BASE_URL.rstrip('/')}/?reset_token={token}"
-        html = (
-            f"<p>Hi,</p>"
-            f"<p>Someone requested a password reset for your Metadata Engine account. "
-            f"If it was you, set a new password using the link below (valid for 30 minutes):</p>"
-            f'<p><a href="{link}">Reset your password</a></p>'
-            f"<p>If it wasn't you, you can ignore this email — your password stays the same.</p>"
-            f"<p>— Metadata Engine</p>"
-        )
-        await send_email(user.email, "Reset your Metadata Engine password", html)
+        if _lang(request) == "pl":
+            html = (
+                f"<p>Cześć,</p>"
+                f"<p>Ktoś poprosił o reset hasła do Twojego konta Metadata Engine. "
+                f"Jeśli to Ty, ustaw nowe hasło pod linkiem poniżej (ważny 30 minut):</p>"
+                f'<p><a href="{link}">Ustaw nowe hasło</a></p>'
+                f"<p>Jeśli to nie Ty, zignoruj tę wiadomość — hasło pozostaje bez zmian.</p>"
+                f"<p>— Metadata Engine</p>"
+            )
+            await send_email(user.email, "Reset hasła w Metadata Engine", html)
+        else:
+            html = (
+                f"<p>Hi,</p>"
+                f"<p>Someone requested a password reset for your Metadata Engine account. "
+                f"If it was you, set a new password using the link below (valid for 30 minutes):</p>"
+                f'<p><a href="{link}">Reset your password</a></p>'
+                f"<p>If it wasn't you, you can ignore this email — your password stays the same.</p>"
+                f"<p>— Metadata Engine</p>"
+            )
+            await send_email(user.email, "Reset your Metadata Engine password", html)
         logger.info("Password reset requested for %s", user.email)
     return {"detail": "If an account exists for that email, a reset link has been sent."}
 
