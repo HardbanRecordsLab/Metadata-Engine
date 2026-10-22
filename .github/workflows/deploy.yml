@@ -83,6 +83,11 @@ jobs:
             # exactly like DATABASE_URL does.
             OLD_R2_LINES="$(grep -E '^R2_(ACCOUNT_ID|ACCESS_KEY_ID|SECRET_ACCESS_KEY|BUCKET)=' .env || true)"
 
+            # Same for the transactional-mail credentials (the no-reply@ mailbox shared with the other
+            # HRL apps). They live only on the VPS - never in GitHub Secrets - so a deploy that rewrote
+            # them from non-existent secrets silently turned verification/reset e-mails off (2026-10-22).
+            OLD_SMTP_LINES="$(grep -E '^SMTP_(HOST|PORT|USER|PASS|FROM)=' .env || true)"
+
             # Backup existing env (docker-compose reads root .env)
             cp -p .env ".env.backup.$(date +%F-%H%M%S)"
 
@@ -125,11 +130,6 @@ jobs:
             API_CLIENT_SECRET=${{ secrets.API_CLIENT_SECRET }}
 
             APP_BASE_URL=https://app-metadata.hardbanrecordslab.online
-            SMTP_HOST=${{ secrets.SMTP_HOST }}
-            SMTP_PORT=${{ secrets.SMTP_PORT }}
-            SMTP_USER=${{ secrets.SMTP_USER }}
-            SMTP_PASS=${{ secrets.SMTP_PASS }}
-            SMTP_FROM=${{ secrets.SMTP_FROM }}
             SENTRY_DSN=${{ secrets.SENTRY_DSN }}
             EOF
 
@@ -137,6 +137,7 @@ jobs:
             # then swap the file in atomically.
             printf '%s\n' "$OLD_DB_LINE" >> .env.new
             printf '%s\n' "$OLD_R2_LINES" >> .env.new
+            printf '%s\n' "$OLD_SMTP_LINES" >> .env.new
             grep -Eq "$DB_RE" .env.new || { echo "FAIL: assembled .env lost the Postgres DATABASE_URL - keeping the old .env"; rm -f .env.new; exit 1; }
             chmod --reference=.env .env.new
             mv .env.new .env
