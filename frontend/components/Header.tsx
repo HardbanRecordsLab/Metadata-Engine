@@ -9,6 +9,7 @@ interface HeaderProps {
 }
 
 import { Database } from './icons';
+import HrlLangSwitch from '../lib/hrl/HrlLangSwitch';
 
 const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel }) => {
   return (
@@ -24,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, openValidationPanel
           </a>
 
       <div className="flex items-center gap-2">
+        <HrlLangSwitch />
         <a
           href="https://hardbanrecordslab.online/"
           className="hidden sm:inline text-xs font-semibold text-white/60 hover:text-white transition-colors mr-2"
