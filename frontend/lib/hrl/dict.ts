@@ -2883,5 +2883,169 @@ export const PAIRS: Array<[string, string]> = [
 [
 "Ten kod został już przez Ciebie zrealizowany.",
 "You've already redeemed this code."
+],
+[
+"Metadata Engine — metadane muzyczne, tagowanie i analiza z AI",
+"Metadata Engine — AI music metadata, tagging & analysis"
+],
+[
+"Metadata Engine zamienia surowy plik audio w profesjonalne metadane gotowe do dystrybucji. Mierzy sygnał (BPM, tonacja, głośność, profil widmowy), uruchamia wielomodelową klasyfikację AI, która musi osiągnąć konsensus, zanim tag zostanie przyjęty, identyfikuje nagranie w publicznych bazach i eksportuje w formatach akceptowanych przez DSP i organizacje zbiorowego zarządzania — DDEX ERN 4.3, CWR 2.1, CSV MP3Tag i JSON. Każdy przeanalizowany utwór może też otrzymać Certyfikat autentyczności przypięty do IPFS.",
+"Metadata Engine turns a raw audio file into professional, distribution-ready metadata. It measures the signal (BPM, key, loudness, spectral profile), runs a multi-model AI classification that must reach consensus before a tag is accepted, identifies the recording against public databases, and exports in the formats DSPs and PROs accept — DDEX ERN 4.3, CWR 2.1, MP3Tag CSV and JSON. Every analysed track can also get a Certificate of Authenticity pinned to IPFS."
+],
+[
+"Co dostajesz z jednej analizy",
+"What you get from one analysis"
+],
+[
+"BPM, tonacja/tryb, głośność LUFS, energia i profil widmowy z pomiaru DSP",
+"BPM, key/mode, LUFS loudness, energy and spectral profile from DSP measurement"
+],
+[
+"Gatunek, podgatunki, nastroje, instrumentacja i styl wokalu — każde z oceną pewności",
+"Genre, sub-genres, moods, instrumentation and vocal style — each with a confidence score"
+],
+[
+"Napisany opis utworu gotowy do marketingu",
+"A written, marketing-ready track description"
+],
+[
+"Identyfikacja przez ACRCloud, AcoustID i MusicBrainz",
+"Identification via ACRCloud, AcoustID and MusicBrainz"
+],
+[
+"Uzupełnienie katalogu danymi ze Spotify, Last.fm i Discogs",
+"Catalogue enrichment from Spotify, Last.fm and Discogs"
+],
+[
+"Eksporty: DDEX ERN 4.3, CWR 2.1, CSV MP3Tag, JSON",
+"Exports: DDEX ERN 4.3, CWR 2.1, MP3Tag CSV, JSON"
+],
+[
+"Authenticity DNA SHA-256 i Certyfikat autentyczności przypięty do IPFS",
+"SHA-256 Authenticity DNA and an IPFS-pinned Certificate of Authenticity"
+],
+[
+"Przetwarzanie wsadowe całych albumów i katalogów archiwalnych",
+"Batch processing for whole albums and back catalogues"
+],
+[
+"Dla kogo",
+"Who it's for"
+],
+[
+"Niezależni artyści i producenci przygotowujący wydania, wytwórnie audytujące katalog archiwalny, dystrybutorzy weryfikujący przychodzące metadane oraz biblioteki muzyki sync / produkcyjnej, które potrzebują szczegółowego tagowania nastroju i instrumentacji.",
+"Independent artists and producers preparing releases, labels auditing a back catalogue, distributors verifying incoming metadata, and sync / production-music libraries that need granular mood and instrumentation tagging."
+],
+[
+"FAQ",
+"FAQ"
+],
+[
+"Ile to kosztuje?",
+"How much does it cost?"
+],
+[
+"Jednorazowe pakiety kredytów, bez subskrypcji. 1 kredyt = 1 pełna analiza; eksporty są bezpłatne. Nowe konta dostają 3 darmowe kredyty. Starter 10/9 USD, Producer 50/35 USD, Label 150/89 USD, Studio 400/199 USD.",
+"One-time credit packs, no subscription. 1 credit = 1 full analysis; exports are free. New accounts get 3 free credits. Starter 10/$9, Producer 50/$35, Label 150/$89, Studio 400/$199."
+],
+[
+"Jakie formaty są obsługiwane?",
+"What formats are supported?"
+],
+[
+"MP3, WAV, FLAC i AIFF, do ok. 100 MB na plik.",
+"MP3, WAV, FLAC and AIFF, up to ~100 MB per file."
+],
+[
+"Czy mój plik audio jest przechowywany?",
+"Is my audio stored?"
+],
+[
+"Nie — przesłane audio jest usuwane niezwłocznie po analizie; zachowywane są tylko wynikowe metadane (oraz Twoja zapisana historia).",
+"No — uploaded audio is discarded promptly after analysis; only the resulting metadata (and your saved history) is kept."
+],
+[
+"Otwórz aplikację",
+"Open the app"
+],
+[
+"· Prowadzone przez HardbanRecords Lab (Polska, UE) ·",
+"· Operated by HardbanRecords Lab (Poland, EU) ·"
+],
+[
+"KATALOG",
+"CATALOG"
+],
+[
+"WSPARCIE",
+"SUPPORT"
+],
+[
+"Panel",
+"Dashboard"
+],
+[
+"Witaj ponownie,",
+"Welcome Back,"
+],
+[
+"Gość",
+"Guest"
+],
+[
+"Podstawowy",
+"Essential"
+],
+[
+"Profesjonalne tagowanie AI. Wgraj utwory, aby wykryć BPM, tonację, gatunek i natychmiast wygenerować dane o prawach autorskich.",
+"Professional AI tagging. Upload tracks to detect BPM, key, genre, and generate copyright data instantly."
+],
+[
+"Prawa autorskie",
+"Copyright"
+],
+[
+"Identyfikacja",
+"Identification"
+],
+[
+"Analityka",
+"Analytics"
+],
+[
+"Kontakt:",
+"Contact:"
+],
+[
+"Aplikacja:",
+"App:"
+],
+[
+"Strona:",
+"Web:"
+],
+[
+"Produkt",
+"Product"
+],
+[
+"Funkcje",
+"Features"
+],
+[
+"Zasoby",
+"Resources"
+],
+[
+"Dokumentacja",
+"Documentation"
+],
+[
+"Dokumenty prawne",
+"Legal"
+],
+[
+"Panel · Metadata Engine",
+"Dashboard · Metadata Engine"
 ]
 ];
