@@ -3047,5 +3047,373 @@ export const PAIRS: Array<[string, string]> = [
 [
 "Panel · Metadata Engine",
 "Dashboard · Metadata Engine"
+],
+[
+"Wyloguj",
+"Logout"
+],
+[
+"Analiza audio · Metadata Engine",
+"Audio Analysis · Metadata Engine"
+],
+[
+"Laboratorium",
+"Laboratory"
+],
+[
+"Pozostało kredytów: {}",
+"{} credits left"
+],
+[
+"Pozostał {} kredyt",
+"{} credit left"
+],
+[
+"Upuść audio w wysokiej rozdzielczości",
+"Drop High-Resolution Audio"
+],
+[
+"Nasz silnik automatycznie wykrywa BPM, tonację, gatunek i nastrój Twoich utworów.",
+"Our engine automatically detects BPM, Key, Genre, and mood-vibe for your tracks."
+],
+[
+"WYBIERZ PLIKI",
+"BROWSE FILES"
+],
+[
+"Historia",
+"History"
+],
+[
+"Historia · Metadata Engine",
+"History · Metadata Engine"
+],
+[
+"pozycji",
+"items"
+],
+[
+"Ostatnie",
+"Recent"
+],
+[
+"folderze repozytorium.",
+"folder of the repository."
+],
+[
+"Przeglądarka uruchamia natychmiastowy podgląd DSP (BPM, tonacja, głośność) z użyciem Essentia.js / WebAssembly.",
+"Your browser runs an instant DSP preview (BPM, key, loudness) with Essentia.js / WebAssembly."
+],
+[
+"Plik jest wysyłany; serwer wykonuje pełną analizę DSP (Essentia + Librosa) i oblicza odcisk autentyczności SHA-256 zdekodowanego dźwięku.",
+"The file is uploaded; the server runs the full DSP pass (Essentia + Librosa) and computes a SHA-256 Authenticity DNA of the decoded audio."
+],
+[
+"Zespół modeli językowych (Groq, Google Gemini, OpenRouter) klasyfikuje gatunek, nastrój, instrumentację i styl wokalu oraz pisze opis. Kilka modeli musi się zgodzić; każdy tag ma ocenę pewności.",
+"A consensus ensemble of language models (Groq, Google Gemini, OpenRouter) classifies genre, mood, instrumentation and vocal style, and writes the description. Several models must agree; each tag carries a confidence score."
+],
+[
+"Identyfikacja odbywa się w ACRCloud / AcoustID / MusicBrainz; wzbogacanie danych w Spotify / Last.fm / Discogs.",
+"Identification runs against ACRCloud / AcoustID / MusicBrainz; enrichment against Spotify / Last.fm / Discogs."
+],
+[
+"Eksporty",
+"Exports"
+],
+[
+"— import zbiorczy; zawiera pola AI, których standardowe tagi nie niosą.",
+"— bulk import; includes AI fields standard tags don't carry."
+],
+[
+"— pełna struktura.",
+"— the full structure."
+],
+[
+"— dostarczanie do platform DSP przez dystrybutora.",
+"— delivery to DSPs via a distributor."
+],
+[
+"— rejestracja utworów w organizacjach PRO / CMO.",
+"— PRO / CMO work registration."
+],
+[
+"Zapis do pliku",
+"Write-back"
+],
+[
+"— tagi ID3 (TIT2 / TPE1 / TBPM / TKEY / TSRC / COMM…) lub Vorbis zapisywane prosto w pliku.",
+"— ID3 (TIT2 / TPE1 / TBPM / TKEY / TSRC / COMM…) or Vorbis tags straight into the file."
+],
+[
+"Procesor wsadowy kolejkuje wiele plików (po 1 kredycie) — nie zamykaj karty, dopóki pracuje. Każdy przeanalizowany utwór może otrzymać Certyfikat autentyczności (PDF) przypięty do IPFS z publiczną",
+"The Batch Processor queues many files (1 credit each) — keep the tab open while it runs. Any analysed track can get a Certificate of Authenticity (PDF) pinned to IPFS with a public"
+],
+[
+"stroną.",
+"page."
+],
+[
+"z Ustawienia → Bezpieczeństwo, odpytaj o wynik i wyeksportuj. Pełna dokumentacja w",
+"from Settings → Security, poll for the result, export. Full reference in"
+],
+[
+"oraz pod adresem",
+"and at"
+],
+[
+"Zamknij",
+"Close"
+],
+[
+"Ustawienia · Metadata Engine",
+"Settings · Metadata Engine"
+],
+[
+"Profil",
+"Profile"
+],
+[
+"Subskrypcja",
+"Subscription"
+],
+[
+"Nowe hasło (min. 8)",
+"New password (min 8)"
+],
+[
+"Klucz API",
+"API key"
+],
+[
+"Pokaż",
+"Reveal"
+],
+[
+"Kopiuj",
+"Copy"
+],
+[
+"Zmień",
+"Rotate"
+],
+[
+"Pobierz moje dane (JSON)",
+"Download my data (JSON)"
+],
+[
+"Trwale usuwa Twoje konto, historię analiz i certyfikaty. Tej operacji nie można cofnąć. Dokumenty zakupów przechowujemy tylko tak długo, jak wymaga prawo podatkowe, i nie zawierają danych kontaktowych.",
+"Permanently deletes your account, analysis history and certificates. This cannot be undone. Purchase records are kept only as required by tax law and carry no contact data."
+],
+[
+"Ukryj",
+"Hide"
+],
+[
+"[ Połącz plik ponownie ]",
+"[ Re-connect File ]"
+],
+[
+"Pobierz otagowane audio",
+"Download Tagged Audio"
+],
+[
+"Eksportuj do CSV",
+"Export to CSV"
+],
+[
+"Edytuj",
+"Edit"
+],
+[
+"Wykonawca",
+"Artist"
+],
+[
+"Singiel",
+"Single"
+],
+[
+"Rok",
+"Year"
+],
+[
+"Utwór",
+"Track"
+],
+[
+"Czas trwania",
+"Duration"
+],
+[
+"Średnie ·",
+"Medium ·"
+],
+[
+"Produkcja",
+"Production"
+],
+[
+"Dynamika",
+"Dynamics"
+],
+[
+"Płeć wokalisty",
+"Gender"
+],
+[
+"Barwa",
+"Timbre"
+],
+[
+"Sposób podania",
+"Delivery"
+],
+[
+"Podgatunki",
+"Sub-Genres"
+],
+[
+"Nastroje",
+"Moods"
+],
+[
+"Instrumentarium",
+"Instrumentation"
+],
+[
+"Słowa kluczowe",
+"Keywords"
+],
+[
+"Opis utworu (bio)",
+"Track Description (Bio)"
+],
+[
+"Linia praw autorskich (©)",
+"Copyright Line (©)"
+],
+[
+"Linia produkcji (℗)",
+"Production Line (℗)"
+],
+[
+"Kompozytor(zy)",
+"Composer(s)"
+],
+[
+"Wpisz kompozytora(ów)",
+"Enter composer(s)"
+],
+[
+"Autor(zy) tekstu",
+"Lyricist(s)"
+],
+[
+"Wpisz autora(ów) tekstu",
+"Enter lyricist(s)"
+],
+[
+"Wpisz producenta muzycznego",
+"Enter music producer"
+],
+[
+"Wpisz kod ISRC",
+"Enter isrc code"
+],
+[
+"Licencja",
+"License"
+],
+[
+"Wpisz licencję",
+"Enter license"
+],
+[
+"Wpisz numer katalogowy",
+"Enter catalog number"
+],
+[
+"Inne",
+"Other"
+],
+[
+"Wpisz inne",
+"Enter other"
+],
+[
+"Język",
+"Language"
+],
+[
+"Nieznany",
+"Unknown"
+],
+[
+"Wpisz właściciela pliku",
+"Enter file owner"
+],
+[
+"Brak",
+"None"
+],
+[
+"Standardowy format XML do cyfrowej dystrybucji muzyki (Global DSP Master Delivery)",
+"Standard XML format for digital music delivery (Global DSP Master Delivery)"
+],
+[
+"Rejestracja utworów wspólnych dla wydawców i organizacji zbiorowego zarządzania (PRS, ASCAP itd.)",
+"Common Works Registration for publishers and collecting societies (PRS, ASCAP, etc.)"
+],
+[
+"Cofnij (Ctrl+Z)",
+"Undo (Ctrl+Z)"
+],
+[
+"Ponów (Ctrl+Y)",
+"Redo (Ctrl+Y)"
+],
+[
+"RRRR",
+"YYYY"
+],
+[
+"Emocja",
+"Emotion"
+],
+[
+"Wpisz wydawcę / wytwórnię",
+"Enter publisher / label"
+],
+[
+"Wpisz linię praw autorskich (©)",
+"Enter copyright line (©)"
+],
+[
+"Wpisz linię produkcji (℗)",
+"Enter production line (℗)"
+],
+[
+"Wpisz język",
+"Enter language"
+],
+[
+"Z wulgaryzmami",
+"Explicit"
+],
+[
+"Bez wulgaryzmów",
+"Clean"
+],
+[
+"Anuluj",
+"Cancel"
+],
+[
+"Wyniki analizy · Metadata Engine",
+"Analysis Results · Metadata Engine"
+],
+[
+"Powiązano: {}",
+"Linked: {}"
 ]
 ];
