@@ -70,6 +70,7 @@ async def credit_purchase_history(
 @router.post("/checkout")
 async def create_checkout_session(
     body: CheckoutRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     """Create Stripe Checkout Session (one-time payment)."""
@@ -106,6 +107,8 @@ async def create_checkout_session(
             cancel_url=cancel_url,
             customer_email=current_user.email,
             client_reference_id=str(current_user.id),
+            # Checkout page language follows the site toggle (hrl_lang cookie shared across *.hardbanrecordslab.online)
+            locale="pl" if request.cookies.get("hrl_lang") == "pl" else "en",
             metadata={
                 "user_id": str(current_user.id),
                 "pack_id": pack.id,
