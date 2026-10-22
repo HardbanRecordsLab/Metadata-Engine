@@ -5,6 +5,11 @@ import { describe, it, expect, vi } from 'vitest';
 import InputSection from './InputSection';
 import { BatchItem } from '../types';
 
+// InputSection reads the credit balance from the auth context
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: () => ({ user: { credits: 5, isAdmin: false } }),
+}));
+
 // Mock dependent components
 vi.mock('./BatchQueueItem', () => ({
     default: ({ item }: { item: BatchItem }) => <div data-testid="batch-item">{item.file.name}</div>
