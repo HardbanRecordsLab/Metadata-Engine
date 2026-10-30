@@ -91,6 +91,36 @@ def align_beats_to_tempo(beats: Sequence[float], bpm: float) -> np.ndarray:
     return b
 
 
+def regularize_grid(beats: Sequence[float], bpm: float, duration: float,
+                    max_resid_s: float = 0.015, max_period_dev: float = 0.01) -> np.ndarray:
+    """Replace tracked beat ticks by the straight line they lie on, when the track really has a steady tempo.
+
+    Beat trackers report ticks with jitter and a small bias (a 124 BPM house track came back as 123.2 BPM from the median of
+    its ticks), so bar lines computed from them wander by tens of milliseconds - audible as a late cut. For a steady grid
+    (electronic music, DAW productions) a straight-line fit through the ticks is the better estimate of where every beat is.
+    Returns the original ticks when the fit is not trustworthy (live drift, tempo changes, too few ticks).
+    """
+    b = np.asarray(beats, dtype=float)
+    if b.size < 16 or not bpm or duration <= 0:
+        return b
+    period = 60.0 / float(bpm)
+    # beat index of every tick from the gap to the previous one (a gap of 2 periods = one skipped beat); counting from the
+    # first tick instead would mis-number late ticks as soon as the tracker is a fraction of a percent off the tempo
+    gaps = np.round(np.diff(b) / period)
+    keep = np.append(True, gaps >= 1)                            # one tick per beat, in order
+    k = np.concatenate([[0.0], np.cumsum(gaps[gaps >= 1])])
+    b = b[keep]
+    if b.size < 16:
+        return np.asarray(beats, dtype=float)
+    slope, intercept = np.polyfit(k, b, 1)
+    resid = b - (intercept + slope * k)
+    robust = float(np.median(np.abs(resid - np.median(resid))))
+    if abs(slope - period) / period > max_period_dev or robust > max_resid_s / 2 or float(np.percentile(np.abs(resid), 90)) > max_resid_s:
+        return np.asarray(beats, dtype=float)                    # drifting or erratic: keep what the tracker heard
+    n = int(np.floor((duration - intercept) / slope)) + 1       # the grid starts where the tracker found its first beat
+    return intercept + slope * np.arange(max(n, 0))
+
+
 # ───────────────────────────── audio side ─────────────────────────────
 def beat_grid(path: str, sr: int = 22050) -> Dict[str, Any]:
     import librosa
@@ -102,7 +132,7 @@ def beat_grid(path: str, sr: int = 22050) -> Dict[str, Any]:
     est = tempo_mod.estimate_file(path)
     beat_times = np.asarray(est.get("beats") or [])
     if beat_times.size >= 16 and est.get("bpm"):
-        beat_times = align_beats_to_tempo(beat_times, est["bpm"])
+        beat_times = regularize_grid(align_beats_to_tempo(beat_times, est["bpm"]), est["bpm"], duration)
     else:
         _, beats = librosa.beat.beat_track(y=y, sr=sr)
         beat_times = librosa.frames_to_time(beats, sr=sr)

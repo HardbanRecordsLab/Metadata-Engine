@@ -261,6 +261,43 @@ def test_beats_are_aligned_to_the_consensus_tempo():
     assert np.array_equal(cutdowns.align_beats_to_tempo(ok, 120), ok)
 
 
+def test_regularize_grid_removes_tracker_bias_and_jitter():
+    true_period = 60 / 124.0
+    rng = np.random.RandomState(5)
+    ticks = 0.31 + np.arange(0, 120) * true_period * 1.0065 + rng.randn(120) * 0.006      # tracker reads 123.2 BPM and jitters
+    assert 60 / np.median(np.diff(ticks)) == pytest.approx(123.2, abs=0.15)
+    grid_t = cutdowns.regularize_grid(ticks, 124.0, 70.0)
+    d = np.diff(grid_t)
+    assert d.max() - d.min() < 1e-9                                                       # a perfectly straight grid
+    assert 60 / d[0] == pytest.approx(123.2, abs=0.35)                                    # it follows the audio, not a rounded guess
+    idx = np.round((ticks - grid_t[0]) / d[0]).astype(int)
+    assert np.abs(ticks - (grid_t[0] + idx * d[0])).max() < 0.02                          # every heard tick sits on the grid
+
+
+def test_regularize_grid_survives_missing_beats():
+    period = 60 / 128.0
+    ticks = 0.2 + np.arange(0, 100) * period
+    ticks = np.delete(ticks, [10, 11, 40, 41, 42])                                         # a break the tracker skipped
+    g = cutdowns.regularize_grid(ticks, 128.0, 52.0)
+    assert np.diff(g).std() < 1e-9 and np.diff(g)[0] == pytest.approx(period, abs=1e-4)
+    assert g[0] == pytest.approx(0.2, abs=0.01) and g[-1] <= 52.0
+
+
+def test_regularize_grid_keeps_a_drifting_tempo_as_heard():
+    t = np.cumsum(60 / np.linspace(110, 140, 120))                                         # a live band speeding up
+    assert np.array_equal(cutdowns.regularize_grid(t, 125.0, float(t[-1])), t)
+    assert np.array_equal(cutdowns.regularize_grid(t[:8], 125.0, 10.0), t[:8])            # too few ticks to trust a fit
+
+
+def test_cutdowns_use_the_regular_grid_bpm():
+    ticks = 0.31 + np.arange(0, 100) * (60 / 124.0) * 1.0065 + np.random.RandomState(1).randn(100) * 0.006
+    g = cutdowns.regularize_grid(ticks, 124.0, 60.0)
+    plan = cutdowns.plan_cutdowns(g, np.full(g.size, 0.1), 60.0, (15,))
+    assert plan["ok"] and plan["bpm"] == pytest.approx(123.2, abs=0.4)
+    opt = plan["cutdowns"][0]["options"][0]
+    assert abs((opt["end"] - opt["start"]) - 8 * plan["bar_seconds"]) < 5e-3              # bars are exactly equal length (bar_seconds is rounded to ms)
+
+
 def test_trust_uses_tempo_agreement():
     good = trust.build_trust({"mainGenre": "Techno", "bpm": 120}, FEATS, None, [], None, None,
                              tempo_info={"bpm": 120, "agreement": 1.0, "octaveAmbiguous": False, "estimates": {"a": 120}})
