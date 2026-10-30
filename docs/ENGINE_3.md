@@ -33,6 +33,8 @@ New endpoints (`/api/intelligence/…`):
 | `POST /hear` (`vector=true` optional) | what the audio model hears |
 | `POST /similar` | rank sonic vectors by cosine (≥ 0.97 ≈ same recording / another master) |
 | `GET /passport/public-key`, `POST /passport/verify` | verify a passport offline-style |
+| `POST /passport/timestamp` | public, Bitcoin-anchored timestamp for a passport (OpenTimestamps): returns pending `.ots` files, one per calendar; only the SHA-256 of the signed passport leaves the server |
+| `POST /passport/timestamp/check` | does this `.ots` file belong to this passport? (confirmation in Bitcoin: `ots upgrade`, then `ots verify`, official client) |
 | `POST /embed-text` (public, 120/min) | free text -> CLAP vector in the same space as a track's `sonicVector` |
 | `POST /semantic-search` | embed a query and cosine-rank candidate vectors (`{query, candidates:[{id,vector}], top}`) |
 | `POST /profile` | fast catalogue profile: hearing + tempo consensus, no LLM (seconds per track) |
@@ -69,3 +71,7 @@ until enough tracks have vectors the endpoint answers 204 and the library behave
   weaker on fine sub-genres. The trust layer exists to surface exactly those disagreements.
 * Vocal detection thresholds come from a 22-track calibration; the middle band (50–80 % instrumental) is reported as *unclear*.
 * A regional language is not detected without the lyrics pass (`transcribe=true`).
+
+## Webhooks
+
+A signed `analysis.completed` / `analysis.failed` event can be pushed to your server instead of polling: see [WEBHOOKS.md](WEBHOOKS.md).

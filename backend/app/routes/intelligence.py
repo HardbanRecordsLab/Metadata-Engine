@@ -137,6 +137,42 @@ async def passport_verify(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]
     return passport.verify_passport(p, payload.get("publicKey"))
 
 
+@router.post("/passport/timestamp")
+@limiter.limit("30/hour")
+async def passport_timestamp(request: Request, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Put a public, Bitcoin-anchored timestamp on a passport this engine issued (OpenTimestamps). Body: ``{"passport": {...}}``.
+
+    Only the SHA-256 of the signed passport is sent to the public calendars. The returned `.ots` files are PENDING until upgraded
+    with the official client (see the ``next`` field)."""
+    p = payload.get("passport", payload)
+    if not isinstance(p, dict) or "payload" not in p:
+        raise HTTPException(400, "passport object expected")
+    if not passport.verify_passport(p).get("valid"):
+        raise HTTPException(400, "only a valid passport issued by this engine can be timestamped")
+    from app.services import ots_stamp
+    return await ots_stamp.submit(p)
+
+
+@router.post("/passport/timestamp/check")
+async def passport_timestamp_check(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Does this `.ots` file belong to this passport? Body: ``{"passport": {...}, "ots_b64": "..."}``. (Bitcoin confirmation is checked
+    with the official client: `ots verify`.)"""
+    import base64
+    from app.services import ots_stamp
+    p = payload.get("passport")
+    if not isinstance(p, dict) or "payload" not in p:
+        raise HTTPException(400, "passport object expected")
+    try:
+        raw = base64.b64decode(payload.get("ots_b64") or "", validate=True)
+    except ValueError:
+        raise HTTPException(400, "ots_b64 is not valid base64")
+    got = ots_stamp.ots_digest(raw)
+    if got is None:
+        return {"matches": False, "reason": "not an OpenTimestamps file"}
+    want = ots_stamp.passport_digest(p)
+    return {"matches": got == want, "digest": want.hex(), "passportValid": bool(passport.verify_passport(p).get("valid"))}
+
+
 @router.post("/embed-text")
 @limiter.limit("120/minute")
 async def embed_text(request: Request, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
