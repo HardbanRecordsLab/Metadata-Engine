@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
@@ -238,6 +238,45 @@ async def passport_timestamp_check(payload: Dict[str, Any] = Body(...)) -> Dict[
         return {"matches": False, "reason": "not an OpenTimestamps file"}
     want = ots_stamp.passport_digest(p)
     return {"matches": got == want, "digest": want.hex(), "passportValid": bool(passport.verify_passport(p).get("valid"))}
+
+
+@router.post("/splitsheet")
+@limiter.limit("30/hour")
+async def splitsheet_create(request: Request, payload: Dict[str, Any] = Body(...), format: str = "json", user=Depends(get_user_and_check_quota)):
+    """Who wrote and owns what. Body: ``{"work": {title, artist, isrc, iswc, date, notes}, "contributors": [{name, role, composition_share,
+    master_share, ipi, pro, email}]}``. The composition shares and (if used) the master shares must each add up to 100. Returns the signed
+    document, or with ``?format=pdf`` a printable PDF with a signature line for every contributor."""
+    from app.services import split_sheet as ss
+    clean, errors = ss.validate(payload)
+    if errors:
+        raise HTTPException(422, {"errors": errors})
+    doc = ss.build_document(clean, prepared_by=str(getattr(user, "id", "")))
+    if format == "pdf":
+        pdf = await _off_loop(ss.render_pdf, doc)
+        return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="split-sheet.pdf"'})
+    return {"document": doc, "totals": clean["totals"]}
+
+
+@router.post("/splitsheet/verify")
+async def splitsheet_verify(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    """Body: the ``document`` returned by /splitsheet. Detects any later change to a name or a share."""
+    from app.services import split_sheet as ss
+    doc = payload.get("document", payload)
+    if not isinstance(doc, dict) or "payload" not in doc:
+        raise HTTPException(400, "split sheet document expected")
+    return ss.verify_document(doc, payload.get("publicKey"))
+
+
+@router.post("/splitsheet/pdf")
+@limiter.limit("60/hour")
+async def splitsheet_pdf(request: Request, payload: Dict[str, Any] = Body(...)):
+    """Print a saved, signed split sheet again (the signature is checked first)."""
+    from app.services import split_sheet as ss
+    doc = payload.get("document", payload)
+    if not isinstance(doc, dict) or not ss.verify_document(doc).get("valid"):
+        raise HTTPException(400, "a valid signed split sheet is required")
+    pdf = await _off_loop(ss.render_pdf, doc)
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="split-sheet.pdf"'})
 
 
 @router.post("/embed-text")
