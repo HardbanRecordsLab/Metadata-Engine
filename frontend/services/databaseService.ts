@@ -11,6 +11,17 @@ const getHeaders = () => {
     };
 };
 
+/**
+ * A history row's `result` comes in two shapes: records saved by the browser are `{ metadata, inputType }`, records saved by the
+ * backend when a job finishes (1720 of the 1723 rows on the admin account) ARE the metadata, at the top level. Reading only
+ * `result.metadata` showed those rows with empty genre, BPM and key.
+ */
+export function metadataFromResult(result: any): AnalysisRecord['metadata'] {
+    if (!result || typeof result !== 'object') return {} as AnalysisRecord['metadata'];
+    if (result.metadata && typeof result.metadata === 'object') return result.metadata;
+    return result as AnalysisRecord['metadata'];
+}
+
 export const db = {
     // --- HISTORY ---
     fetchHistory: async (userId: string): Promise<AnalysisRecord[]> => {
@@ -38,7 +49,7 @@ export const db = {
                 // Return mapped object
                 return {
                     id: row.id,
-                    metadata: resultData.metadata || {},
+                    metadata: metadataFromResult(resultData),
                     inputType: resultData.inputType || 'file',
                     input: {
                         fileName: row.file_name,
