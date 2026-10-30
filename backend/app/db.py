@@ -108,6 +108,21 @@ class RedeemedCode(Base):
     redeem_code_id = Column(Integer, ForeignKey("redeem_codes.id"), index=True)
     redeemed_at = Column(DateTime, default=datetime.utcnow)
 
+class WebhookEndpoint(Base):
+    """A customer's webhook (one per account): we POST a signed JSON event there when an analysis finishes.
+    The secret is stored in clear because the HMAC needs it; it is shown to the owner once, when created or rotated."""
+    __tablename__ = "webhook_endpoints"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    url = Column(String, nullable=False)
+    secret = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_attempt_at = Column(DateTime, nullable=True)
+    last_status = Column(Integer, nullable=True)
+    last_error = Column(String, nullable=True)
+    consecutive_failures = Column(Integer, default=0)
+
 class AnalysisHistory(Base):
     __tablename__ = "analysis_history"
     id = Column(Integer, primary_key=True, index=True)

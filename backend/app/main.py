@@ -98,6 +98,7 @@ def setup_app():
     from app.routes.export import router as export_router
     from app.routes.tools import router as tools_router
     from app.routes.intelligence import router as intelligence_router
+    from app.routes.outbound_webhooks import router as outbound_webhooks_router
     from app.startup import ensure_admin_user
     
     app = FastAPI(
@@ -155,6 +156,7 @@ def setup_app():
     app.include_router(system_router, prefix="/api")
     app.include_router(certificate_router, prefix="/api")
     app.include_router(webhooks_router, prefix="/api")
+    app.include_router(outbound_webhooks_router, prefix="/api")
     app.include_router(billing_router, prefix="/api")
     app.include_router(acr_router, prefix="/api")
     app.include_router(redeem_codes_router, prefix="/api")

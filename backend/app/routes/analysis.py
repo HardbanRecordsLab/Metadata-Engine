@@ -250,6 +250,7 @@ async def process_analysis(
             job.message = "Analysis complete (Restored from cache)."
             db.commit()
             await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
+            _fire_webhook(job_id)
             return
 
         logger.info(f"Job {job_id}: Fast Local Pipeline (budget {time_budget_sec}s)...")
@@ -364,6 +365,7 @@ async def process_analysis(
         job.message = f"Analysis complete ({tech_meta.get('analysis_time', 0):.1f}s, {len([v for v in tech_meta.get('llm_sources', []) if v])} LLMs)."
         db.commit()
         await ws_manager.send_progress(job_id, job.message, progress=100, status="completed")
+        _fire_webhook(job_id)
 
         # Decrement user credits after successful analysis
         try:
@@ -403,6 +405,7 @@ async def process_analysis(
                 job.message = f"Analysis failed: {error_detail[:200]}"
                 db.commit()
             await ws_manager.send_progress(job_id, f"Error: {error_detail[:100]}", progress=0, status="error")
+            _fire_webhook(job_id)
         except Exception:
             pass
     finally:
@@ -415,6 +418,15 @@ async def process_analysis(
                 os.remove(file_path)
         except Exception as cleanup_err:
             logger.warning(f"Failed to clean up upload {file_path}: {cleanup_err}")
+
+
+def _fire_webhook(job_id: str) -> None:
+    """Tell the owner's webhook (if any) that the job is finished. Never blocks or raises."""
+    try:
+        from app.services import outbound_webhooks
+        outbound_webhooks.fire(job_id)
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"webhook not fired for {job_id}: {e}")
 
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
