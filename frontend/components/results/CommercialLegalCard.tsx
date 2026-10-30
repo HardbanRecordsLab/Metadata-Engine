@@ -5,7 +5,7 @@ import { CopyrightIcon, Sparkles, Settings, RefreshCw, Zap, Save, Check, Globe, 
 import Tooltip from '../Tooltip';
 import { generateNextCatalogNumber, generateNextISRC, getCodeConfig, saveCodeConfig, CodeConfig, resetSequences } from '../../services/codeGeneratorService';
 import Button from '../Button';
-import { exportDDEX, exportCWR } from '../../services/distributionService';
+import { exportDDEX, exportCWR, cwrNotice } from '../../services/distributionService';
 
 interface CommercialLegalCardProps {
     metadata: Metadata;
@@ -507,10 +507,17 @@ const CommercialLegalCard: React.FC<CommercialLegalCardProps> = ({ metadata, isE
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
                         <div>
                             <h5 className="font-bold text-sm text-light-text dark:text-dark-text mb-1">CWR 2.1 Export</h5>
-                            <p className="text-[10px] text-slate-500 mb-4 leading-relaxed">Common Works Registration for publishers and collecting societies (PRS, ASCAP, etc.)</p>
+                            <p className="text-[10px] text-slate-500 mb-4 leading-relaxed">Common Works Registration for publishers and collecting societies. A draft until your sender ID, IPI numbers and society codes are set.</p>
                         </div>
                         <Button
-                            onClick={() => exportCWR(metadata)}
+                            onClick={async () => {
+                                try {
+                                    const n = cwrNotice(await exportCWR(metadata));
+                                    showToast(n.text, n.type);
+                                } catch (e) {
+                                    showToast(e instanceof Error ? e.message : "Failed to generate CWR record", 'error');
+                                }
+                            }}
                             variant="secondary"
                             size="sm"
                             className="w-full justify-center border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400"

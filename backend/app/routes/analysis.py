@@ -38,7 +38,7 @@ def get_db():
 
 ALLOWED_METADATA_KEYS = {
     # Core identity
-    "title", "artist", "album", "albumArtist",
+    "title", "suggestedTitle", "artist", "album", "albumArtist",
     "year", "track",
     "duration",
     "coverArt",
@@ -245,7 +245,7 @@ async def process_analysis(
         cached_result = None if force_refresh else cache.get(file_hash)
         if cached_result:
             logger.info(f"Cache HIT for Job {job_id} (Hash: {file_hash[:16]}...)")
-            job.result = sanitize_metadata(cached_result)
+            job.result = _identity_for_this_upload(sanitize_metadata(cached_result), file_path, job.file_name)
             job.status = "completed"
             job.message = "Analysis complete (Restored from cache)."
             db.commit()
@@ -315,17 +315,16 @@ async def process_analysis(
         # Attach SHA-256 fingerprint
         metadata["sha256"] = file_hash
 
-        # Read existing file tags and merge (file tags win for identity fields only)
-        file_tag_fields = set()
+        # Read existing file tags and merge: the file's own tags WIN for the identity fields, and an untitled file is titled by its
+        # file name instead of a title the model invents anew on every run (see app/utils/identity.py)
+        from app.utils.identity import merge_identity
         try:
             from app.services.audio_analyzer import AdvancedAudioAnalyzer
             existing = AdvancedAudioAnalyzer.read_metadata(file_path) or {}
-            for field in ("title", "artist", "album", "year", "isrc", "upc", "catalogNumber", "copyright", "publisher"):
-                if existing.get(field) and not metadata.get(field):
-                    metadata[field] = existing[field]
-                    file_tag_fields.add(field)
         except Exception as e:
             logger.warning(f"Could not read existing file tags: {e}")
+            existing = {}
+        file_tag_fields, filename_fields = merge_identity(metadata, existing, job.file_name)
 
         # Technical QC (ran in parallel) + signed passport
         try:
@@ -348,7 +347,7 @@ async def process_analysis(
         await ws_manager.send_progress(job_id, job.message, progress=85)
 
         from app.utils.provenance import build_provenance
-        provenance = build_provenance(metadata, file_tag_fields, metadata.get("confidence"))
+        provenance = build_provenance(metadata, file_tag_fields, metadata.get("confidence"), filename_fields)
 
         final_metadata = sanitize_metadata(metadata)
         final_metadata["_provenance"] = provenance
@@ -418,6 +417,23 @@ async def process_analysis(
                 os.remove(file_path)
         except Exception as cleanup_err:
             logger.warning(f"Failed to clean up upload {file_path}: {cleanup_err}")
+
+
+def _identity_for_this_upload(result: dict, file_path: str, file_name: str) -> dict:
+    """A cached analysis describes the audio; the title, artist... belong to this upload's own tags and file name."""
+    from app.utils.identity import refresh_cached_identity
+    from app.utils.provenance import build_provenance
+    try:
+        from app.services.audio_analyzer import AdvancedAudioAnalyzer
+        tags = AdvancedAudioAnalyzer.read_metadata(file_path) or {}
+    except Exception:  # noqa: BLE001
+        tags = {}
+    by_tag, by_name = refresh_cached_identity(result, tags, file_name)
+    try:
+        result["_provenance"] = build_provenance({k: v for k, v in result.items() if k != "_provenance"}, by_tag, result.get("confidence"), by_name)
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"provenance not refreshed for a cached result: {e}")
+    return result
 
 
 def _fire_webhook(job_id: str) -> None:

@@ -417,20 +417,14 @@ async def export_cwr(job_id: str, db: Session = Depends(get_db)):
         if not job.result:
             raise HTTPException(status_code=400, detail="No results available")
         
-        from app.services.cwr_gen import CWRGenerator
-        
-        # Generate CWR content
-        cwr_content = CWRGenerator.generate_cwr(job.result)
-        
-        filename = f"CW_{job.file_name.rsplit('.', 1)[0]}_{job_id[:8]}.V21"
-        
-        return Response(
-            content=cwr_content,
-            # Validation: CWR is often treated as text/plain or application/octet-stream
-            media_type="text/plain", 
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-        
+        from app.services import cwr21
+
+        try:
+            res = cwr21.export_metadata(job.result)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e).splitlines())
+        return Response(content=res.text, media_type="text/plain", headers=cwr21.response_headers(res))
+
     except HTTPException:
         raise
     except Exception as e:

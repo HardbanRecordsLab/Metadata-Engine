@@ -5,6 +5,7 @@ import Card from './Card';
 import Button from '../Button';
 import { Share, Download, FileJson, FileType, Globe, Send } from '../icons';
 import { backendService } from '../../services/backendService';
+import { cwrNotice, exportCWRForJob } from '../../services/distributionService';
 
 interface DistributionCardProps {
     metadata: Metadata;
@@ -41,13 +42,18 @@ const DistributionCard: React.FC<DistributionCardProps> = ({ metadata, jobId, sh
         showToast("Generating DDEX ERN 4.3 XML...", 'info');
     };
 
-    const handleExportCwr = () => {
+    const handleExportCwr = async () => {
         if (!jobId) {
             showToast("Analysis record required for CWR export.", 'error');
             return;
         }
-        window.location.href = backendService.getExportCwrUrl(jobId);
         showToast("Generating CWR V2.1 file...", 'info');
+        try {
+            const n = cwrNotice(await exportCWRForJob(backendService.getExportCwrUrl(jobId)));
+            showToast(n.text, n.type);
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : "Failed to generate CWR record", 'error');
+        }
     };
 
     return (
@@ -101,7 +107,7 @@ const DistributionCard: React.FC<DistributionCardProps> = ({ metadata, jobId, sh
                         </Button>
                     </div>
                     <p className="text-[9px] text-slate-400 mt-2 italic">
-                        * CWR format required for PRO registration (ASCAP, BMI, GEMA).
+                        * CWR 2.1 work registration for publishers. A society only accepts it from an approved CWR participant, so without your sender ID, IPI numbers and society codes it is a draft.
                     </p>
                 </div>
 

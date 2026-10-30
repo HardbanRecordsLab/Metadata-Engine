@@ -99,32 +99,38 @@ _DEFAULT_CONFIDENCE_BY_SOURCE = {
 }
 
 
-def build_provenance(raw_metadata: dict, file_tag_fields: set, overall_confidence: float | None) -> dict:
+def build_provenance(raw_metadata: dict, file_tag_fields: set, overall_confidence: float | None, filename_fields: frozenset | set = frozenset()) -> dict:
     """Build a {field: {source, confidence, method}} map.
 
     `raw_metadata` should be the metadata dict *before* sanitize_metadata
     fills in display defaults, so a field the pipeline never actually
     produced is honestly reported as UNKNOWN rather than AI_GENERATED.
     `file_tag_fields` is the set of field names actually overwritten by the
-    file's own embedded tags during the merge step.
+    file's own embedded tags during the merge step; `filename_fields` the
+    ones taken from the file's name (an untitled file's title).
     """
     provenance = {}
     for field, source in DEFAULT_FIELD_SOURCE.items():
         value = raw_metadata.get(field)
         has_value = value not in (None, "", [], {})
 
-        if field in FILE_TAG_WINNER_FIELDS and field in file_tag_fields:
+        from_name = field in filename_fields and has_value
+        if from_name:
+            source = "EXTRACTED"
+        elif field in FILE_TAG_WINNER_FIELDS and field in file_tag_fields:
             source = "EXTRACTED"
         elif not has_value:
             source = "UNKNOWN"
 
         confidence = _DEFAULT_CONFIDENCE_BY_SOURCE[source]
-        if source == "AI_GENERATED" and overall_confidence is not None:
+        if from_name:
+            confidence = 0.7                    # read from the file name, not from the file's tags: a good guess, not a fact
+        elif source == "AI_GENERATED" and overall_confidence is not None:
             confidence = overall_confidence
 
         provenance[field] = {
             "source": source,
             "confidence": round(float(confidence), 2),
-            "method": _METHOD_BY_SOURCE[source],
+            "method": "filename" if from_name else _METHOD_BY_SOURCE[source],
         }
     return provenance
