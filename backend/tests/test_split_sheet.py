@@ -120,7 +120,7 @@ def test_html_escapes_everything_a_user_typed():
     assert errs == []
     page = ss.render_html(ss.build_document(clean))
     assert "<script>" not in page and "<img" not in page and "<b>S</b>" not in page
-    assert "&lt;script&gt;" in page and "Total" in page and page.count('class=sig') == 3          # one signature line per contributor
+    assert "&lt;script&gt;" in page and "Total" in page and page.count('class=line>') == 3          # one signature line per contributor
     assert "100 %" in page
 
 

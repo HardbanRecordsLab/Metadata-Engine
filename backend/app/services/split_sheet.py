@@ -138,7 +138,10 @@ def render_html(doc: Dict[str, Any]) -> str:
     body = "".join(
         f"<tr><td>{e(c['name'])}</td><td>{e(c['role'].replace('_', ' / '))}</td><td class=n>{_pct(c['composition_share'])}</td><td class=n>{_pct(c['master_share'])}</td>"
         f"<td>{e(c['ipi'])}{' · ' if c['ipi'] and c['pro'] else ''}{e(c['pro'])}</td></tr>" for c in rows)
-    sign = "".join(f"<div class=sig><div class=line></div>{e(c['name'])} <span>date</span></div>" for c in rows)
+    cells = [f"<td class=sig><div class=line></div><div class=who>{e(c['name'])}<span>date</span></div></td>" for c in rows]
+    if len(cells) % 2:
+        cells.append("<td class=sig></td>")
+    sign = "<table class=sigs>" + "".join(f"<tr>{cells[i]}{cells[i + 1]}</tr>" for i in range(0, len(cells), 2)) + "</table>"
     meta = " · ".join(x for x in (f"Artist: {e(w['artist'])}" if w["artist"] else "", f"ISRC {e(w['isrc'])}" if w["isrc"] else "", f"ISWC {e(w['iswc'])}" if w["iswc"] else "", f"Date {e(w['date'])}") if x)
     digest = hashlib.sha256(passport.canonical(p)).hexdigest()
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>
@@ -146,14 +149,14 @@ def render_html(doc: Dict[str, Any]) -> str:
 h1 {{ font-size: 18pt; margin: 0 0 2mm }} .meta {{ color: #444; margin-bottom: 6mm }}
 table {{ width: 100%; border-collapse: collapse; margin: 4mm 0 }} th, td {{ border-bottom: 1px solid #bbb; padding: 2mm 1.5mm; text-align: left; vertical-align: top }}
 th {{ font-size: 9pt; text-transform: uppercase; color: #555 }} .n {{ text-align: right; white-space: nowrap }} tfoot td {{ font-weight: bold; border-top: 2px solid #111 }}
-.sig {{ margin-top: 11mm; width: 48%; display: inline-block; vertical-align: top }} .line {{ border-bottom: 1px solid #111; height: 9mm }} .sig span {{ color: #777; float: right }}
+.sigs {{ margin-top: 6mm }} .sigs td {{ width: 50%; border: 0; padding: 12mm 6mm 0 0 }} .line {{ border-bottom: 1px solid #111; height: 2mm }} .who {{ padding-top: 1.5mm }} .who span {{ color: #777; margin-left: 40mm }}
 .note {{ margin-top: 10mm; font-size: 8.5pt; color: #555 }} .id {{ font: 7.5pt monospace; color: #666; margin-top: 3mm; word-break: break-all }}
 </style></head><body>
 <h1>Split sheet: {e(w['title'])}</h1><div class="meta">{meta}</div>
 <table><thead><tr><th>Name</th><th>Role</th><th class=n>Composition</th><th class=n>Master</th><th>IPI / society</th></tr></thead><tbody>{body}</tbody>
 <tfoot><tr><td colspan=2>Total</td><td class=n>{p['totals']['composition']:g} %</td><td class=n>{p['totals']['master']:g} %</td><td></td></tr></tfoot></table>
 {f'<p>{e(w["notes"])}</p>' if w['notes'] else ''}
-<div>{sign}</div>
+{sign}
 <p class="note">This sheet records what the parties state they have agreed about ownership of the composition (music and lyrics) and of the master recording. It is not a contract and not legal advice; each contributor confirms it by signing. The document is signed electronically by HardbanRecords Metadata Engine so that later changes can be detected.</p>
 <div class="id">Document {e(p['id'])} · created {e(p['createdAt'])} · key {e(doc['keyId'])} · SHA-256 {digest}</div>
 </body></html>"""
