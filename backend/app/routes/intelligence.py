@@ -13,6 +13,7 @@ from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
+from app.db import get_db
 from app.dependencies import get_user_and_check_quota
 from app.rate_limit import limiter
 from app.services import cutdowns, hearing, passport, qc
@@ -51,6 +52,72 @@ async def technical_qc(file: UploadFile = File(...), user=Depends(get_user_and_c
     """Loudness (LUFS / true peak), clipping, lossy-origin test, head/tail silence, ending style, sync-readiness score."""
     with _spooled(file) as path:
         return await _off_loop(qc.analyze_file, path)
+
+
+def _fingerprint_sample(path: str, duration: float) -> bytes:
+    """15 s from the middle of the track as a small mono MP3: enough for ACRCloud, cheap to upload."""
+    import subprocess
+    start = max(0.0, duration / 2 - 7.5) if duration else 0.0
+    r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{start:.2f}", "-t", "15", "-i", path, "-vn", "-ac", "1", "-ar", "22050",
+                        "-b:a", "96k", "-f", "mp3", "-"], capture_output=True, timeout=120)
+    return r.stdout if r.returncode == 0 else b""
+
+
+def _sha256_file(path: str) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _read_cover(data: bytes) -> Optional[Dict[str, Any]]:
+    try:
+        import io
+        from PIL import Image
+        with Image.open(io.BytesIO(data)) as im:
+            return {"width": im.width, "height": im.height, "format": im.format, "bytes": len(data)}
+    except Exception:  # noqa: BLE001 - not an image
+        return {"width": 0, "height": 0, "format": None, "bytes": len(data)}
+
+
+@router.post("/preflight")
+@limiter.limit("20/hour")
+async def release_preflight(request: Request, file: UploadFile = File(...), title: str = Form(""), artist: str = Form(""), isrc: str = Form(""),
+                            upc: str = Form(""), composer: str = Form(""), cover: Optional[UploadFile] = File(None),
+                            user=Depends(get_user_and_check_quota), db=Depends(get_db)) -> Dict[str, Any]:
+    """"Will a distributor reject this?": technical QC, an audio-fingerprint check against existing recordings (ACRCloud), the metadata
+    you typed, a duplicate check against your own analyses and, if you send it, the cover image - one checklist with a verdict."""
+    from app.db import AnalysisHistory
+    from app.services import acr_identify, release_preflight as rp
+    with _spooled(file) as path:
+        qc_report = await _off_loop(qc.analyze_file, path)
+        sha = await _off_loop(_sha256_file, path)
+        fp, fp_checked = None, False
+        if acr_identify.configured():
+            sample = await _off_loop(_fingerprint_sample, path, qc_report.get("duration_s") or 0)
+            if sample:
+                try:
+                    fp, fp_checked = await acr_identify.identify(sample, "sample.mp3"), True
+                except acr_identify.AcrError:
+                    fp, fp_checked = None, False
+    own: List[Dict[str, Any]] = []
+    uid = getattr(user, "id", None)
+    if uid:
+        for h in db.query(AnalysisHistory).filter(AnalysisHistory.user_id == str(uid), AnalysisHistory.file_hash == sha).limit(5).all():
+            r = h.metadata_json or h.result or {}
+            own.append({"title": (r.get("title") if isinstance(r, dict) else None), "file_name": h.file_name})
+    cover_info = None
+    if cover is not None and cover.filename:
+        data = await cover.read(15 * 1024 * 1024 + 1)
+        if len(data) > 15 * 1024 * 1024:
+            raise HTTPException(413, "Cover image too large (limit 15 MB)")
+        cover_info = _read_cover(data)
+    meta = {"title": title, "artist": artist, "isrc": isrc, "upc": upc, "composer": composer}
+    out = rp.evaluate(qc_report, meta, fp, fp_checked, own, cover_info, cover_given=cover_info is not None)
+    out["audio"] = {"sha256": sha, "durationSeconds": qc_report.get("duration_s")}
+    return out
 
 
 @router.post("/cutdowns")
