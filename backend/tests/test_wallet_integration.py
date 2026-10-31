@@ -44,8 +44,8 @@ class FakeWallet:
         self.codes = {"WELCOME10": 10}
         self.checkouts = []
 
-    def seed(self, email, password=PW, credits=30):
-        self.accounts[email] = {"id": uuid.uuid4().hex, "pw": password, "credits": credits, "links": set()}
+    def seed(self, email, password=PW, credits=3, start=0):
+        self.accounts[email] = {"id": uuid.uuid4().hex, "pw": password, "credits": credits, "start": start, "links": set()}
 
     def by_id(self, aid):
         return next(a for a in self.accounts.values() if a["id"] == aid)
@@ -59,7 +59,7 @@ class FakeWallet:
                 raise wallet.WalletError(422, "weak_password", "password must be 8 to 200 characters")
             if json["email"] in self.accounts:
                 raise wallet.WalletError(409, "email_taken", "exists")
-            self.seed(json["email"], json["password"])
+            self.seed(json["email"], json["password"], credits=3, start=27)
             return {"ok": True, "account_id": self.accounts[json["email"]]["id"], "credits": 30}
         if path == "/v1/accounts/login":
             a = self.accounts.get(json["email"])
@@ -83,7 +83,8 @@ class FakeWallet:
             return {"ok": True, "account_deleted": True}
         aid = path.split("/")[3] if path.startswith("/v1/wallet/") and path.count("/") > 3 else json.get("account_id")
         if path.endswith("/balance"):
-            return {"ok": True, "credits": self.by_id(aid)["credits"], "unlimited": False}
+            a = self.by_id(aid)
+            return {"ok": True, "credits": a["credits"] + a.get("start", 0), "available": a["credits"], "unlimited": False}
         if path == "/v1/wallet/charge":
             a = self.by_id(aid)
             if json["idempotency_key"] in self.keys:
@@ -155,7 +156,7 @@ def test_sign_up_creates_the_wallet_account_and_the_balance_is_the_wallets(clien
     u = local_user(em)
     assert u.wallet_account_id == fw.accounts[em]["id"] and u.credits == 0
     me = client.get("/api/auth/me", headers=bearer(tok)).json()
-    assert me["credits"] == 30                                    # 3 free MasteringPro tracks (27) + 3 free analyses, one start grant
+    assert me["credits"] == 3                                     # the 3 free analyses; the 27 credits of the free MasteringPro tracks are not analyses
 
 
 def test_the_same_person_signing_up_in_the_second_app_is_linked_not_given_a_second_grant(client, fw):
@@ -189,7 +190,7 @@ def test_one_analysis_is_one_credit_charged_once_and_an_empty_balance_is_refused
         assert get_user_and_check_quota(u, db) is u
         assert asyncio.run(decrement_user_credits(u.id, db, ref="job:abc12345")) is True
         assert asyncio.run(decrement_user_credits(u.id, db, ref="job:abc12345")) is True      # a retry of the same job
-        assert fw.accounts[em]["credits"] == 29
+        assert fw.accounts[em]["credits"] == 2
         fw.accounts[em]["credits"] = 0
         from fastapi import HTTPException
         with pytest.raises(HTTPException) as e:
@@ -215,7 +216,7 @@ def test_redeem_checkout_and_history_use_the_wallet(client, fw):
     tok = signup(client, em)
     h = bearer(tok)
     r = client.post("/api/quota/redeem", json={"code": "welcome10"}, headers=h)
-    assert r.status_code == 200 and r.json()["credits"] == 40
+    assert r.status_code == 200 and r.json()["credits"] == 13
     bad = client.post("/api/quota/redeem", json={"code": "NOPE"}, headers=h)
     assert bad.status_code == 400 and "Invalid" in bad.json()["error"]
     c = client.post("/api/billing/checkout", json={"pack_id": "producer"}, headers=h)

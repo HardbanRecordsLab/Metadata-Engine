@@ -68,7 +68,7 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
             bal = wallet.balance(current_user.wallet_account_id)
         except wallet.WalletError as exc:
             raise HTTPException(status_code=503, detail="Credits are temporarily unavailable. Please try again in a minute.") from exc
-        if not bal.get("unlimited") and bal.get("credits", 0) <= 0:
+        if not bal.get("unlimited") and bal.get("available", 0) <= 0:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail="Brak kredytów. Kup pakiet analiz w ustawieniach (Stripe)."

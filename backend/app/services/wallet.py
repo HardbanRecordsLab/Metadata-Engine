@@ -70,7 +70,8 @@ def unlink(account_id: str, password: str) -> dict:
 
 
 def balance(account_id: str) -> dict:
-    return _call("GET", f"/v1/wallet/{account_id}/balance")
+    """`available` = credits that pay for an analysis: the wallet keeps the free MasteringPro start pool (27 credits) out of it."""
+    return _call("GET", f"/v1/wallet/{account_id}/balance", params={"product": "analysis"})
 
 
 def charge(account_id: str, key: str, units: int = 1) -> dict:

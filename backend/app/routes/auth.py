@@ -315,7 +315,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
     credits = current_user.credits
     if current_user.wallet_account_id and wallet.enabled() and not current_user.is_superuser:
         try:
-            credits = (await asyncio.to_thread(wallet.balance, current_user.wallet_account_id))["credits"]
+            credits = (await asyncio.to_thread(wallet.balance, current_user.wallet_account_id))["available"]
         except wallet.WalletError:
             logger.warning("balance of %s unavailable from HRL Wallet", current_user.id)
     return {
