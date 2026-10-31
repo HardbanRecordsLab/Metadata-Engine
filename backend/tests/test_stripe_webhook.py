@@ -73,3 +73,16 @@ def test_bad_signature_is_rejected():
     with pytest.raises(Exception) as e:
         asyncio.run(billing.stripe_webhook(_Req(body, "t=1,v1=bad"), MagicMock()))
     assert getattr(e.value, "status_code", None) == 400
+
+
+def test_hrl_wallet_session_is_left_to_the_wallet():
+    user = SimpleNamespace(id="u1", credits=2, tier="free", is_premium=False)
+    event = {"id": "evt_3", "object": "event", "type": "checkout.session.completed", "data": {"object": {
+        "id": "cs_3", "object": "checkout.session", "payment_status": "paid", "client_reference_id": "u1",
+        "metadata": {"source": "hrl-wallet", "wallet_account_id": "w1", "pack_id": "starter", "credits": "10"}}}}
+    body, sig = _signed(event)
+    db = _db(user)
+    out = asyncio.run(billing.stripe_webhook(_Req(body, sig), db))
+    assert out == {"status": "ignored", "reason": "hrl-wallet session"}
+    assert user.credits == 2
+    assert not db.commit.called

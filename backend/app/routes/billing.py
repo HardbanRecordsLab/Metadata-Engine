@@ -149,6 +149,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ignored", "type": event["type"]}
 
     session = event["data"]["object"]
+    # Sessions created by HRL Wallet are credited there (its own webhook), never here.
+    if (session.get("metadata") or {}).get("source") == "hrl-wallet":
+        return {"status": "ignored", "reason": "hrl-wallet session"}
     if session.get("payment_status") != "paid":
         return {"status": "ignored", "reason": "not paid"}
 
