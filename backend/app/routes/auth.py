@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request, status, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+import asyncio
+import secrets
 from datetime import datetime, timedelta
 import bcrypt
 from jose import jwt
@@ -21,6 +23,7 @@ from app.security import (
 )
 from app.rate_limit import limiter
 from app.utils.email import send_email
+from app.services import wallet
 
 from app.config import settings
 
@@ -141,6 +144,47 @@ async def _send_verification_email(user: User, lang: str = "en") -> None:
     await send_email(user.email, "Verify your Metadata Engine email", html)
 
 
+def _wallet_http(exc: "wallet.WalletError") -> HTTPException:
+    if isinstance(exc, wallet.WalletUnavailable):
+        return HTTPException(status_code=503, detail="Accounts are temporarily unavailable. Please try again in a minute.")
+    if exc.code in ("weak_password", "bad_email"):
+        return HTTPException(status_code=400, detail=exc.message or "Invalid e-mail or password.")
+    if exc.code == "locked":
+        return HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
+    if exc.code == "bad_credentials":
+        return HTTPException(status_code=401, detail="Invalid email or password")
+    return HTTPException(status_code=502, detail="Accounts service error. Please try again.")
+
+
+async def _wallet_register_or_link(email: str, password: str) -> str:
+    """One sign-up for all HRL apps: a new wallet account (start credits), or the one the person already made in another app (same password)."""
+    try:
+        acc = await asyncio.to_thread(wallet.register, email, password)
+    except wallet.WalletError as exc:
+        if exc.code != "email_taken":
+            raise _wallet_http(exc) from exc
+        try:
+            acc = await asyncio.to_thread(wallet.login, email, password)
+        except wallet.WalletError as exc2:
+            if exc2.code in ("bad_credentials", "locked"):
+                raise HTTPException(
+                    status_code=409,
+                    detail="This e-mail already has an HRL account with a different password. Sign in with that password, or reset it.",
+                ) from exc2
+            raise _wallet_http(exc2) from exc2
+    return acc["account_id"]
+
+
+async def _wallet_check_password(user: User, password: str) -> None:
+    """Sign-in of a user whose credits and password live in HRL Wallet; keeps the local copy of the hash in step (so switching the flag off is safe)."""
+    try:
+        await asyncio.to_thread(wallet.login, user.email, password)
+    except wallet.WalletError as exc:
+        raise _wallet_http(exc) from exc
+    if not verify_password(password, user.password_hash):
+        user.password_hash = get_password_hash(password)
+
+
 # Routes
 @router.post("/register")
 @limiter.limit("10/minute")
@@ -155,13 +199,16 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
     if existing:
         raise HTTPException(status_code=409, detail="Email or username already exists")
 
+    wallet_account_id = await _wallet_register_or_link(payload.email, payload.password) if wallet.enabled() else None
+
     user = User(
         id=str(uuid.uuid4()),
         email=payload.email,
         username=username,
         password_hash=get_password_hash(payload.password),
         api_key=str(uuid.uuid4()),
-        credits=3,
+        credits=0 if wallet_account_id else 3,
+        wallet_account_id=wallet_account_id,
         is_verified=not VERIFICATION_ENABLED,
     )
     db.add(user)
@@ -217,7 +264,9 @@ async def login(request: Request, payload: UserLogin, db: Session = Depends(get_
     
     user = db.query(User).filter(User.email == payload.email).first()
     
-    if not user or not verify_password(payload.password, user.password_hash):
+    if user and user.wallet_account_id and wallet.enabled():
+        await _wallet_check_password(user, payload.password)
+    elif not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not user.is_active:
@@ -234,7 +283,7 @@ async def login(request: Request, payload: UserLogin, db: Session = Depends(get_
     # One-time welcome credits for new accounts (do not override purchases)
     try:
         current = user.credits if user.credits is not None else 0
-        if current < 3:
+        if current < 3 and not (user.wallet_account_id and wallet.enabled()):
             user.credits = 3
     except Exception as e:
         # Fallback safe default
@@ -263,6 +312,12 @@ async def login(request: Request, payload: UserLogin, db: Session = Depends(get_
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user info"""
+    credits = current_user.credits
+    if current_user.wallet_account_id and wallet.enabled() and not current_user.is_superuser:
+        try:
+            credits = (await asyncio.to_thread(wallet.balance, current_user.wallet_account_id))["credits"]
+        except wallet.WalletError:
+            logger.warning("balance of %s unavailable from HRL Wallet", current_user.id)
     return {
         "id": str(current_user.id),
         "email": current_user.email,
@@ -271,7 +326,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "is_verified": current_user.is_verified,
         "is_superuser": current_user.is_superuser,
         "tier": current_user.tier,
-        "credits": current_user.credits,
+        "credits": credits,
         "created_at": current_user.created_at,
         "api_key": current_user.api_key,
     }
@@ -283,10 +338,18 @@ async def change_password(request: Request, payload: ChangePasswordRequest,
                           current_user: User = Depends(get_current_user),
                           db: Session = Depends(get_db)):
     """Change the password for the signed-in user."""
-    if not verify_password(payload.current_password, current_user.password_hash):
+    linked = bool(current_user.wallet_account_id and wallet.enabled())
+    if not linked and not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(status_code=403, detail="Current password is incorrect.")
     if len(payload.new_password) < 8:
         raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+    if linked:
+        try:
+            await asyncio.to_thread(wallet.change_password, current_user.wallet_account_id, payload.current_password, payload.new_password)
+        except wallet.WalletError as exc:
+            if exc.code == "bad_credentials":
+                raise HTTPException(status_code=403, detail="Current password is incorrect.") from exc
+            raise _wallet_http(exc) from exc
     current_user.password_hash = get_password_hash(payload.new_password)
     db.commit()
     logger.info("Password changed for %s", current_user.email)
@@ -350,7 +413,14 @@ async def delete_my_account(request: Request, payload: DeleteAccountRequest,
     Financial records (`credit_purchases`) are retained as required by Polish
     tax/accounting law; they carry no contact data (Stripe holds that).
     """
-    if not verify_password(payload.password, current_user.password_hash):
+    if current_user.wallet_account_id and wallet.enabled():
+        try:
+            await asyncio.to_thread(wallet.unlink, current_user.wallet_account_id, payload.password)
+        except wallet.WalletError as exc:
+            if exc.code == "bad_credentials":
+                raise HTTPException(status_code=403, detail="Password is incorrect.") from exc
+            raise _wallet_http(exc) from exc
+    elif not verify_password(payload.password, current_user.password_hash):
         raise HTTPException(status_code=403, detail="Password is incorrect.")
 
     uid = current_user.id
@@ -412,6 +482,11 @@ async def reset_password(request: Request, payload: ResetPasswordRequest, db: Se
     if not user:
         raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
 
+    if user.wallet_account_id and wallet.enabled():
+        try:
+            await asyncio.to_thread(wallet.set_password, user.wallet_account_id, payload.new_password)
+        except wallet.WalletError as exc:
+            raise _wallet_http(exc) from exc
     user.password_hash = get_password_hash(payload.new_password)
     user.last_login = datetime.utcnow()
     db.commit()

@@ -1,6 +1,7 @@
 """Stripe Checkout for credit packs."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Literal
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import CreditPurchase, User, get_db
 from app.routes.auth import get_current_user
+from app.services import wallet
 from app.services.stripe_billing import (
     CREDIT_PACKS,
     init_stripe,
@@ -46,6 +48,16 @@ async def credit_purchase_history(
     db: Session = Depends(get_db),
 ):
     """The current user's own real Stripe credit-pack purchases."""
+    wallet_rows = []
+    if current_user.wallet_account_id and wallet.enabled():
+        try:
+            wallet_rows = [
+                {"id": p["id"], "pack_id": p["pack_id"], "credits_added": p["credits"], "amount_total": p["amount_cents"],
+                 "currency": p["currency"], "created_at": p["created_at"]}
+                for p in await asyncio.to_thread(wallet.purchases, current_user.wallet_account_id)
+            ]
+        except wallet.WalletError:
+            logger.warning("purchases of %s unavailable from HRL Wallet", current_user.id)
     purchases = (
         db.query(CreditPurchase)
         .filter(CreditPurchase.user_id == str(current_user.id))
@@ -53,7 +65,7 @@ async def credit_purchase_history(
         .all()
     )
     return {
-        "purchases": [
+        "purchases": wallet_rows + [
             {
                 "id": p.stripe_session_id,
                 "pack_id": p.pack_id,
@@ -74,6 +86,23 @@ async def create_checkout_session(
     current_user: User = Depends(get_current_user),
 ):
     """Create Stripe Checkout Session (one-time payment)."""
+    if current_user.wallet_account_id and wallet.enabled():
+        # Credits live in HRL Wallet: it creates the session (same Stripe Price objects) and credits the pack from its own webhook.
+        try:
+            r = await asyncio.to_thread(
+                wallet.checkout,
+                current_user.wallet_account_id,
+                body.pack_id,
+                settings.STRIPE_SUCCESS_URL or "https://app-metadata.hardbanrecordslab.online/?billing=success&session_id={CHECKOUT_SESSION_ID}",
+                settings.STRIPE_CANCEL_URL or "https://app-metadata.hardbanrecordslab.online/?billing=cancelled",
+                "pl" if request.cookies.get("hrl_lang") == "pl" else "en",
+            )
+        except wallet.WalletUnavailable as exc:
+            raise HTTPException(status_code=503, detail="Payments are temporarily unavailable. Please try again in a minute.") from exc
+        except wallet.WalletError as exc:
+            raise HTTPException(status_code=400 if exc.status < 500 else 502, detail=exc.message or "Could not create checkout session") from exc
+        return {"checkout_url": r["checkout_url"], "session_id": r["session_id"]}
+
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(
             status_code=503,

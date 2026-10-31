@@ -370,7 +370,7 @@ async def process_analysis(
         try:
             if job.user_id:
                 from app.dependencies import decrement_user_credits
-                await decrement_user_credits(job.user_id, db)
+                await decrement_user_credits(job.user_id, db, ref=f"job:{job_id}")
         except Exception as e:
             logger.error(f"Failed to decrement credits for user {job.user_id}: {e}")
 

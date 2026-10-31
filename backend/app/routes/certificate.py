@@ -152,7 +152,7 @@ async def generate_certificate(
     try:
         if current_user and not current_user.is_superuser:
             from app.dependencies import decrement_user_credits
-            await decrement_user_credits(current_user.id, db, amount=1)
+            await decrement_user_credits(current_user.id, db, amount=1, ref=f"cert:{certificate_human_id}")
             logger.info(f"Subtracted 1 credit from user {current_user.id} for certificate {certificate_human_id}")
     except Exception as e:
         logger.error(f"Failed to subtract credit for certificate: {e}")

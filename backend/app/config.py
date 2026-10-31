@@ -31,6 +31,11 @@ class Settings:
     DATABASE_URL = os.getenv("DATABASE_URL")
     SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY")
 
+    # HRL Wallet: one account and one credits balance shared with the other HRL apps. Off unless explicitly enabled.
+    WALLET_ENABLED = os.getenv("WALLET_ENABLED", "false").strip().lower() in ("1", "true", "yes")
+    WALLET_URL = os.getenv("WALLET_URL", "http://hrl-wallet:8790")
+    WALLET_TOKEN = os.getenv("WALLET_TOKEN", "")
+
     # Public base URL of the frontend app (for links in transactional emails)
     APP_BASE_URL = os.getenv("APP_BASE_URL", "https://app-metadata.hardbanrecordslab.online")
 

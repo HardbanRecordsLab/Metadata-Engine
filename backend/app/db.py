@@ -58,6 +58,7 @@ class User(Base):
     credits = Column(Integer, default=10)
     last_login = Column(DateTime, nullable=True)
     api_key = Column(String, unique=True, nullable=True, default=lambda: str(uuid.uuid4()))
+    wallet_account_id = Column(String, nullable=True, index=True)   # HRL Wallet account (credits live there when WALLET_ENABLED)
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -213,6 +214,19 @@ def run_migrations():
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
+def add_wallet_column():
+    """Own connection and dialect-aware: a failed ALTER inside run_migrations() aborts the whole Postgres transaction, and the User model needs this column."""
+    from sqlalchemy import inspect as sa_inspect
+    try:
+        with engine.begin() as conn:
+            if engine.dialect.name == "postgresql":
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_account_id VARCHAR"))
+            elif "wallet_account_id" not in [c["name"] for c in sa_inspect(engine).get_columns("users")]:
+                conn.execute(text("ALTER TABLE users ADD COLUMN wallet_account_id VARCHAR"))
+    except Exception as e:
+        logger.error(f"wallet column migration: {e}")
+
 # Apply migrations and create tables
 Base.metadata.create_all(bind=engine)
 run_migrations()
+add_wallet_column()

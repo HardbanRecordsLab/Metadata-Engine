@@ -88,6 +88,9 @@ jobs:
             # them from non-existent secrets silently turned verification/reset e-mails off (2026-10-22).
             OLD_SMTP_LINES="$(grep -E '^SMTP_(HOST|PORT|USER|PASS|FROM)=' .env || true)"
 
+            # HRL Wallet connection (URL, this app's bearer token, on/off flag): VPS-only like the SMTP lines.
+            OLD_WALLET_LINES="$(grep -E '^WALLET_(ENABLED|URL|TOKEN)=' .env || true)"
+
             # Backup existing env (docker-compose reads root .env)
             cp -p .env ".env.backup.$(date +%F-%H%M%S)"
 
@@ -138,6 +141,7 @@ jobs:
             printf '%s\n' "$OLD_DB_LINE" >> .env.new
             printf '%s\n' "$OLD_R2_LINES" >> .env.new
             printf '%s\n' "$OLD_SMTP_LINES" >> .env.new
+            printf '%s\n' "$OLD_WALLET_LINES" >> .env.new
             grep -Eq "$DB_RE" .env.new || { echo "FAIL: assembled .env lost the Postgres DATABASE_URL - keeping the old .env"; rm -f .env.new; exit 1; }
             chmod --reference=.env .env.new
             mv .env.new .env

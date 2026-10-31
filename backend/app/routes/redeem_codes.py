@@ -1,3 +1,4 @@
+import asyncio
 import secrets
 import string
 
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db, User, RedeemCode, RedeemedCode
 from app.routes.auth import get_current_user
 from app.routes.system import require_superuser
+from app.services import wallet
 
 router = APIRouter(tags=["redeem-codes"])
 
@@ -26,6 +28,15 @@ async def redeem_code(
     code_str = (payload.code or "").strip().upper()
     if not code_str:
         return JSONResponse(status_code=400, content={"error": "Enter a code."})
+
+    if current_user.wallet_account_id and wallet.enabled() and not current_user.is_superuser:
+        try:
+            r = await asyncio.to_thread(wallet.redeem, current_user.wallet_account_id, code_str)
+        except wallet.WalletUnavailable:
+            return JSONResponse(status_code=503, content={"error": "Credits are temporarily unavailable. Try again in a minute."})
+        except wallet.WalletError as exc:
+            return JSONResponse(status_code=404 if exc.status == 404 else 400, content={"error": (exc.message[:1].upper() + exc.message[1:] + ".") if exc.message else "Invalid or inactive code."})
+        return {"message": f"Success! {r['granted']} credits added to your account.", "credits": r["credits"]}
 
     entry = db.query(RedeemCode).filter(RedeemCode.code == code_str).first()
     if not entry or not entry.is_active:

@@ -1,3 +1,7 @@
+import asyncio
+import logging
+import uuid
+
 from fastapi import Depends, HTTPException, status
 from app.routes.auth import get_current_user
 from app.db import get_db, User
@@ -6,6 +10,10 @@ from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from fastapi import Header
 from typing import Optional
+
+from app.services import wallet
+
+logger = logging.getLogger(__name__)
 
 async def get_current_user_optional(
     authorization: Optional[str] = Header(None),
@@ -54,6 +62,19 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     if current_user.is_superuser:
         return current_user
         
+    # Credits live in HRL Wallet for accounts linked to it
+    if current_user.wallet_account_id and wallet.enabled():
+        try:
+            bal = wallet.balance(current_user.wallet_account_id)
+        except wallet.WalletError as exc:
+            raise HTTPException(status_code=503, detail="Credits are temporarily unavailable. Please try again in a minute.") from exc
+        if not bal.get("unlimited") and bal.get("credits", 0) <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Brak kredytów. Kup pakiet analiz w ustawieniach (Stripe)."
+            )
+        return current_user
+
     # Check credits
     if current_user.credits <= 0:
         raise HTTPException(
@@ -64,12 +85,21 @@ def get_user_and_check_quota(current_user: Optional[User] = Depends(get_current_
     return current_user
 
 
-async def decrement_user_credits(user_id: str, db: Session, amount: int = 1):
+async def decrement_user_credits(user_id: str, db: Session, amount: int = 1, ref: Optional[str] = None):
     """
     Subtract credits from user account after successful action.
-    Default: 1 credit (analysis).
+    Default: 1 credit (analysis). `ref` (job id, certificate id) makes a retried call charge once in HRL Wallet.
     """
     user = db.query(User).filter(User.id == user_id).first()
+    if user and user.wallet_account_id and wallet.enabled():
+        if user.is_superuser:
+            return False
+        try:
+            await asyncio.to_thread(wallet.charge, user.wallet_account_id, f"me:{ref or uuid.uuid4().hex}", amount)
+            return True
+        except wallet.WalletError as exc:
+            logger.warning("wallet charge of %s credit(s) for user %s refused: %s", amount, user_id, exc.code)
+            return False
     if user and not user.is_superuser:
         if user.credits >= amount:
             user.credits -= amount
